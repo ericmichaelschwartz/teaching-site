@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Teaching — Eric Schwartz</title>
+<style>
+  :root{
+    --page:#f9f9f7; --surface:#fcfcfb; --surface-2:#f3f2ee;
+    --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,0.10);
+    --blue:#2a78d6; --aqua:#1baf7a; --orange:#eb6834; --red:#e34948; --violet:#4a3aa7;
+  }
+  html[data-theme="dark"]{
+    --page:#0d0d0d; --surface:#1a1a19; --surface-2:#242422;
+    --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+    --blue:#3987e5; --aqua:#199e70; --orange:#d95926; --red:#e66767; --violet:#9085e9;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--page); color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    line-height:1.5;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:40px 20px 80px}
+  header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:8px}
+  h1{font-size:26px;margin:0}
+  .sub{color:var(--ink-2);margin:0 0 32px}
+  #themeBtn{
+    background:var(--surface); color:var(--ink); border:1px solid var(--border);
+    border-radius:8px; padding:6px 12px; font:inherit; font-size:13px; cursor:pointer;
+  }
+  #themeBtn:hover{background:var(--surface-2)}
+  h2{
+    font-size:14px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted);
+    border-bottom:1px solid var(--border); padding-bottom:8px; margin:36px 0 16px;
+  }
+  .card{
+    display:block; background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; padding:18px 20px; text-decoration:none; color:inherit;
+    margin-bottom:14px; transition:border-color .15s;
+  }
+  .card:hover{border-color:var(--blue)}
+  .card h3{margin:0 0 6px;font-size:17px;color:var(--blue)}
+  .card p{margin:0;color:var(--ink-2);font-size:14px}
+  footer{margin-top:48px;color:var(--muted);font-size:13px}
+  footer a{color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Eric Schwartz — Teaching</h1>
+    <button id="themeBtn" type="button">Dark mode</button>
+  </header>
+  <p class="sub">Interactive tools for my courses. Links to each tool are posted to Canvas as it is released.</p>
+
+  <h2>MKT 419/626 — Customer-Base Analysis</h2>
+
+  <a class="card" href="tools/clv-timeline.html">
+    <h3>The Customer Lifetime Value Timeline</h3>
+    <p>Explore how retention, margin, discounting, and acquisition cost combine into
+    customer lifetime value — value to date, residual value, and break-even.</p>
+  </a>
+
+  <footer>
+    <a href="http://www-personal.umich.edu/~ericmsch/">Eric Schwartz</a> ·
+    Ross School of Business, University of Michigan
+  </footer>
+</div>
+<script>
+  (function(){
+    var btn=document.getElementById("themeBtn");
+    if(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches){
+      document.documentElement.setAttribute("data-theme","dark");
+      btn.textContent="Light mode";
+    }
+    btn.addEventListener("click",function(){
+      var nx=document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark";
+      document.documentElement.setAttribute("data-theme",nx);
+      btn.textContent=nx==="dark"?"Light mode":"Dark mode";
+    });
+  })();
+</script>
+</body>
+</html>
