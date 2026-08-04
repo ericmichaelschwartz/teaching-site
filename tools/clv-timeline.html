@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta name="robots" content="noindex">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Customer Lifetime Value Timeline</title>
+<style>
+  :root{
+    --page:#f9f9f7; --surface:#fcfcfb; --surface-2:#f3f2ee;
+    --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,0.10);
+    --blue:#2a78d6; --aqua:#1baf7a; --orange:#eb6834; --red:#e34948; --violet:#4a3aa7;
+    --good:#006300;
+    --value:var(--blue);      /* Value to Date / past */
+    --future:var(--aqua);     /* future / residual */
+    --cost:var(--orange);     /* cost of revenue */
+    --cac:var(--red);         /* acquisition cost */
+  }
+  html[data-theme="dark"]{
+    --page:#0d0d0d; --surface:#1a1a19; --surface-2:#242422;
+    --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+    --blue:#3987e5; --aqua:#199e70; --orange:#d95926; --red:#e66767; --violet:#9085e9;
+    --good:#0ca30c;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--page); color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    line-height:1.5; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px; margin:0 auto; padding:28px 22px 64px}
+  header.top{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap}
+  h1{font-size:26px; line-height:1.2; margin:0 0 4px; letter-spacing:-0.01em}
+  .sub{color:var(--ink-2); font-size:14.5px; max-width:70ch; margin:0}
+  .theme-btn{
+    border:1px solid var(--border); background:var(--surface); color:var(--ink-2);
+    border-radius:999px; padding:7px 14px; font-size:13px; cursor:pointer; white-space:nowrap;
+  }
+  .theme-btn:hover{color:var(--ink)}
+
+  /* ---- controls ---- */
+  .panel{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px 20px}
+  .controls{margin-top:22px; display:grid; grid-template-columns:1fr; gap:18px}
+  .seg-row{display:flex; flex-wrap:wrap; gap:22px}
+  .seg-group{display:flex; flex-direction:column; gap:7px}
+  .seg-label{font-size:11.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); font-weight:600}
+  .seg{display:inline-flex; background:var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:3px}
+  .seg button{
+    border:0; background:transparent; color:var(--ink-2); font-size:13px; font-weight:500;
+    padding:6px 13px; border-radius:7px; cursor:pointer; white-space:nowrap;
+  }
+  .seg button.active{background:var(--surface); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.10); font-weight:600}
+  html[data-theme="dark"] .seg button.active{box-shadow:0 1px 2px rgba(0,0,0,.5)}
+
+  .sliders{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:16px 24px; margin-top:4px}
+  .sld label{display:flex; justify-content:space-between; align-items:baseline; font-size:12.5px; color:var(--ink-2); margin-bottom:5px; gap:8px}
+  .sld .name{font-weight:500}
+  .sld .val{font-weight:600; color:var(--ink); font-variant-numeric:tabular-nums; font-size:13px}
+  input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:4px; border-radius:4px; background:var(--grid); outline:none; margin:6px 0}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; appearance:none; width:16px; height:16px; border-radius:50%; background:var(--blue); border:2px solid var(--surface); box-shadow:0 1px 3px rgba(0,0,0,.25); cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:16px; height:16px; border-radius:50%; background:var(--blue); border:2px solid var(--surface); cursor:pointer}
+  .today-wrap{margin-top:2px; padding-top:16px; border-top:1px dashed var(--border)}
+  .today-wrap .sld label .name{font-weight:600}
+  input#today::-webkit-slider-thumb{background:var(--ink); width:18px; height:18px}
+  input#today::-moz-range-thumb{background:var(--ink); width:18px; height:18px}
+  .het-row{margin-top:16px; padding-top:16px; border-top:1px dashed var(--border); max-width:560px}
+  input#phi::-webkit-slider-thumb{background:var(--violet)}
+  input#phi::-moz-range-thumb{background:var(--violet)}
+  .het-hint{font-size:12px; color:var(--muted); margin:8px 2px 0}
+
+  /* ---- chart ---- */
+  .chartcard{margin-top:22px}
+  .legend{display:flex; flex-wrap:wrap; gap:16px 20px; margin:2px 2px 14px; font-size:12.5px; color:var(--ink-2)}
+  .legend .k{display:inline-flex; align-items:center; gap:7px}
+  .swatch{width:13px; height:13px; border-radius:3px; flex:none}
+  .swatch.line{height:3px; border-radius:2px; width:16px}
+  .dashkey{width:16px; border-top:2px dashed var(--muted); height:0}
+  svg{display:block; width:100%; height:auto; touch-action:none}
+  .axis-txt{fill:var(--muted); font-size:11px}
+  .tick-line{stroke:var(--grid); stroke-width:1}
+  .region-label{font-size:11px; font-weight:600; letter-spacing:.02em}
+  text{ -webkit-user-select:none; user-select:none }
+
+  /* tooltip */
+  .tip{position:absolute; pointer-events:none; opacity:0; transition:opacity .08s; background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:9px 11px; font-size:12px; color:var(--ink); box-shadow:0 6px 20px rgba(0,0,0,.14); min-width:150px; z-index:5}
+  .tip .ty{font-weight:600; margin-bottom:4px; font-size:12.5px}
+  .tip .rowt{display:flex; justify-content:space-between; gap:14px; color:var(--ink-2)}
+  .tip .rowt b{color:var(--ink); font-variant-numeric:tabular-nums; font-weight:600}
+  .chartpos{position:relative}
+
+  /* ---- stat tiles ---- */
+  .tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-top:22px}
+  .tile{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 15px; position:relative; overflow:hidden}
+  .tile .tl{font-size:12px; color:var(--ink-2); display:flex; align-items:center; gap:6px; margin-bottom:6px}
+  .tile .tv{font-size:23px; font-weight:600; letter-spacing:-0.01em}
+  .tile .tn{font-size:11.5px; color:var(--muted); margin-top:3px}
+  .tile.hero{background:linear-gradient(180deg,var(--surface),var(--surface-2)); border-color:var(--blue)}
+  .tile.hero .tv{font-size:30px}
+  .dot{width:9px; height:9px; border-radius:50%; flex:none}
+  .idbar{margin-top:14px; font-size:13px; color:var(--ink-2); display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center}
+  .idbar code{background:var(--surface-2); border:1px solid var(--border); border-radius:6px; padding:2px 7px; font-size:12.5px; color:var(--ink); font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  /* ---- notes / glossary / table ---- */
+  .foot{margin-top:26px; display:grid; grid-template-columns:1fr; gap:16px}
+  .note{font-size:13px; color:var(--ink-2)}
+  .note b{color:var(--ink)}
+  details.gloss{margin-top:6px}
+  details.gloss summary{cursor:pointer; font-weight:600; font-size:14px; color:var(--ink); padding:4px 0}
+  .gl{display:grid; grid-template-columns:auto 1fr; gap:6px 16px; margin-top:10px; font-size:13px}
+  .gl dt{font-weight:600; color:var(--ink)}
+  .gl dd{margin:0; color:var(--ink-2)}
+  .tablebtn{margin-top:2px}
+  table.data{border-collapse:collapse; width:100%; font-size:12.5px; margin-top:12px; font-variant-numeric:tabular-nums}
+  table.data th,table.data td{text-align:right; padding:6px 9px; border-bottom:1px solid var(--border)}
+  table.data th:first-child,table.data td:first-child{text-align:left}
+  table.data thead th{color:var(--muted); font-weight:600; border-bottom:1px solid var(--axis)}
+  .hide{display:none}
+  .disclaimer{font-size:12px; color:var(--muted); margin-top:24px; border-top:1px solid var(--border); padding-top:14px}
+  @media (max-width:640px){ h1{font-size:22px} .tile .tv{font-size:20px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>The Customer Lifetime Value Timeline</h1>
+      <p class="sub">Walk a customer's relationship through time and watch each piece of value light up: the acquisition cost paid up front, the <b>Value to Date</b> already earned, the <b>Residual Lifetime Value</b> still to come, and how they sum to <b>E(CLV)</b> — the post-acquisition value of a just-acquired customer. Drag <b>Today</b> to split past from future; change the economics to reshape the whole picture.</p>
+    </div>
+    <button class="theme-btn" id="themeBtn">Dark mode</button>
+  </header>
+
+  <div class="panel controls">
+    <div class="seg-row">
+      <div class="seg-group">
+        <span class="seg-label">Business setting</span>
+        <div class="seg" id="segSetting">
+          <button data-v="sub" class="active">Subscription</button>
+          <button data-v="trans">Transactional</button>
+          <button data-v="hyb">Hybrid</button>
+        </div>
+      </div>
+      <div class="seg-group">
+        <span class="seg-label">Whose value?</span>
+        <div class="seg" id="segView">
+          <button data-v="avg" class="active">Cohort average</button>
+          <button data-v="illus">One illustrative customer</button>
+        </div>
+      </div>
+      <div class="seg-group">
+        <span class="seg-label">Population</span>
+        <div class="seg" id="segPop">
+          <button data-v="homog" class="active">Homogeneous</button>
+          <button data-v="het">Heterogeneous (BG)</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="hetRow" class="het-row hide">
+      <div class="sld"><label><span class="name">Heterogeneity &mdash; spread of churn across customers (polarization &phi;)</span><span class="val" id="v-phi"></span></label><input type="range" id="phi" min="4" max="45" step="1"></div>
+      <p class="het-hint" id="hetHint"></p>
+    </div>
+
+    <div class="sliders" id="sliders">
+      <div class="sld"><label><span class="name" id="lbl-aov">Average order value</span><span class="val" id="v-aov"></span></label><input type="range" id="aov" min="5" max="300" step="5"></div>
+      <div class="sld"><label><span class="name" id="lbl-aof">Orders per year</span><span class="val" id="v-aof"></span></label><input type="range" id="aof" min="1" max="24" step="1"></div>
+      <div class="sld"><label><span class="name">Contribution margin</span><span class="val" id="v-margin"></span></label><input type="range" id="margin" min="5" max="95" step="1"></div>
+      <div class="sld"><label><span class="name" id="lbl-ret">Annual retention</span><span class="val" id="v-ret"></span></label><input type="range" id="ret" min="30" max="98" step="1"></div>
+      <div class="sld"><label><span class="name">Discount rate (d)</span><span class="val" id="v-disc"></span></label><input type="range" id="disc" min="0" max="25" step="1"></div>
+      <div class="sld"><label><span class="name">Acquisition cost (CAC)</span><span class="val" id="v-cac"></span></label><input type="range" id="cac" min="0" max="600" step="5"></div>
+    </div>
+
+    <div class="today-wrap">
+      <div class="sld"><label><span class="name">Today &mdash; years since acquisition</span><span class="val" id="v-today"></span></label><input type="range" id="today" min="0" max="12" step="0.5" value="3"></div>
+    </div>
+  </div>
+
+  <div class="chartcard">
+    <div class="legend" id="legend"></div>
+    <div class="chartpos">
+      <svg id="chart" viewBox="0 0 980 492" role="img" aria-label="Cumulative discounted value over time with per-period contribution bars"></svg>
+      <div class="tip" id="tip"></div>
+    </div>
+  </div>
+
+  <div class="tiles" id="tiles"></div>
+  <div class="idbar" id="idbar"></div>
+
+  <div class="foot">
+    <p class="note" id="storyNote"></p>
+    <div>
+      <button class="theme-btn tablebtn" id="tableBtn">Show data table</button>
+      <div id="tableWrap" class="hide"></div>
+    </div>
+    <details class="gloss">
+      <summary>Definitions used here</summary>
+      <dl class="gl">
+        <dt>Acquisition cost (CAC)</dt><dd>What you pay up front to acquire the customer. Sits below zero at t=0. Acquire only when E(CLV) &gt; CAC.</dd>
+        <dt>Value to Date</dt><dd>Past, backward-looking: the discounted contribution earned from acquisition through Today. Already in the business — <b>not</b> part of forward-looking CLV.</dd>
+        <dt>Residual Lifetime Value (RLV)</dt><dd>Forward-looking, from Today onward. For a still-active customer, E(RLV) = (1&minus;&theta;) &times; E(CLV) — and because churn &theta; is stationary, it doesn't depend on how long they've been active.</dd>
+        <dt>Post-Acquisition Value — E(CLV)</dt><dd>The whole forward value of a just-acquired customer: the present value of all future expected cash flows. E(CLV) = m &times; (1+d)/(d+&theta;). The first payment is certain, so E(CLV) can't be zero.</dd>
+        <dt>Margin multiple</dt><dd>(1+d)/(d+&theta;) — the number of "years of margin" a customer is worth. Multiply by per-period margin m to get E(CLV).</dd>
+        <dt>AOV &amp; AOF</dt><dd>Average Order Value and Average Order Frequency. Revenue per active customer = AOV &times; AOF; contribution margin m is the net-of-cost slice of that.</dd>
+        <dt>% active / retention</dt><dd>Survival S(t) = (1&minus;&theta;)<sup>t</sup> in the homogeneous case. In a heterogeneous cohort the observed retention rate <em>rises</em> over time — the "shakeout": those who stay are the champions.</dd>
+        <dt>Heterogeneous world (BG)</dt><dd>Churn propensity varies across customers, drawn from a Beta(a,b) distribution — the Beta-Geometric model. Each customer's own churn stays constant; the cohort's retention rises only because high-churn customers leave first. Polarization &phi; = 1/(a+b+1) sets the spread. Because of the fat right tail of survivors, E(CLV) is <em>higher</em> than a homogeneous model with the same average churn — ignoring heterogeneity always undervalues the base — and Residual Lifetime Value grows with tenure.</dd>
+      </dl>
+    </details>
+  </div>
+
+  <p class="disclaimer">Teaching illustration. Churn is modeled as geometric (homogeneous world) or Beta-Geometric (heterogeneous world), with annuity-due timing — the first payment arrives at acquisition. Population constructs E(CLV) and E(RLV) are computed as discounted infinite-horizon sums over the survival curve. Numbers are illustrative, not a forecast of any specific customer base.</p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(id){return document.getElementById(id);};
+  var N = 12; // horizon in years
+
+  var PRESETS = {
+    sub:   {aov:100, aof:1,  margin:80, ret:85, disc:10, cac:150, phi:18},
+    trans: {aov:45,  aof:3,  margin:30, ret:55, disc:10, cac:40,  phi:28},
+    hyb:   {aov:30,  aof:6,  margin:45, ret:72, disc:10, cac:80,  phi:22}
+  };
+  var LABELS = {
+    sub:   {aov:"Price per period", aof:"Billing periods / yr", ret:"Annual renewal rate", active:"% still subscribed"},
+    trans: {aov:"Average order value", aof:"Orders per year", ret:"Annual retention rate", active:"% still active"},
+    hyb:   {aov:"Average order value", aof:"Orders + renewals / yr", ret:"Annual retention rate", active:"% still active"}
+  };
+
+  var state = {setting:"sub", view:"avg", pop:"homog", aov:100, aof:1, margin:80, ret:85, disc:10, cac:150, phi:18, today:3};
+
+  // ---------- formatting ----------
+  function money(x){
+    var s = x<0 ? "-" : "";
+    var a = Math.abs(x);
+    if(a>=1000) return s+"$"+a.toLocaleString(undefined,{maximumFractionDigits:0});
+    return s+"$"+a.toFixed(a<100?1:0).replace(/\.0$/,"");
+  }
+  function money0(x){ return (x<0?"-$":"$")+Math.abs(x).toLocaleString(undefined,{maximumFractionDigits:0}); }
+
+  // ---------- model ----------
+  // Survival curve. Homogeneous: S(t)=(1-theta)^t. Heterogeneous: Beta-Geometric,
+  // churn ~ Beta(a,b) with mean = thetaMean and polarization phi = 1/(a+b+1);
+  // retention r(t) = (b+t-1)/(a+b+t-1) rises over time (the "shakeout").
+  function buildSurvival(thetaMean, Tmax){
+    var S=[1];
+    if(state.pop==="het"){
+      var phi = state.phi/100;
+      var s = 1/phi - 1;                 // s = a + b
+      var a = thetaMean*s, b = (1-thetaMean)*s;
+      var prev=1;
+      for(var t=1;t<=Tmax;t++){ var r=(b+t-1)/(a+b+t-1); prev*=r; S.push(prev); }
+      return {S:S, a:a, b:b, s:s};
+    } else {
+      for(var t=1;t<=Tmax;t++) S.push(Math.pow(1-thetaMean,t));
+      return {S:S};
+    }
+  }
+
+  function compute(){
+    var thetaMean = 1 - state.ret/100;
+    var d = state.disc/100;
+    var mPct = state.margin/100;
+    var rev = state.aov * state.aof;         // revenue per active year
+    var m = rev * mPct;                       // contribution margin per active year
+    var cost = rev - m;
+    var Tmax = 240;                           // long horizon for infinite-sum constructs
+    var surv = buildSurvival(thetaMean, Tmax);
+    var S = surv.S;
+    var illusLife = Math.min(N, Math.max(1, Math.round(1/Math.max(thetaMean,1e-6))));
+
+    var rows = [];
+    var cum = -state.cac;
+    for(var t=0;t<=N;t++){
+      var Sv = S[t];
+      var active = state.view==="avg" ? Sv : (t<=illusLife ? 1 : 0);
+      var df = 1/Math.pow(1+d, t);
+      var marginT = m*active, costT = cost*active, revT = rev*active, pv = marginT*df;
+      cum += pv;
+      var rt = state.view==="avg" ? (t===0?1:(S[t]/S[t-1])) : (t<=illusLife?1:0);
+      rows.push({t:t,S:Sv,active:active,df:df,revT:revT,costT:costT,marginT:marginT,pv:pv,cum:cum,ret:rt});
+    }
+
+    // population constructs (numeric infinite-horizon sums over survival)
+    function eclvFromS(Sarr){ var s=0; for(var t=0;t<Sarr.length;t++) s+=Sarr[t]/Math.pow(1+d,t); return m*s; }
+    var eclv = eclvFromS(S);                  // Post-acquisition value E(CLV)
+    var marginMult = eclv/m;                  // effective margin multiple
+    var eclvHomog = m*(1+d)/(d+thetaMean);    // what you'd get ignoring heterogeneity
+    var erlvHomog = (1-thetaMean)*eclvHomog;
+
+    // E(RLV) for a customer still active at tenure n = round(today). Grows with n under BG.
+    var nTen = Math.max(0, Math.round(state.today));
+    var erlv;
+    if(S[nTen] && S[nTen]>1e-9){
+      var sumR=0; for(var k=1;(k+nTen)<S.length;k++){ sumR += (S[nTen+k]/S[nTen])/Math.pow(1+d,k); }
+      erlv = m*(1+d)*sumR;
+    } else erlv = 0;
+
+    var netTLV = eclv - state.cac;
+
+    // split at Today
+    var tt = state.today, vtd = 0;
+    for(var i=0;i<rows.length;i++){ if(rows[i].t <= tt + 1e-9) vtd += rows[i].pv; }
+    var grossHorizon = rows[rows.length-1].cum + state.cac;
+    var futurePortion = grossHorizon - vtd;
+
+    // break-even year
+    var breakEven = null;
+    for(var j=1;j<rows.length;j++){
+      if(rows[j-1].cum < 0 && rows[j].cum >= 0){ var a0=rows[j-1].cum, b0=rows[j].cum; breakEven=(rows[j-1].t)+(0-a0)/(b0-a0); break; }
+    }
+    if(rows[0].cum>=0) breakEven = 0;
+
+    // shakeout: cohort retention at year 1 vs year N
+    var retStart = (S[1]!=null)? S[1]/S[0] : (1-thetaMean);
+    var retEnd = (S[N]!=null && S[N-1]>0)? S[N]/S[N-1] : (1-thetaMean);
+
+    return {rows:rows, theta:thetaMean, thetaMean:thetaMean, d:d, m:m, rev:rev, cost:cost, mPct:mPct,
+      marginMult:marginMult, eclv:eclv, erlv:erlv, netTLV:netTLV, eclvHomog:eclvHomog, erlvHomog:erlvHomog,
+      vtd:vtd, futurePortion:futurePortion, breakEven:breakEven, illusLife:illusLife,
+      grossHorizon:grossHorizon, realizedTotal:grossHorizon, nTen:nTen,
+      retStart:retStart, retEnd:retEnd, a:surv.a, b:surv.b, phi:state.phi/100, isHet:state.pop==="het"};
+  }
+
+  // ---------- layout ----------
+  var L=64, R=978-150, T=18;
+  var Ah=286, gap=30, Bh=120;                // panel A (curve) / gap / panel B (bars)
+  var Abot=T+Ah, Btop=Abot+gap, Bbot=Btop+Bh;
+  function xs(t){ return L + (t/N)*(R-L); }
+
+  function esc(s){return String(s);}
+
+  function render(){
+    var M = compute();
+    var cvColor = getVar('--value'), ftColor = getVar('--future'),
+        cacColor = getVar('--cac'), costColor=getVar('--cost'),
+        ink=getVar('--ink'), muted=getVar('--muted'), grid=getVar('--grid'),
+        axis=getVar('--axis'), surface=getVar('--surface');
+
+    // ----- y domain panel A -----
+    var minCum=0, maxCum=0;
+    for(var i=0;i<M.rows.length;i++){ minCum=Math.min(minCum,M.rows[i].cum); maxCum=Math.max(maxCum,M.rows[i].cum); }
+    minCum=Math.min(minCum, -state.cac);
+    var eEnd = M.eclv - state.cac;
+    maxCum=Math.max(maxCum, eEnd);
+    var padA=(maxCum-minCum)*0.10 || 10;
+    var yTop=maxCum+padA, yBot=minCum-padA*0.4;
+    function yA(v){ return Abot - (v-yBot)/(yTop-yBot)*Ah; }
+    var y0 = yA(0);
+
+    // ----- y domain panel B -----
+    var maxRev=0.0001;
+    for(i=0;i<M.rows.length;i++) maxRev=Math.max(maxRev,M.rows[i].revT);
+    function yB(v){ return Bbot - (v/maxRev)*Bh; }
+
+    var xToday = xs(Math.min(state.today,N));
+    var svg = [];
+
+    // region backgrounds (Value to Date vs Future) across panel A
+    svg.push(rect(L, T, xToday-L, Ah, cvColor, 0.07));
+    svg.push(rect(xToday, T, R-xToday, Ah, ftColor, 0.07));
+
+    // gridlines + y ticks (panel A)
+    var ticks = niceTicks(yBot, yTop, 5);
+    for(i=0;i<ticks.length;i++){
+      var yy=yA(ticks[i]);
+      if(yy<T-1||yy>Abot+1) continue;
+      svg.push(line(L, yy, R, yy, ticks[i]===0?axis:grid, ticks[i]===0?1.4:1));
+      svg.push(txt(L-9, yy+3.5, money(ticks[i]), muted, 11, "end"));
+    }
+
+    // asymptote: E(CLV) - CAC (net long-run value)  — dashed reference
+    if(state.view==="avg" && eEnd<yTop && eEnd>yBot){
+      var yAsym=yA(eEnd);
+      svg.push('<line x1="'+L+'" y1="'+yAsym+'" x2="'+R+'" y2="'+yAsym+'" stroke="'+ink+'" stroke-width="1.2" stroke-dasharray="3 4" opacity="0.45"/>');
+      svg.push(txt(R+6, yAsym+3.5, "E(CLV)−CAC", muted, 10.5, "start"));
+    }
+
+    // ----- cumulative area + line, split at Today -----
+    // build point list
+    var pts=M.rows.map(function(r){return {x:xs(r.t), y:yA(r.cum), t:r.t, cum:r.cum};});
+    // area to zero baseline, past (blue) then future (aqua): clip by x
+    svg.push(areaPath(pts, y0, cvColor, 0.14, L, xToday));
+    svg.push(areaPath(pts, y0, ftColor, 0.16, xToday, R));
+    // line segments past/future
+    svg.push(linePath(pts, cvColor, L, xToday, M.view));
+    svg.push(linePath(pts, ftColor, xToday, R, M.view));
+
+    // acquisition cost marker at t=0 (drop from 0 to -CAC)
+    var xAcq=xs(0);
+    if(state.cac>0){
+      svg.push('<line x1="'+xAcq+'" y1="'+y0+'" x2="'+xAcq+'" y2="'+yA(-state.cac)+'" stroke="'+cacColor+'" stroke-width="3" stroke-linecap="round"/>');
+      svg.push(dot(xAcq, yA(-state.cac), cacColor, surface));
+      svg.push(txt(xAcq+9, yA(-state.cac)+4, "CAC "+money0(-state.cac), cacColor, 11, "start", 600));
+    }
+
+    // break-even marker
+    if(M.breakEven!==null && M.breakEven>0 && M.breakEven<=N){
+      var xbe=xs(M.breakEven);
+      svg.push('<circle cx="'+xbe+'" cy="'+y0+'" r="5" fill="none" stroke="'+ink+'" stroke-width="1.6"/>');
+      svg.push(txt(xbe, y0-10, "break-even ≈ yr "+M.breakEven.toFixed(1), ink, 10.5, "middle", 600));
+    }
+
+    // end dot + net value label
+    var last=pts[pts.length-1];
+    svg.push(dot(last.x, last.y, ftColor, surface));
+
+    // Today vertical marker (spans both panels)
+    svg.push('<line x1="'+xToday+'" y1="'+(T-2)+'" x2="'+xToday+'" y2="'+(Bbot+4)+'" stroke="'+ink+'" stroke-width="2"/>');
+    svg.push('<rect x="'+(xToday-22)+'" y="'+(T-16)+'" width="44" height="15" rx="4" fill="'+ink+'"/>');
+    svg.push(txt(xToday, T-5, "TODAY", surface, 9.5, "middle", 700));
+
+    // region labels inside panel A
+    svg.push(txt((L+xToday)/2, T+15, "VALUE TO DATE", cvColor, 11, "middle", 700, "region-label"));
+    svg.push(txt((xToday+R)/2, T+15, state.view==="avg"?"FUTURE VALUE (RLV)":"REMAINING VALUE", ftColor, 11, "middle", 700, "region-label"));
+
+    // ===== panel B: per-period revenue bars (cost + margin) =====
+    svg.push(txt(L, Btop-8, (state.view==="avg"?"Expected revenue per cohort member each year":"Revenue while active each year")+"  —  cost of revenue + contribution margin", muted, 11, "start", 600));
+    svg.push(line(L, Bbot, R, Bbot, axis, 1.2));
+    var bw = Math.min(22, (R-L)/(N+1)*0.62);
+    for(i=0;i<M.rows.length;i++){
+      var r=M.rows[i]; if(r.revT<=0.0001) continue;
+      var cx=xs(r.t);
+      var yTopMargin=yB(r.revT);
+      var ySplit=yB(r.costT);
+      // cost of revenue (bottom)
+      svg.push(barSeg(cx-bw/2, ySplit, bw, Bbot-ySplit, costColor, 0));
+      // 2px surface gap
+      // contribution margin (top)
+      svg.push(barSeg(cx-bw/2, yTopMargin, bw, (ySplit-2)-yTopMargin, cvColor, 4));
+    }
+    // x axis ticks (years) under panel B
+    for(var yr=0;yr<=N;yr+=2){
+      var xx=xs(yr);
+      svg.push('<line x1="'+xx+'" y1="'+Bbot+'" x2="'+xx+'" y2="'+(Bbot+5)+'" stroke="'+axis+'" stroke-width="1"/>');
+      svg.push(txt(xx, Bbot+18, yr===0?"acq":("yr "+yr), muted, 11, "middle"));
+    }
+
+    $("chart").innerHTML = svg.join("");
+    attachHover(M, yA, y0);
+
+    renderLegend();
+    renderTiles(M);
+    renderStory(M);
+    renderTable(M);
+    renderIdentity(M);
+  }
+
+  // ---------- svg helpers ----------
+  function getVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  function rect(x,y,w,h,fill,op){ return '<rect x="'+x+'" y="'+y+'" width="'+Math.max(0,w)+'" height="'+Math.max(0,h)+'" fill="'+fill+'" opacity="'+op+'"/>'; }
+  function line(x1,y1,x2,y2,c,w){ return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+c+'" stroke-width="'+w+'"/>'; }
+  function txt(x,y,s,c,sz,anchor,weight,cls){ return '<text x="'+x+'" y="'+y+'" fill="'+c+'" font-size="'+sz+'" text-anchor="'+(anchor||"start")+'"'+(weight?' font-weight="'+weight+'"':'')+(cls?' class="'+cls+'"':'')+'>'+esc(s)+'</text>'; }
+  function dot(x,y,c,ring){ return '<circle cx="'+x+'" cy="'+y+'" r="4.5" fill="'+c+'" stroke="'+ring+'" stroke-width="2"/>'; }
+  function barSeg(x,y,w,h,c,r){ if(h<=0) return ''; r=Math.min(r,w/2,h); return '<path d="'+roundedTopRect(x,y,w,h,r)+'" fill="'+c+'"/>'; }
+  function roundedTopRect(x,y,w,h,r){
+    return 'M'+x+' '+(y+h)+' L'+x+' '+(y+r)+' Q'+x+' '+y+' '+(x+r)+' '+y+' L'+(x+w-r)+' '+y+' Q'+(x+w)+' '+y+' '+(x+w)+' '+(y+r)+' L'+(x+w)+' '+(y+h)+' Z';
+  }
+  function clipPts(pts,x0,x1){
+    // return points within [x0,x1], adding interpolated endpoints
+    var out=[];
+    for(var i=0;i<pts.length;i++){
+      var p=pts[i];
+      if(p.x>=x0-0.01 && p.x<=x1+0.01) out.push(p);
+    }
+    // interpolate boundaries
+    function interpAt(xq){
+      for(var i=1;i<pts.length;i++){
+        if((pts[i-1].x<=xq&&pts[i].x>=xq)){
+          var f=(xq-pts[i-1].x)/(pts[i].x-pts[i-1].x||1);
+          return {x:xq, y:pts[i-1].y+f*(pts[i].y-pts[i-1].y)};
+        }
+      }
+      return null;
+    }
+    var a=interpAt(x0), b=interpAt(x1);
+    if(a && (!out.length||out[0].x>x0+0.01)) out.unshift(a);
+    if(b && (!out.length||out[out.length-1].x<x1-0.01)) out.push(b);
+    return out;
+  }
+  function stepPointsFor(pts){
+    // illustrative: step function (value stays flat between years then jumps)
+    var sp=[];
+    for(var i=0;i<pts.length;i++){
+      if(i>0) sp.push({x:pts[i].x, y:pts[i-1].y});
+      sp.push(pts[i]);
+    }
+    return sp;
+  }
+  function linePath(pts, color, x0, x1, view){
+    var base = view==="illus" ? stepPointsFor(pts) : pts;
+    var seg = clipPts(base, x0, x1);
+    if(seg.length<2) return '';
+    var dstr="M"+seg[0].x+" "+seg[0].y;
+    for(var i=1;i<seg.length;i++) dstr+=" L"+seg[i].x+" "+seg[i].y;
+    return '<path d="'+dstr+'" fill="none" stroke="'+color+'" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>';
+  }
+  function areaPath(pts, y0, color, op, x0, x1){
+    var base = (state.view==="illus") ? stepPointsFor(pts) : pts;
+    var seg = clipPts(base, x0, x1);
+    if(seg.length<2) return '';
+    var dstr="M"+seg[0].x+" "+y0+" L"+seg[0].x+" "+seg[0].y;
+    for(var i=1;i<seg.length;i++) dstr+=" L"+seg[i].x+" "+seg[i].y;
+    dstr+=" L"+seg[seg.length-1].x+" "+y0+" Z";
+    return '<path d="'+dstr+'" fill="'+color+'" opacity="'+op+'"/>';
+  }
+  function niceTicks(lo,hi,n){
+    var span=hi-lo; if(span<=0) return [0];
+    var step=Math.pow(10,Math.floor(Math.log10(span/n)));
+    var err=(span/n)/step;
+    if(err>=7.5)step*=10; else if(err>=3.5)step*=5; else if(err>=1.5)step*=2;
+    var start=Math.ceil(lo/step)*step, out=[];
+    for(var v=start; v<=hi+1e-9; v+=step) out.push(Math.round(v*100)/100);
+    if(out.indexOf(0)<0 && lo<0 && hi>0) out.push(0);
+    return out;
+  }
+
+  // ---------- hover ----------
+  function attachHover(M, yA, y0){
+    var svg=$("chart"), tip=$("tip");
+    function handler(ev){
+      var rect=svg.getBoundingClientRect();
+      var px=(ev.clientX-rect.left)/rect.width*980;
+      if(px<L||px>R){ tip.style.opacity=0; return; }
+      var tval=(px-L)/(R-L)*N;
+      var idx=Math.round(tval); idx=Math.max(0,Math.min(N,idx));
+      var r=M.rows[idx];
+      var cx=xs(r.t);
+      var cy=yA(r.cum);
+      var host=svg.parentElement.getBoundingClientRect();
+      var lx=(cx/980)*rect.width + (rect.left-host.left);
+      var ly=(cy/492)*rect.height + (rect.top-host.top);
+      var side = lx> host.width*0.6 ? -1 : 1;
+      tip.style.left=(lx + side*14 - (side<0?tip.offsetWidth:0))+"px";
+      tip.style.top=(ly-10)+"px";
+      var activePct=(r.active*100);
+      var retRow = (state.view==="avg" && r.t>0) ? '<div class="rowt"><span>Retention this yr</span><b>'+(r.ret*100).toFixed(0)+'%</b></div>' : '';
+      tip.innerHTML='<div class="ty">'+(r.t===0?"Acquisition":("Year "+r.t))+'</div>'+
+        '<div class="rowt"><span>'+(state.view==="avg"?"% active":"Status")+'</span><b>'+(state.view==="avg"?activePct.toFixed(0)+"%":(r.active?"active":"churned"))+'</b></div>'+
+        retRow+
+        '<div class="rowt"><span>Margin this yr</span><b>'+money(r.marginT)+'</b></div>'+
+        '<div class="rowt"><span>PV of margin</span><b>'+money(r.pv)+'</b></div>'+
+        '<div class="rowt"><span>Cumulative</span><b>'+money(r.cum)+'</b></div>';
+      tip.style.opacity=1;
+    }
+    svg.onmousemove=handler;
+    svg.onmouseleave=function(){ tip.style.opacity=0; };
+    svg.ontouchmove=function(e){ if(e.touches[0]){handler(e.touches[0]); e.preventDefault();} };
+  }
+
+  // ---------- legend ----------
+  function renderLegend(){
+    var items=[
+      ['swatch','var(--value)','Value to Date (past)'],
+      ['swatch','var(--future)','Residual / future value'],
+      ['swatch','var(--cost)','Cost of revenue'],
+      ['swatch','var(--cac)','Acquisition cost'],
+      ['dash','', 'E(CLV) − CAC (long-run net)']
+    ];
+    var h="";
+    for(var i=0;i<items.length;i++){
+      if(items[i][0]==='dash'){ h+='<span class="k"><span class="dashkey"></span>'+items[i][2]+'</span>'; }
+      else h+='<span class="k"><span class="swatch" style="background:'+items[i][1]+'"></span>'+items[i][2]+'</span>';
+    }
+    $("legend").innerHTML=h;
+  }
+
+  // ---------- tiles ----------
+  function tile(cls,label,dotColor,value,note){
+    return '<div class="tile '+(cls||'')+'"><div class="tl">'+(dotColor?'<span class="dot" style="background:'+dotColor+'"></span>':'')+label+'</div><div class="tv">'+value+'</div>'+(note?'<div class="tn">'+note+'</div>':'')+'</div>';
+  }
+  function renderTiles(M){
+    var h="";
+    h+=tile('', 'Acquisition cost', 'var(--cac)', money0(-state.cac), 'paid up front');
+    if(state.view==="avg"){
+      h+=tile('', 'Value to Date', 'var(--value)', money(M.vtd), 'earned through today (PV)');
+      h+=tile('', 'Residual Lifetime Value', 'var(--future)', money(M.erlv), M.isHet?('per survivor at yr '+M.nTen+' · rises with tenure'):'(1−θ) × E(CLV), per active cust.');
+      h+=tile('', 'Post-Acq. Value E(CLV)', 'var(--violet)', money(M.eclv), (M.isHet?'effective ':'')+M.marginMult.toFixed(2)+' × margin multiple');
+      h+=tile('hero', 'Net customer value', '', money(M.netTLV), 'E(CLV) − CAC · '+(M.netTLV>=0?'acquire ✓':'unprofitable'));
+      if(M.isHet){
+        var prem = M.eclv - M.eclvHomog;
+        var pct = M.eclv>0 ? (prem/M.eclv*100) : 0;
+        h+=tile('', 'Heterogeneity premium', 'var(--good)', '+'+money(prem), 'ignoring it understates by '+pct.toFixed(0)+'%');
+      } else {
+        h+=tile('', 'Break-even', '', M.breakEven!==null? ('yr '+M.breakEven.toFixed(1)) : '—', M.breakEven!==null?'CAC recovered':'not recovered in '+N+' yrs');
+      }
+    } else {
+      h+=tile('', 'Value to Date', 'var(--value)', money(M.vtd), 'earned through today (PV)');
+      h+=tile('', 'Remaining value', 'var(--future)', money(M.futurePortion), 'today → churn (yr '+M.illusLife+')');
+      h+=tile('', 'Realized lifetime value', 'var(--violet)', money(M.realizedTotal), 'this customer, all years (PV)');
+      h+=tile('hero', 'Net of acquisition', '', money(M.realizedTotal-state.cac), (M.realizedTotal-state.cac>=0?'profitable ✓':'below CAC'));
+      h+=tile('', 'Cohort E(CLV)', 'var(--muted)', money(M.eclv), 'the average this draw is one of');
+    }
+    $("tiles").innerHTML=h;
+  }
+  function renderIdentity(M){
+    var h='';
+    if(state.view==="avg" && M.isHet){
+      var pct = M.eclv>0 ? ((M.eclv-M.eclvHomog)/M.eclv*100) : 0;
+      h='<span>Heterogeneous (BG):</span> <code>churn ~ Beta(a='+M.a.toFixed(2)+', b='+M.b.toFixed(2)+'), φ='+M.phi.toFixed(2)+'</code>'+
+        '<code>E(CLV) = m·Σ S(t)/(1+d)ᵗ = '+money(M.eclv)+'</code>'+
+        '<code>retention rises r₁='+(M.retStart*100).toFixed(0)+'% → r₁₂='+(M.retEnd*100).toFixed(0)+'%</code>'+
+        '<code>ignore heterogeneity → '+money(M.eclvHomog)+' (−'+pct.toFixed(0)+'%)</code>';
+    } else if(state.view==="avg"){
+      h='<span>Identity:</span> <code>E(CLV) = m × (1+d)/(d+θ) = '+money(M.m)+' × '+M.marginMult.toFixed(2)+' = '+money(M.eclv)+'</code>'+
+        '<code>E(RLV) = (1−θ) × E(CLV) = '+money(M.erlv)+'</code>'+
+        '<code>θ = '+(M.theta).toFixed(2)+'</code>';
+    } else {
+      h='<span>This customer:</span> <code>margin/yr m = AOV×AOF×margin% = '+money(M.m)+'</code>'+
+        '<code>stays active '+M.illusLife+' yrs</code>'+
+        '<code>cohort E(CLV) = '+money(M.eclv)+'</code>';
+    }
+    $("idbar").innerHTML=h;
+  }
+
+  // ---------- story note ----------
+  function renderStory(M){
+    var lab=LABELS[state.setting];
+    var s;
+    if(state.view==="avg" && M.isHet){
+      var pct = M.eclv>0 ? ((M.eclv-M.eclvHomog)/M.eclv*100) : 0;
+      s='Now churn varies across customers — modeled as Beta(a='+M.a.toFixed(2)+', b='+M.b.toFixed(2)+'). Every customer\'s own churn is still constant, but the <em>cohort\'s</em> observed retention climbs from <b>'+(M.retStart*100).toFixed(0)+'%</b> in year 1 to <b>'+(M.retEnd*100).toFixed(0)+'%</b> by year 12: the high-churn customers leave first, so those who remain are increasingly the champions (the <b>shakeout</b>). '+
+        'That fatter tail lifts <b>E(CLV) to '+money(M.eclv)+'</b> — a homogeneous model with the same average churn would say only <b>'+money(M.eclvHomog)+'</b>, understating the customer\'s value by <b>'+pct.toFixed(0)+'%</b>. Ignoring heterogeneity <em>always</em> undervalues the base. And because survivors keep improving, Residual Lifetime Value <em>grows</em> with tenure — drag Today and watch the RLV tile climb.';
+    } else if(state.view==="avg"){
+      s='In this <b>'+settingName()+'</b> setting, the average customer is worth <b>'+money(M.eclv)+'</b> in post-acquisition value against a <b>'+money0(state.cac)+'</b> acquisition cost — a net of <b>'+money(M.netTLV)+'</b>. '+
+        'By Today (year '+state.today+') you\'ve booked <b>'+money(M.vtd)+'</b> of Value to Date; a still-active customer carries <b>'+money(M.erlv)+'</b> of Residual Lifetime Value going forward. '+
+        'Each year\'s bar shrinks as the cohort decays at a flat '+(M.theta*100).toFixed(0)+'% churn. Flip to <b>Heterogeneous</b> to let churn vary across customers — retention then rises over time and E(CLV) goes up (the shakeout).';
+    } else {
+      s='This one illustrative customer stays active for <b>'+M.illusLife+' years</b>, then churns — so their curve steps up order by order and then goes flat, unlike the smooth cohort average. '+
+        'They\'ve delivered <b>'+money(M.vtd)+'</b> to date with <b>'+money(M.futurePortion)+'</b> still to come, for a realized lifetime value of <b>'+money(M.realizedTotal)+'</b>. '+
+        'Any single customer is a draw from a distribution — the cohort\'s <b>E(CLV) = '+money(M.eclv)+'</b> is the average across many such draws.'+
+        (M.isHet?' With heterogeneity on, that average reflects a mix of churn rates — heterogeneity is a property of the population, so switch to <b>Cohort average</b> to see the shakeout it creates.':'');
+    }
+    $("storyNote").innerHTML=s;
+  }
+  function settingName(){ return state.setting==="sub"?"subscription":(state.setting==="trans"?"transactional":"hybrid"); }
+
+  // ---------- table ----------
+  function renderTable(M){
+    var rows=M.rows;
+    var h='<table class="data"><thead><tr><th>Year</th><th>'+(state.view==="avg"?"% active":"Active")+'</th><th>Revenue</th><th>Cost of rev.</th><th>Contribution margin</th><th>PV of margin</th><th>Cumulative value</th></tr></thead><tbody>';
+    for(var i=0;i<rows.length;i++){
+      var r=rows[i];
+      h+='<tr><td>'+(r.t===0?"Acq":r.t)+'</td><td>'+(state.view==="avg"?(r.active*100).toFixed(0)+"%":(r.active?"✓":"—"))+'</td><td>'+money(r.revT)+'</td><td>'+money(r.costT)+'</td><td>'+money(r.marginT)+'</td><td>'+money(r.pv)+'</td><td>'+money(r.cum)+'</td></tr>';
+    }
+    h+='</tbody></table>';
+    $("tableWrap").innerHTML=h;
+  }
+
+  // ---------- UI wiring ----------
+  function syncSliders(){
+    var lab=LABELS[state.setting];
+    $("lbl-aov").textContent=lab.aov;
+    $("lbl-aof").textContent=lab.aof;
+    $("lbl-ret").textContent=lab.ret;
+    $("aov").value=state.aov; $("v-aov").textContent=money0(state.aov);
+    $("aof").value=state.aof; $("v-aof").textContent=state.aof+"×";
+    $("margin").value=state.margin; $("v-margin").textContent=state.margin+"%";
+    $("ret").value=state.ret; $("v-ret").textContent=state.ret+"%";
+    $("disc").value=state.disc; $("v-disc").textContent=state.disc+"%";
+    $("cac").value=state.cac; $("v-cac").textContent=money0(state.cac);
+    $("today").value=state.today; $("v-today").textContent=state.today+" yr";
+    $("phi").value=state.phi; $("v-phi").textContent="φ = "+(state.phi/100).toFixed(2);
+    $("hetRow").classList.toggle("hide", state.pop!=="het");
+    var hint=$("hetHint");
+    if(hint){ hint.innerHTML = "Higher φ = wider spread of churn propensities. At the same average churn, more spread means a stronger shakeout and a higher E(CLV). φ→0 collapses back to the homogeneous case."; }
+  }
+
+  function bindSlider(id,key,fmt){
+    $(id).addEventListener("input",function(){
+      state[key]=parseFloat(this.value);
+      var el=$("v-"+ (id==="today"?"today":id));
+      if(fmt) el.textContent=fmt(state[key]);
+      render();
+    });
+  }
+  bindSlider("aov","aov",function(v){return money0(v);});
+  bindSlider("aof","aof",function(v){return v+"×";});
+  bindSlider("margin","margin",function(v){return v+"%";});
+  bindSlider("ret","ret",function(v){return v+"%";});
+  bindSlider("disc","disc",function(v){return v+"%";});
+  bindSlider("cac","cac",function(v){return money0(v);});
+  bindSlider("today","today",function(v){return v+" yr";});
+  $("phi").addEventListener("input",function(){ state.phi=parseFloat(this.value); $("v-phi").textContent="φ = "+(state.phi/100).toFixed(2); render(); });
+
+  // setting toggle -> load preset
+  Array.prototype.forEach.call($("segSetting").children,function(b){
+    b.addEventListener("click",function(){
+      Array.prototype.forEach.call($("segSetting").children,function(x){x.classList.remove("active");});
+      b.classList.add("active");
+      state.setting=b.dataset.v;
+      var p=PRESETS[state.setting];
+      state.aov=p.aov; state.aof=p.aof; state.margin=p.margin; state.ret=p.ret; state.disc=p.disc; state.cac=p.cac; state.phi=p.phi;
+      syncSliders(); render();
+    });
+  });
+  Array.prototype.forEach.call($("segView").children,function(b){
+    b.addEventListener("click",function(){
+      Array.prototype.forEach.call($("segView").children,function(x){x.classList.remove("active");});
+      b.classList.add("active");
+      state.view=b.dataset.v; render();
+    });
+  });
+  Array.prototype.forEach.call($("segPop").children,function(b){
+    b.addEventListener("click",function(){
+      Array.prototype.forEach.call($("segPop").children,function(x){x.classList.remove("active");});
+      b.classList.add("active");
+      state.pop=b.dataset.v;
+      $("hetRow").classList.toggle("hide", state.pop!=="het");
+      render();
+    });
+  });
+
+  $("themeBtn").addEventListener("click",function(){
+    var cur=document.documentElement.getAttribute("data-theme");
+    var nx=cur==="dark"?"light":"dark";
+    document.documentElement.setAttribute("data-theme",nx);
+    this.textContent=nx==="dark"?"Light mode":"Dark mode";
+    render();
+  });
+  $("tableBtn").addEventListener("click",function(){
+    var w=$("tableWrap");
+    w.classList.toggle("hide");
+    this.textContent=w.classList.contains("hide")?"Show data table":"Hide data table";
+  });
+
+  // init
+  syncSliders();
+  render();
+  window.addEventListener("resize",function(){ render(); });
+})();
+</script>
+</body>
+</html>
