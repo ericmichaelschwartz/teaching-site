@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<title>Madrigal Cohort Decomposition</title>
+<style>
+  :root {
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11, 11, 11, 0.10);
+    --accent: #A41034;
+    --accent-ink: #ffffff;
+    --mixink: #0b0b0b;
+    --s0: #2a78d6;
+    --s1: #eb6834;
+    --s2: #1baf7a;
+    --s3: #eda100;
+    --s4: #e87ba4;
+    --tooltip-bg: rgba(252, 252, 251, 0.96);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255, 255, 255, 0.10);
+      --accent: #e05c74;
+      --accent-ink: #14090c;
+      --mixink: #ffffff;
+      --s0: #3987e5;
+      --s1: #d95926;
+      --s2: #199e70;
+      --s3: #c98500;
+      --s4: #d55181;
+      --tooltip-bg: rgba(26, 26, 25, 0.96);
+    }
+  }
+  :root[data-theme="dark"] {
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --accent: #e05c74;
+    --accent-ink: #14090c;
+    --mixink: #ffffff;
+    --s0: #3987e5;
+    --s1: #d95926;
+    --s2: #199e70;
+    --s3: #c98500;
+    --s4: #d55181;
+    --tooltip-bg: rgba(26, 26, 25, 0.96);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+    margin: 0;
+    padding: 20px 22px 34px;
+  }
+  .wrap { max-width: 1400px; margin: 0 auto; }
+
+  header.top { margin-bottom: 14px; }
+  .eyebrow {
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  h1 { font-size: 22px; font-weight: 750; margin: 2px 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--ink-2); font-size: 13px; margin: 0; max-width: 62ch; }
+
+  /* control bar */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+    margin: 14px 0 16px;
+  }
+  .seg {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--surface);
+  }
+  .seg button {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+  .seg button + button { border-left: 1px solid var(--border); }
+  .seg button[disabled] { opacity: 0.4; cursor: not-allowed; }
+  .seg button[aria-pressed="true"] {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+  .seg button:focus-visible, .chip:focus-visible, .tbl-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .legend { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .legend .lab { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-right: 2px; }
+  .chip {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 4px 11px 4px 9px;
+    cursor: pointer;
+  }
+  .chip .sw { width: 14px; height: 3px; border-radius: 2px; }
+  .chip[aria-pressed="false"] { opacity: 0.42; }
+  .chip[disabled] { opacity: 0.32; cursor: not-allowed; }
+  .hoverlab {
+    margin-left: auto;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    min-width: 12ch;
+    text-align: right;
+  }
+
+  /* layout: horizontal tree + rail */
+  .board { display: flex; gap: 16px; align-items: stretch; }
+  .tree {
+    position: relative;
+    flex: 1 1 720px;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 16px 46px;
+    align-content: center;
+  }
+  .rail {
+    flex: 0 0 330px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  @media (max-width: 1150px) {
+    .board { flex-wrap: wrap; }
+    .rail { flex: 1 1 100%; flex-direction: row; flex-wrap: wrap; }
+    .rail .panel { flex: 1 1 320px; }
+    .rail .note { flex: 1 1 260px; }
+  }
+  @media (max-width: 900px) {
+    .tree { display: flex; flex-direction: column; gap: 14px; }
+    #connectors { display: none; }
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px 8px;
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+  }
+  #p-revenue { grid-column: 1; grid-row: 1 / 4; align-self: center; }
+  #p-customers { grid-column: 2; grid-row: 1; align-self: center; }
+  #p-revper { grid-column: 2; grid-row: 2 / 4; align-self: center; }
+  .note {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: center;
+    font-size: 12px;
+    color: var(--ink-2);
+    padding: 4px 2px;
+    min-width: 0;
+  }
+  #p-orders { grid-column: 3; grid-row: 2; }
+  #p-aov { grid-column: 3; grid-row: 3; }
+  .note b { color: var(--ink); }
+  .note p { margin: 0 0 8px; }
+
+  .panel h2 {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin: 0 0 2px;
+    color: var(--ink);
+  }
+  .panel h2 .unit { color: var(--muted); font-weight: 600; }
+  .plot { position: relative; }
+  .plot svg { display: block; width: 100%; }
+  svg text { font: 10px system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--muted); font-variant-numeric: tabular-nums; }
+  .gridline { stroke: var(--grid); stroke-width: 1; shape-rendering: crispEdges; }
+  .axisline { stroke: var(--baseline); stroke-width: 1; shape-rendering: crispEdges; }
+  .line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+
+  /* cohort colors: family hue (validated palette) + quarter step toward ink */
+  .f0 { --c: var(--s0); } .f1 { --c: var(--s1); } .f2 { --c: var(--s2); }
+  .f3 { --c: var(--s3); } .f4 { --c: var(--s4); }
+  .st0 { --m: var(--c); }
+  .st1 { --m: color-mix(in oklab, var(--c) 85%, var(--mixink)); }
+  .st2 { --m: color-mix(in oklab, var(--c) 70%, var(--mixink)); }
+  .st3 { --m: color-mix(in oklab, var(--c) 55%, var(--mixink)); }
+  .line { stroke: var(--m); }
+  .dot { fill: var(--m); stroke: var(--surface); stroke-width: 1.5; }
+  .sw { background: var(--m); }
+  .kline { border-top-color: var(--m); }
+  .dim { opacity: 0.15; }
+  .xline { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 3 3; }
+
+  .tip {
+    position: absolute;
+    top: 2px;
+    pointer-events: none;
+    background: var(--tooltip-bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 5px 8px;
+    font-size: 11px;
+    line-height: 1.45;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+    white-space: nowrap;
+    z-index: 3;
+    display: none;
+  }
+  .tip .rows { }
+  .tip.many .rows { columns: 2; column-gap: 14px; }
+  .tip .row { display: flex; align-items: center; gap: 6px; break-inside: avoid; }
+  .tip .kline { display: inline-block; width: 11px; border-top: 2px solid; }
+  .tip .v { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .tip .n { color: var(--ink-2); }
+
+  #connectors {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+  #connectors path { stroke: var(--baseline); stroke-width: 1.5; fill: none; }
+  #connectors circle { fill: var(--surface); stroke: var(--accent); stroke-width: 1.5; }
+  #connectors text.op { fill: var(--accent); font-size: 12px; font-weight: 700; }
+
+  .rail .panel h2 { font-size: 12.5px; }
+  .rail .note {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    align-self: stretch;
+  }
+
+  footer { margin-top: 18px; color: var(--muted); font-size: 11.5px; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+  footer span { display: inline-block; }
+
+  .tbl-btn {
+    appearance: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+  .tbl-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  #tables { margin-top: 18px; display: none; }
+  #tables.open { display: block; }
+  #tables h3 { font-size: 13px; margin: 18px 0 6px; }
+  .twrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+  #tables table { border-collapse: collapse; font-size: 12px; min-width: 480px; width: 100%; }
+  #tables th, #tables td { padding: 4px 10px; text-align: right; font-variant-numeric: tabular-nums; border-top: 1px solid var(--grid); white-space: nowrap; }
+  #tables thead th { border-top: 0; color: var(--ink-2); font-weight: 700; }
+  #tables th:first-child, #tables td:first-child { text-align: left; color: var(--ink-2); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .line, .dot { transition: opacity 0.15s; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Madrigal by Cohorts</div>
+    <h1>Cohort Revenue Decomposition</h1>
+    <p class="sub">One tree read left to right, five linked charts, plus how much of
+      each cohort has repeated. Hover any chart and every panel lights up at the same
+      point in time.</p>
+  </header>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Cohort granularity">
+      <button id="g-y" aria-pressed="true" title="Cohorts = acquisition year, activity period = years">Annual cohorts</button>
+      <button id="g-q" aria-pressed="false" title="Cohorts = acquisition quarter, activity period = quarters">Quarterly cohorts</button>
+    </div>
+    <div class="seg" role="group" aria-label="Customer measure">
+      <button id="m-count" aria-pressed="true"># of customers</button>
+      <button id="m-pct" aria-pressed="false">% of cohort</button>
+    </div>
+    <div class="seg" role="group" aria-label="Time axis">
+      <button id="t-cal" aria-pressed="true">Calendar time</button>
+      <button id="t-tsa" aria-pressed="false">Time since acquisition</button>
+    </div>
+    <div class="seg" role="group" aria-label="Y-axis scale">
+      <button id="y-raw" aria-pressed="true">Raw values</button>
+      <button id="y-idx" aria-pressed="false">Indexed to 100</button>
+    </div>
+    <div class="legend" id="legend"><span class="lab">Cohorts</span></div>
+    <button class="tbl-btn" id="tbl-btn" aria-pressed="false">Data table</button>
+    <div class="hoverlab" id="hoverlab"></div>
+  </div>
+
+  <div class="board">
+    <div class="tree" id="tree">
+      <svg id="connectors" aria-hidden="true"></svg>
+      <div class="panel" id="p-revenue"></div>
+      <div class="panel" id="p-customers"></div>
+      <div class="panel" id="p-revper"></div>
+      <div class="note" id="treenote">
+        <p><b>Read the tree left to right.</b> Cohort revenue = active customers
+          &times; revenue per active customer. Revenue per active =
+          orders per active &times; revenue per order.</p>
+        <p id="viewnote"></p>
+      </div>
+      <div class="panel" id="p-orders"></div>
+      <div class="panel" id="p-aov"></div>
+    </div>
+    <div class="rail">
+      <div class="panel" id="p-cum"></div>
+      <div class="note">
+        <p><b>Customers who have repeated</b> sits outside the tree: the
+          cumulative count (or %) of the cohort's buyers who have made their
+          FIRST repeat order by each point in time. Second and later repeat
+          orders do not move this curve; it only asks how much of the cohort
+          has repeated so far.</p>
+        <p>Click a cohort chip to hide or show it everywhere. Arrow keys move
+          the highlighted period, up and down switch cohorts; Esc clears.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="tables"></div>
+
+  <footer>
+    <span>Source: Madrigal transaction data, The Customer-Base Audit companion (cust_data_long.csv), 2016 through 2019.</span>
+    <span id="footnote"></span>
+  </footer>
+</div>
+
+<script>
+"use strict";
+const DATA = {"q":{"calLabels":["2016-Q1","2016-Q2","2016-Q3","2016-Q4","2017-Q1","2017-Q2","2017-Q3","2017-Q4","2018-Q1","2018-Q2","2018-Q3","2018-Q4","2019-Q1","2019-Q2","2019-Q3","2019-Q4"],"n":16,"cohorts":[{"key":"pre2016","label":"Pre-2016","family":0,"step":0,"size":8916},{"key":"y2016_q1","label":"2016-Q1","family":1,"step":0,"size":2944},{"key":"y2016_q2","label":"2016-Q2","family":1,"step":1,"size":2969},{"key":"y2016_q3","label":"2016-Q3","family":1,"step":2,"size":2842},{"key":"y2016_q4","label":"2016-Q4","family":1,"step":3,"size":6162},{"key":"y2017_q1","label":"2017-Q1","family":2,"step":0,"size":2459},{"key":"y2017_q2","label":"2017-Q2","family":2,"step":1,"size":2236},{"key":"y2017_q3","label":"2017-Q3","family":2,"step":2,"size":2143},{"key":"y2017_q4","label":"2017-Q4","family":2,"step":3,"size":5888},{"key":"y2018_q1","label":"2018-Q1","family":3,"step":0,"size":2693},{"key":"y2018_q2","label":"2018-Q2","family":3,"step":1,"size":2637},{"key":"y2018_q3","label":"2018-Q3","family":3,"step":2,"size":2801},{"key":"y2018_q4","label":"2018-Q4","family":3,"step":3,"size":7034},{"key":"y2019_q1","label":"2019-Q1","family":4,"step":0,"size":3485},{"key":"y2019_q2","label":"2019-Q2","family":4,"step":1,"size":3023},{"key":"y2019_q3","label":"2019-Q3","family":4,"step":2,"size":3208},{"key":"y2019_q4","label":"2019-Q4","family":4,"step":3,"size":8601}],"cal":{"pre2016":{"revenue":[306263.57,292460.99,247028.51,521999.13,233893.37,226622.35,196128.69,433164.63,201157.91,216708.09,187573.54,415791.13,202222.11,192582.81,184703.86,391566.33],"actives":[2010.0,1908.0,1859.0,3062.0,1515.0,1692.0,1470.0,2501.0,1408.0,1549.0,1435.0,2391.0,1287.0,1375.0,1366.0,2241.0],"pctActive":[22.5437,21.3997,20.8502,34.3428,16.9919,18.9771,16.4872,28.0507,15.7918,17.3733,16.0947,26.817,14.4347,15.4217,15.3208,25.1346],"revPerActive":[152.3699,153.2814,132.8825,170.4765,154.3851,133.9376,133.4209,173.1966,142.8678,139.9019,130.7133,173.8984,157.1267,140.0602,135.2151,174.7284],"ordersPerActive":[1.493,1.5121,1.4648,1.6088,1.4693,1.4716,1.4993,1.6865,1.5192,1.5759,1.5659,1.7532,1.561,1.5724,1.56,1.7769],"aov":[102.0538,101.373,90.7192,105.9682,105.0734,91.013,88.9876,102.6943,94.043,88.7784,83.4773,99.1868,100.6581,89.0762,86.6747,98.3341],"cumFirstRep":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],"pctFirstRep":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]},"y2016_q1":{"revenue":[383934.36,53165.2,41085.58,82607.04,43107.92,37829.47,28130.53,61873.26,38053.59,31123.97,31523.39,59467.24,33296.54,31024.32,30253.23,51612.37],"actives":[2944.0,355.0,326.0,481.0,299.0,277.0,236.0,372.0,262.0,251.0,248.0,382.0,221.0,216.0,218.0,341.0],"pctActive":[100.0,12.0584,11.0734,16.3383,10.1562,9.409,8.0163,12.6359,8.8995,8.5258,8.4239,12.9755,7.5068,7.337,7.4049,11.5829],"revPerActive":[130.4125,149.7611,126.0294,171.7402,144.1736,136.5685,119.1972,166.326,145.2427,123.9999,127.1104,155.6734,150.6631,143.6311,138.7763,151.3559],"ordersPerActive":[1.2303,1.6028,1.5,1.6819,1.4849,1.6426,1.4788,1.7285,1.4351,1.4622,1.5927,1.7408,1.5792,1.6389,1.6193,1.6481],"aov":[106.0007,93.4362,84.0196,102.1101,97.0899,83.1417,80.6032,96.2259,101.2064,84.8065,79.8061,89.4244,95.4056,87.6393,85.7032,91.837],"cumFirstRep":[503.0,749.0,911.0,1111.0,1197.0,1257.0,1295.0,1379.0,1421.0,1448.0,1480.0,1525.0,1541.0,1557.0,1573.0,1614.0],"pctFirstRep":[17.0856,25.4416,30.9443,37.7378,40.659,42.697,43.9878,46.841,48.2677,49.1848,50.2717,51.8003,52.3438,52.8872,53.4307,54.8234]},"y2016_q2":{"revenue":[null,346651.79,59175.22,89170.78,43623.69,43553.04,35772.79,62748.36,39994.37,37128.41,31882.44,64899.61,26846.86,32561.23,25319.9,46418.61],"actives":[null,2969.0,433.0,519.0,273.0,329.0,272.0,379.0,245.0,286.0,257.0,371.0,205.0,243.0,215.0,321.0],"pctActive":[null,100.0,14.584,17.4806,9.195,11.0812,9.1613,12.7652,8.2519,9.6329,8.6561,12.4958,6.9047,8.1846,7.2415,10.8117],"revPerActive":[null,116.7571,136.6633,171.8127,159.7937,132.3801,131.5176,165.563,163.2423,129.8196,124.0562,174.9316,130.9603,133.9968,117.767,144.6063],"ordersPerActive":[null,1.2405,1.5774,1.7033,1.5275,1.5441,1.5037,1.7757,1.6816,1.4685,1.4747,1.8302,1.4732,1.4691,1.4372,1.6386],"aov":[null,94.1221,86.6401,100.8719,104.6132,85.7343,87.464,93.2368,97.0737,88.401,84.1225,95.5812,88.8969,91.2079,81.9414,88.2483],"cumFirstRep":[null,484.0,789.0,1057.0,1140.0,1226.0,1288.0,1369.0,1401.0,1448.0,1473.0,1517.0,1535.0,1554.0,1570.0,1602.0],"pctFirstRep":[null,16.3018,26.5746,35.6012,38.3968,41.2934,43.3816,46.1098,47.1876,48.7706,49.6127,51.0946,51.7009,52.3409,52.8798,53.9576]},"y2016_q3":{"revenue":[null,null,346753.74,90618.56,38076.27,35985.73,39635.62,65172.97,27558.46,35881.94,31615.31,55739.66,23749.71,30082.42,30033.61,49038.69],"actives":[null,null,2842.0,549.0,243.0,297.0,305.0,370.0,212.0,261.0,251.0,348.0,188.0,233.0,241.0,315.0],"pctActive":[null,null,100.0,19.3174,8.5503,10.4504,10.7319,13.019,7.4595,9.1837,8.8318,12.2449,6.6151,8.1985,8.4799,11.0837],"revPerActive":[null,null,122.0105,165.0611,156.6925,121.1641,129.9529,176.1432,129.9927,137.4787,125.9574,160.1714,126.3282,129.1091,124.6208,155.6784],"ordersPerActive":[null,null,1.2312,1.6667,1.6173,1.4512,1.4754,1.8216,1.3821,1.5479,1.502,1.7328,1.4309,1.5579,1.556,1.7651],"aov":[null,null,99.1008,99.0367,96.8862,83.4936,88.0792,96.6958,94.0562,88.8167,83.8602,92.4372,88.2889,82.8717,80.0896,88.1991],"cumFirstRep":[null,null,484.0,878.0,968.0,1057.0,1151.0,1238.0,1278.0,1322.0,1355.0,1407.0,1422.0,1445.0,1465.0,1498.0],"pctFirstRep":[null,null,17.0303,30.8937,34.0605,37.1921,40.4996,43.5609,44.9683,46.5165,47.6777,49.5074,50.0352,50.8445,51.5482,52.7094]},"y2016_q4":{"revenue":[null,null,null,902970.85,95405.44,63943.84,57134.14,173624.82,62805.85,53017.9,47508.12,132522.56,53100.85,45310.21,41554.98,131122.78],"actives":[null,null,null,6162.0,620.0,550.0,458.0,953.0,438.0,431.0,409.0,838.0,361.0,375.0,337.0,762.0],"pctActive":[null,null,null,100.0,10.0617,8.9257,7.4327,15.4658,7.1081,6.9945,6.6375,13.5995,5.8585,6.0857,5.469,12.3661],"revPerActive":[null,null,null,146.5386,153.8797,116.2615,124.747,182.1876,143.3924,123.0114,116.1568,158.1415,147.0938,120.8272,123.3085,172.0771],"ordersPerActive":[null,null,null,1.2885,1.5048,1.4255,1.4498,1.6821,1.5342,1.5336,1.5208,1.6862,1.4792,1.496,1.5312,1.7192],"aov":[null,null,null,113.7243,102.2566,81.561,86.0454,108.3124,93.4611,80.2086,76.3796,93.7881,99.4398,80.7669,80.5329,100.0937],"cumFirstRep":[null,null,null,1230.0,1621.0,1878.0,2025.0,2432.0,2524.0,2590.0,2654.0,2846.0,2884.0,2919.0,2955.0,3061.0],"pctFirstRep":[null,null,null,19.9611,26.3064,30.4771,32.8627,39.4677,40.9607,42.0318,43.0704,46.1863,46.803,47.371,47.9552,49.6754]},"y2017_q1":{"revenue":[null,null,null,null,347715.65,34269.21,26579.75,57117.59,32131.95,22299.6,19930.07,52633.46,23739.04,23393.36,18158.89,43063.42],"actives":[null,null,null,null,2459.0,269.0,211.0,331.0,216.0,173.0,175.0,292.0,178.0,172.0,160.0,265.0],"pctActive":[null,null,null,null,100.0,10.9394,8.5807,13.4608,8.7841,7.0354,7.1167,11.8747,7.2387,6.9947,6.5067,10.7767],"revPerActive":[null,null,null,null,141.4053,127.3948,125.9704,172.5607,148.759,128.8994,113.8861,180.2516,133.3654,136.0079,113.4931,162.5035],"ordersPerActive":[null,null,null,null,1.2261,1.5465,1.4692,1.574,1.5046,1.5318,1.4571,1.8048,1.4438,1.686,1.5375,1.5849],"aov":[null,null,null,null,115.3286,82.3779,85.7411,109.6307,98.8675,84.1494,78.1571,99.8737,92.3698,80.6668,73.8166,102.532],"cumFirstRep":[null,null,null,null,405.0,585.0,680.0,847.0,911.0,950.0,981.0,1049.0,1085.0,1102.0,1120.0,1160.0],"pctFirstRep":[null,null,null,null,16.4701,23.7902,27.6535,34.4449,37.0476,38.6336,39.8943,42.6596,44.1236,44.815,45.547,47.1736]},"y2017_q2":{"revenue":[null,null,null,null,null,263191.46,32204.17,48736.57,26439.72,27455.82,28619.1,39871.39,24207.52,26142.89,25394.99,34765.72],"actives":[null,null,null,null,null,2236.0,280.0,320.0,181.0,217.0,197.0,276.0,166.0,181.0,169.0,241.0],"pctActive":[null,null,null,null,null,100.0,12.5224,14.3113,8.0948,9.7048,8.8104,12.3435,7.424,8.0948,7.5581,10.7782],"revPerActive":[null,null,null,null,null,117.7064,115.0149,152.3018,146.0758,126.5245,145.2746,144.4616,145.8284,144.4359,150.2662,144.2561],"ordersPerActive":[null,null,null,null,null,1.2366,1.4607,1.65,1.5138,1.4793,1.5381,1.6703,1.5361,1.5525,1.6391,1.5394],"aov":[null,null,null,null,null,95.1868,78.7388,92.3041,96.4953,85.5321,94.4525,86.4889,94.9315,93.0352,91.6787,93.7081],"cumFirstRep":[null,null,null,null,null,373.0,560.0,709.0,759.0,835.0,881.0,960.0,986.0,1009.0,1032.0,1061.0],"pctFirstRep":[null,null,null,null,null,16.6816,25.0447,31.7084,33.9445,37.3435,39.4007,42.9338,44.0966,45.1252,46.1538,47.4508]},"y2017_q3":{"revenue":[null,null,null,null,null,null,259848.66,58958.57,31793.44,26542.47,33292.76,43733.13,24101.58,22322.52,23945.54,37503.99],"actives":[null,null,null,null,null,null,2143.0,389.0,218.0,222.0,239.0,282.0,160.0,184.0,202.0,254.0],"pctActive":[null,null,null,null,null,null,100.0,18.1521,10.1727,10.3593,11.1526,13.1591,7.4662,8.5861,9.426,11.8525],"revPerActive":[null,null,null,null,null,null,121.2546,151.5644,145.8415,119.5607,139.3003,155.082,150.6349,121.318,118.5423,147.6535],"ordersPerActive":[null,null,null,null,null,null,1.2291,1.7198,1.5734,1.5225,1.7071,1.7199,1.5063,1.5109,1.4802,1.5787],"aov":[null,null,null,null,null,null,98.6517,88.1294,92.6922,78.528,81.5999,90.1714,100.0066,80.2968,80.0854,93.5262],"cumFirstRep":[null,null,null,null,null,null,348.0,624.0,711.0,791.0,853.0,921.0,946.0,969.0,1008.0,1046.0],"pctFirstRep":[null,null,null,null,null,null,16.2389,29.1181,33.1778,36.9109,39.804,42.9771,44.1437,45.217,47.0369,48.8101]},"y2017_q4":{"revenue":[null,null,null,null,null,null,null,841572.35,88521.6,51974.42,49655.38,153764.54,53615.58,42976.99,41930.13,127433.97],"actives":[null,null,null,null,null,null,null,5888.0,628.0,430.0,406.0,928.0,370.0,344.0,348.0,777.0],"pctActive":[null,null,null,null,null,null,null,100.0,10.6658,7.303,6.8954,15.7609,6.284,5.8424,5.9103,13.1963],"revPerActive":[null,null,null,null,null,null,null,142.9301,140.958,120.8707,122.3039,165.6945,144.907,124.9331,120.4889,164.0077],"ordersPerActive":[null,null,null,null,null,null,null,1.3249,1.4777,1.4791,1.468,1.7155,1.4622,1.4738,1.5,1.6963],"aov":[null,null,null,null,null,null,null,107.8801,95.3897,81.7208,83.3144,96.5858,99.1046,84.7672,80.3259,96.6874],"cumFirstRep":[null,null,null,null,null,null,null,1285.0,1661.0,1836.0,1971.0,2343.0,2417.0,2469.0,2528.0,2695.0],"pctFirstRep":[null,null,null,null,null,null,null,21.824,28.2099,31.1821,33.4749,39.7928,41.0496,41.9327,42.9348,45.7711]},"y2018_q1":{"revenue":[null,null,null,null,null,null,null,null,345979.78,39692.67,33055.07,62522.67,32703.05,29822.37,24175.1,58212.44],"actives":[null,null,null,null,null,null,null,null,2693.0,292.0,253.0,387.0,245.0,229.0,204.0,339.0],"pctActive":[null,null,null,null,null,null,null,null,100.0,10.8429,9.3947,14.3706,9.0977,8.5035,7.5752,12.5882],"revPerActive":[null,null,null,null,null,null,null,null,128.4737,135.9338,130.6525,161.5573,133.4818,130.2287,118.5054,171.7181],"ordersPerActive":[null,null,null,null,null,null,null,null,1.2451,1.6473,1.6285,1.7804,1.5551,1.559,1.5539,1.7198],"aov":[null,null,null,null,null,null,null,null,103.1851,82.5211,80.2308,90.7441,85.8348,83.5361,76.2621,99.8498],"cumFirstRep":[null,null,null,null,null,null,null,null,453.0,644.0,770.0,946.0,1020.0,1062.0,1102.0,1183.0],"pctFirstRep":[null,null,null,null,null,null,null,null,16.8214,23.9139,28.5926,35.1281,37.876,39.4356,40.9209,43.9287]},"y2018_q2":{"revenue":[null,null,null,null,null,null,null,null,null,296349.01,40760.45,56327.61,29827.97,36484.8,34697.75,47001.2],"actives":[null,null,null,null,null,null,null,null,null,2637.0,348.0,378.0,222.0,276.0,234.0,317.0],"pctActive":[null,null,null,null,null,null,null,null,null,100.0,13.1968,14.3345,8.4187,10.4664,8.8737,12.0212],"revPerActive":[null,null,null,null,null,null,null,null,null,112.3811,117.1277,149.0148,134.3602,132.1913,148.281,148.2688],"ordersPerActive":[null,null,null,null,null,null,null,null,null,1.2355,1.5776,1.6614,1.509,1.5471,1.6923,1.6751],"aov":[null,null,null,null,null,null,null,null,null,90.9604,74.2449,89.6936,89.0387,85.4445,87.6206,88.5145],"cumFirstRep":[null,null,null,null,null,null,null,null,null,437.0,686.0,871.0,937.0,1017.0,1074.0,1139.0],"pctFirstRep":[null,null,null,null,null,null,null,null,null,16.5719,26.0144,33.03,35.5328,38.5666,40.7281,43.193]},"y2018_q3":{"revenue":[null,null,null,null,null,null,null,null,null,null,323283.59,85803.75,33952.45,30708.23,33055.22,50645.54],"actives":[null,null,null,null,null,null,null,null,null,null,2801.0,505.0,246.0,255.0,284.0,348.0],"pctActive":[null,null,null,null,null,null,null,null,null,null,100.0,18.0293,8.7826,9.1039,10.1392,12.4241],"revPerActive":[null,null,null,null,null,null,null,null,null,null,115.4172,169.9084,138.0181,120.4244,116.3916,145.5332],"ordersPerActive":[null,null,null,null,null,null,null,null,null,null,1.2274,1.8079,1.6179,1.5059,1.4049,1.7011],"aov":[null,null,null,null,null,null,null,null,null,null,94.0325,93.98,85.3077,79.9693,82.8452,85.5499],"cumFirstRep":[null,null,null,null,null,null,null,null,null,null,455.0,806.0,902.0,995.0,1078.0,1161.0],"pctFirstRep":[null,null,null,null,null,null,null,null,null,null,16.2442,28.7754,32.2028,35.523,38.4863,41.4495]},"y2018_q4":{"revenue":[null,null,null,null,null,null,null,null,null,null,null,1001115.32,101576.88,63264.43,51736.0,171443.83],"actives":[null,null,null,null,null,null,null,null,null,null,null,7034.0,701.0,456.0,429.0,1030.0],"pctActive":[null,null,null,null,null,null,null,null,null,null,null,100.0,9.9659,6.4828,6.0989,14.6432],"revPerActive":[null,null,null,null,null,null,null,null,null,null,null,142.3252,144.9028,138.7378,120.5967,166.4503],"ordersPerActive":[null,null,null,null,null,null,null,null,null,null,null,1.3155,1.5578,1.5526,1.4312,1.6126],"aov":[null,null,null,null,null,null,null,null,null,null,null,108.1936,93.0191,89.3565,84.2606,103.2172],"cumFirstRep":[null,null,null,null,null,null,null,null,null,null,null,1420.0,1837.0,2035.0,2195.0,2607.0],"pctFirstRep":[null,null,null,null,null,null,null,null,null,null,null,20.1877,26.116,28.9309,31.2056,37.0628]},"y2019_q1":{"revenue":[null,null,null,null,null,null,null,null,null,null,null,null,445707.59,56397.85,33495.7,73013.07],"actives":[null,null,null,null,null,null,null,null,null,null,null,null,3485.0,359.0,275.0,453.0],"pctActive":[null,null,null,null,null,null,null,null,null,null,null,null,100.0,10.3013,7.891,12.9986],"revPerActive":[null,null,null,null,null,null,null,null,null,null,null,null,127.8931,157.0971,121.8025,161.1768],"ordersPerActive":[null,null,null,null,null,null,null,null,null,null,null,null,1.227,1.6212,1.5418,1.6843],"aov":[null,null,null,null,null,null,null,null,null,null,null,null,104.2347,96.9035,78.9993,95.6921],"cumFirstRep":[null,null,null,null,null,null,null,null,null,null,null,null,567.0,806.0,929.0,1141.0],"pctFirstRep":[null,null,null,null,null,null,null,null,null,null,null,null,16.2697,23.1277,26.6571,32.7403]},"y2019_q2":{"revenue":[null,null,null,null,null,null,null,null,null,null,null,null,null,347780.04,43713.91,63104.33],"actives":[null,null,null,null,null,null,null,null,null,null,null,null,null,3023.0,382.0,402.0],"pctActive":[null,null,null,null,null,null,null,null,null,null,null,null,null,100.0,12.6365,13.298],"revPerActive":[null,null,null,null,null,null,null,null,null,null,null,null,null,115.0447,114.4343,156.9759],"ordersPerActive":[null,null,null,null,null,null,null,null,null,null,null,null,null,1.2544,1.4895,1.6368],"aov":[null,null,null,null,null,null,null,null,null,null,null,null,null,91.7141,76.8259,95.9032],"cumFirstRep":[null,null,null,null,null,null,null,null,null,null,null,null,null,539.0,777.0,969.0],"pctFirstRep":[null,null,null,null,null,null,null,null,null,null,null,null,null,17.83,25.7029,32.0543]},"y2019_q3":{"revenue":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,372999.97,81304.57],"actives":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,3208.0,517.0],"pctActive":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,100.0,16.116],"revPerActive":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,116.2718,157.2622],"ordersPerActive":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,1.2263,1.7969],"aov":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,94.8144,87.5184],"cumFirstRep":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,519.0,893.0],"pctFirstRep":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,16.1783,27.8367]},"y2019_q4":{"revenue":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1244790.52],"actives":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,8601.0],"pctActive":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,100.0],"revPerActive":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,144.7263],"ordersPerActive":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1.3073],"aov":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,110.7071],"cumFirstRep":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1750.0],"pctFirstRep":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,20.3465]}},"tsa":{"y2016_q1":{"revenue":[383934.36,53165.2,41085.58,82607.04,43107.92,37829.47,28130.53,61873.26,38053.59,31123.97,31523.39,59467.24,33296.54,31024.32,30253.23,51612.37],"actives":[2944.0,355.0,326.0,481.0,299.0,277.0,236.0,372.0,262.0,251.0,248.0,382.0,221.0,216.0,218.0,341.0],"pctActive":[100.0,12.0584,11.0734,16.3383,10.1562,9.409,8.0163,12.6359,8.8995,8.5258,8.4239,12.9755,7.5068,7.337,7.4049,11.5829],"revPerActive":[130.4125,149.7611,126.0294,171.7402,144.1736,136.5685,119.1972,166.326,145.2427,123.9999,127.1104,155.6734,150.6631,143.6311,138.7763,151.3559],"ordersPerActive":[1.2303,1.6028,1.5,1.6819,1.4849,1.6426,1.4788,1.7285,1.4351,1.4622,1.5927,1.7408,1.5792,1.6389,1.6193,1.6481],"aov":[106.0007,93.4362,84.0196,102.1101,97.0899,83.1417,80.6032,96.2259,101.2064,84.8065,79.8061,89.4244,95.4056,87.6393,85.7032,91.837],"cumFirstRep":[503.0,749.0,911.0,1111.0,1197.0,1257.0,1295.0,1379.0,1421.0,1448.0,1480.0,1525.0,1541.0,1557.0,1573.0,1614.0],"pctFirstRep":[17.0856,25.4416,30.9443,37.7378,40.659,42.697,43.9878,46.841,48.2677,49.1848,50.2717,51.8003,52.3438,52.8872,53.4307,54.8234]},"y2016_q2":{"revenue":[346651.79,59175.22,89170.78,43623.69,43553.04,35772.79,62748.36,39994.37,37128.41,31882.44,64899.61,26846.86,32561.23,25319.9,46418.61,null],"actives":[2969.0,433.0,519.0,273.0,329.0,272.0,379.0,245.0,286.0,257.0,371.0,205.0,243.0,215.0,321.0,null],"pctActive":[100.0,14.584,17.4806,9.195,11.0812,9.1613,12.7652,8.2519,9.6329,8.6561,12.4958,6.9047,8.1846,7.2415,10.8117,null],"revPerActive":[116.7571,136.6633,171.8127,159.7937,132.3801,131.5176,165.563,163.2423,129.8196,124.0562,174.9316,130.9603,133.9968,117.767,144.6063,null],"ordersPerActive":[1.2405,1.5774,1.7033,1.5275,1.5441,1.5037,1.7757,1.6816,1.4685,1.4747,1.8302,1.4732,1.4691,1.4372,1.6386,null],"aov":[94.1221,86.6401,100.8719,104.6132,85.7343,87.464,93.2368,97.0737,88.401,84.1225,95.5812,88.8969,91.2079,81.9414,88.2483,null],"cumFirstRep":[484.0,789.0,1057.0,1140.0,1226.0,1288.0,1369.0,1401.0,1448.0,1473.0,1517.0,1535.0,1554.0,1570.0,1602.0,null],"pctFirstRep":[16.3018,26.5746,35.6012,38.3968,41.2934,43.3816,46.1098,47.1876,48.7706,49.6127,51.0946,51.7009,52.3409,52.8798,53.9576,null]},"y2016_q3":{"revenue":[346753.74,90618.56,38076.27,35985.73,39635.62,65172.97,27558.46,35881.94,31615.31,55739.66,23749.71,30082.42,30033.61,49038.69,null,null],"actives":[2842.0,549.0,243.0,297.0,305.0,370.0,212.0,261.0,251.0,348.0,188.0,233.0,241.0,315.0,null,null],"pctActive":[100.0,19.3174,8.5503,10.4504,10.7319,13.019,7.4595,9.1837,8.8318,12.2449,6.6151,8.1985,8.4799,11.0837,null,null],"revPerActive":[122.0105,165.0611,156.6925,121.1641,129.9529,176.1432,129.9927,137.4787,125.9574,160.1714,126.3282,129.1091,124.6208,155.6784,null,null],"ordersPerActive":[1.2312,1.6667,1.6173,1.4512,1.4754,1.8216,1.3821,1.5479,1.502,1.7328,1.4309,1.5579,1.556,1.7651,null,null],"aov":[99.1008,99.0367,96.8862,83.4936,88.0792,96.6958,94.0562,88.8167,83.8602,92.4372,88.2889,82.8717,80.0896,88.1991,null,null],"cumFirstRep":[484.0,878.0,968.0,1057.0,1151.0,1238.0,1278.0,1322.0,1355.0,1407.0,1422.0,1445.0,1465.0,1498.0,null,null],"pctFirstRep":[17.0303,30.8937,34.0605,37.1921,40.4996,43.5609,44.9683,46.5165,47.6777,49.5074,50.0352,50.8445,51.5482,52.7094,null,null]},"y2016_q4":{"revenue":[902970.85,95405.44,63943.84,57134.14,173624.82,62805.85,53017.9,47508.12,132522.56,53100.85,45310.21,41554.98,131122.78,null,null,null],"actives":[6162.0,620.0,550.0,458.0,953.0,438.0,431.0,409.0,838.0,361.0,375.0,337.0,762.0,null,null,null],"pctActive":[100.0,10.0617,8.9257,7.4327,15.4658,7.1081,6.9945,6.6375,13.5995,5.8585,6.0857,5.469,12.3661,null,null,null],"revPerActive":[146.5386,153.8797,116.2615,124.747,182.1876,143.3924,123.0114,116.1568,158.1415,147.0938,120.8272,123.3085,172.0771,null,null,null],"ordersPerActive":[1.2885,1.5048,1.4255,1.4498,1.6821,1.5342,1.5336,1.5208,1.6862,1.4792,1.496,1.5312,1.7192,null,null,null],"aov":[113.7243,102.2566,81.561,86.0454,108.3124,93.4611,80.2086,76.3796,93.7881,99.4398,80.7669,80.5329,100.0937,null,null,null],"cumFirstRep":[1230.0,1621.0,1878.0,2025.0,2432.0,2524.0,2590.0,2654.0,2846.0,2884.0,2919.0,2955.0,3061.0,null,null,null],"pctFirstRep":[19.9611,26.3064,30.4771,32.8627,39.4677,40.9607,42.0318,43.0704,46.1863,46.803,47.371,47.9552,49.6754,null,null,null]},"y2017_q1":{"revenue":[347715.65,34269.21,26579.75,57117.59,32131.95,22299.6,19930.07,52633.46,23739.04,23393.36,18158.89,43063.42,null,null,null,null],"actives":[2459.0,269.0,211.0,331.0,216.0,173.0,175.0,292.0,178.0,172.0,160.0,265.0,null,null,null,null],"pctActive":[100.0,10.9394,8.5807,13.4608,8.7841,7.0354,7.1167,11.8747,7.2387,6.9947,6.5067,10.7767,null,null,null,null],"revPerActive":[141.4053,127.3948,125.9704,172.5607,148.759,128.8994,113.8861,180.2516,133.3654,136.0079,113.4931,162.5035,null,null,null,null],"ordersPerActive":[1.2261,1.5465,1.4692,1.574,1.5046,1.5318,1.4571,1.8048,1.4438,1.686,1.5375,1.5849,null,null,null,null],"aov":[115.3286,82.3779,85.7411,109.6307,98.8675,84.1494,78.1571,99.8737,92.3698,80.6668,73.8166,102.532,null,null,null,null],"cumFirstRep":[405.0,585.0,680.0,847.0,911.0,950.0,981.0,1049.0,1085.0,1102.0,1120.0,1160.0,null,null,null,null],"pctFirstRep":[16.4701,23.7902,27.6535,34.4449,37.0476,38.6336,39.8943,42.6596,44.1236,44.815,45.547,47.1736,null,null,null,null]},"y2017_q2":{"revenue":[263191.46,32204.17,48736.57,26439.72,27455.82,28619.1,39871.39,24207.52,26142.89,25394.99,34765.72,null,null,null,null,null],"actives":[2236.0,280.0,320.0,181.0,217.0,197.0,276.0,166.0,181.0,169.0,241.0,null,null,null,null,null],"pctActive":[100.0,12.5224,14.3113,8.0948,9.7048,8.8104,12.3435,7.424,8.0948,7.5581,10.7782,null,null,null,null,null],"revPerActive":[117.7064,115.0149,152.3018,146.0758,126.5245,145.2746,144.4616,145.8284,144.4359,150.2662,144.2561,null,null,null,null,null],"ordersPerActive":[1.2366,1.4607,1.65,1.5138,1.4793,1.5381,1.6703,1.5361,1.5525,1.6391,1.5394,null,null,null,null,null],"aov":[95.1868,78.7388,92.3041,96.4953,85.5321,94.4525,86.4889,94.9315,93.0352,91.6787,93.7081,null,null,null,null,null],"cumFirstRep":[373.0,560.0,709.0,759.0,835.0,881.0,960.0,986.0,1009.0,1032.0,1061.0,null,null,null,null,null],"pctFirstRep":[16.6816,25.0447,31.7084,33.9445,37.3435,39.4007,42.9338,44.0966,45.1252,46.1538,47.4508,null,null,null,null,null]},"y2017_q3":{"revenue":[259848.66,58958.57,31793.44,26542.47,33292.76,43733.13,24101.58,22322.52,23945.54,37503.99,null,null,null,null,null,null],"actives":[2143.0,389.0,218.0,222.0,239.0,282.0,160.0,184.0,202.0,254.0,null,null,null,null,null,null],"pctActive":[100.0,18.1521,10.1727,10.3593,11.1526,13.1591,7.4662,8.5861,9.426,11.8525,null,null,null,null,null,null],"revPerActive":[121.2546,151.5644,145.8415,119.5607,139.3003,155.082,150.6349,121.318,118.5423,147.6535,null,null,null,null,null,null],"ordersPerActive":[1.2291,1.7198,1.5734,1.5225,1.7071,1.7199,1.5063,1.5109,1.4802,1.5787,null,null,null,null,null,null],"aov":[98.6517,88.1294,92.6922,78.528,81.5999,90.1714,100.0066,80.2968,80.0854,93.5262,null,null,null,null,null,null],"cumFirstRep":[348.0,624.0,711.0,791.0,853.0,921.0,946.0,969.0,1008.0,1046.0,null,null,null,null,null,null],"pctFirstRep":[16.2389,29.1181,33.1778,36.9109,39.804,42.9771,44.1437,45.217,47.0369,48.8101,null,null,null,null,null,null]},"y2017_q4":{"revenue":[841572.35,88521.6,51974.42,49655.38,153764.54,53615.58,42976.99,41930.13,127433.97,null,null,null,null,null,null,null],"actives":[5888.0,628.0,430.0,406.0,928.0,370.0,344.0,348.0,777.0,null,null,null,null,null,null,null],"pctActive":[100.0,10.6658,7.303,6.8954,15.7609,6.284,5.8424,5.9103,13.1963,null,null,null,null,null,null,null],"revPerActive":[142.9301,140.958,120.8707,122.3039,165.6945,144.907,124.9331,120.4889,164.0077,null,null,null,null,null,null,null],"ordersPerActive":[1.3249,1.4777,1.4791,1.468,1.7155,1.4622,1.4738,1.5,1.6963,null,null,null,null,null,null,null],"aov":[107.8801,95.3897,81.7208,83.3144,96.5858,99.1046,84.7672,80.3259,96.6874,null,null,null,null,null,null,null],"cumFirstRep":[1285.0,1661.0,1836.0,1971.0,2343.0,2417.0,2469.0,2528.0,2695.0,null,null,null,null,null,null,null],"pctFirstRep":[21.824,28.2099,31.1821,33.4749,39.7928,41.0496,41.9327,42.9348,45.7711,null,null,null,null,null,null,null]},"y2018_q1":{"revenue":[345979.78,39692.67,33055.07,62522.67,32703.05,29822.37,24175.1,58212.44,null,null,null,null,null,null,null,null],"actives":[2693.0,292.0,253.0,387.0,245.0,229.0,204.0,339.0,null,null,null,null,null,null,null,null],"pctActive":[100.0,10.8429,9.3947,14.3706,9.0977,8.5035,7.5752,12.5882,null,null,null,null,null,null,null,null],"revPerActive":[128.4737,135.9338,130.6525,161.5573,133.4818,130.2287,118.5054,171.7181,null,null,null,null,null,null,null,null],"ordersPerActive":[1.2451,1.6473,1.6285,1.7804,1.5551,1.559,1.5539,1.7198,null,null,null,null,null,null,null,null],"aov":[103.1851,82.5211,80.2308,90.7441,85.8348,83.5361,76.2621,99.8498,null,null,null,null,null,null,null,null],"cumFirstRep":[453.0,644.0,770.0,946.0,1020.0,1062.0,1102.0,1183.0,null,null,null,null,null,null,null,null],"pctFirstRep":[16.8214,23.9139,28.5926,35.1281,37.876,39.4356,40.9209,43.9287,null,null,null,null,null,null,null,null]},"y2018_q2":{"revenue":[296349.01,40760.45,56327.61,29827.97,36484.8,34697.75,47001.2,null,null,null,null,null,null,null,null,null],"actives":[2637.0,348.0,378.0,222.0,276.0,234.0,317.0,null,null,null,null,null,null,null,null,null],"pctActive":[100.0,13.1968,14.3345,8.4187,10.4664,8.8737,12.0212,null,null,null,null,null,null,null,null,null],"revPerActive":[112.3811,117.1277,149.0148,134.3602,132.1913,148.281,148.2688,null,null,null,null,null,null,null,null,null],"ordersPerActive":[1.2355,1.5776,1.6614,1.509,1.5471,1.6923,1.6751,null,null,null,null,null,null,null,null,null],"aov":[90.9604,74.2449,89.6936,89.0387,85.4445,87.6206,88.5145,null,null,null,null,null,null,null,null,null],"cumFirstRep":[437.0,686.0,871.0,937.0,1017.0,1074.0,1139.0,null,null,null,null,null,null,null,null,null],"pctFirstRep":[16.5719,26.0144,33.03,35.5328,38.5666,40.7281,43.193,null,null,null,null,null,null,null,null,null]},"y2018_q3":{"revenue":[323283.59,85803.75,33952.45,30708.23,33055.22,50645.54,null,null,null,null,null,null,null,null,null,null],"actives":[2801.0,505.0,246.0,255.0,284.0,348.0,null,null,null,null,null,null,null,null,null,null],"pctActive":[100.0,18.0293,8.7826,9.1039,10.1392,12.4241,null,null,null,null,null,null,null,null,null,null],"revPerActive":[115.4172,169.9084,138.0181,120.4244,116.3916,145.5332,null,null,null,null,null,null,null,null,null,null],"ordersPerActive":[1.2274,1.8079,1.6179,1.5059,1.4049,1.7011,null,null,null,null,null,null,null,null,null,null],"aov":[94.0325,93.98,85.3077,79.9693,82.8452,85.5499,null,null,null,null,null,null,null,null,null,null],"cumFirstRep":[455.0,806.0,902.0,995.0,1078.0,1161.0,null,null,null,null,null,null,null,null,null,null],"pctFirstRep":[16.2442,28.7754,32.2028,35.523,38.4863,41.4495,null,null,null,null,null,null,null,null,null,null]},"y2018_q4":{"revenue":[1001115.32,101576.88,63264.43,51736.0,171443.83,null,null,null,null,null,null,null,null,null,null,null],"actives":[7034.0,701.0,456.0,429.0,1030.0,null,null,null,null,null,null,null,null,null,null,null],"pctActive":[100.0,9.9659,6.4828,6.0989,14.6432,null,null,null,null,null,null,null,null,null,null,null],"revPerActive":[142.3252,144.9028,138.7378,120.5967,166.4503,null,null,null,null,null,null,null,null,null,null,null],"ordersPerActive":[1.3155,1.5578,1.5526,1.4312,1.6126,null,null,null,null,null,null,null,null,null,null,null],"aov":[108.1936,93.0191,89.3565,84.2606,103.2172,null,null,null,null,null,null,null,null,null,null,null],"cumFirstRep":[1420.0,1837.0,2035.0,2195.0,2607.0,null,null,null,null,null,null,null,null,null,null,null],"pctFirstRep":[20.1877,26.116,28.9309,31.2056,37.0628,null,null,null,null,null,null,null,null,null,null,null]},"y2019_q1":{"revenue":[445707.59,56397.85,33495.7,73013.07,null,null,null,null,null,null,null,null,null,null,null,null],"actives":[3485.0,359.0,275.0,453.0,null,null,null,null,null,null,null,null,null,null,null,null],"pctActive":[100.0,10.3013,7.891,12.9986,null,null,null,null,null,null,null,null,null,null,null,null],"revPerActive":[127.8931,157.0971,121.8025,161.1768,null,null,null,null,null,null,null,null,null,null,null,null],"ordersPerActive":[1.227,1.6212,1.5418,1.6843,null,null,null,null,null,null,null,null,null,null,null,null],"aov":[104.2347,96.9035,78.9993,95.6921,null,null,null,null,null,null,null,null,null,null,null,null],"cumFirstRep":[567.0,806.0,929.0,1141.0,null,null,null,null,null,null,null,null,null,null,null,null],"pctFirstRep":[16.2697,23.1277,26.6571,32.7403,null,null,null,null,null,null,null,null,null,null,null,null]},"y2019_q2":{"revenue":[347780.04,43713.91,63104.33,null,null,null,null,null,null,null,null,null,null,null,null,null],"actives":[3023.0,382.0,402.0,null,null,null,null,null,null,null,null,null,null,null,null,null],"pctActive":[100.0,12.6365,13.298,null,null,null,null,null,null,null,null,null,null,null,null,null],"revPerActive":[115.0447,114.4343,156.9759,null,null,null,null,null,null,null,null,null,null,null,null,null],"ordersPerActive":[1.2544,1.4895,1.6368,null,null,null,null,null,null,null,null,null,null,null,null,null],"aov":[91.7141,76.8259,95.9032,null,null,null,null,null,null,null,null,null,null,null,null,null],"cumFirstRep":[539.0,777.0,969.0,null,null,null,null,null,null,null,null,null,null,null,null,null],"pctFirstRep":[17.83,25.7029,32.0543,null,null,null,null,null,null,null,null,null,null,null,null,null]},"y2019_q3":{"revenue":[372999.97,81304.57,null,null,null,null,null,null,null,null,null,null,null,null,null,null],"actives":[3208.0,517.0,null,null,null,null,null,null,null,null,null,null,null,null,null,null],"pctActive":[100.0,16.116,null,null,null,null,null,null,null,null,null,null,null,null,null,null],"revPerActive":[116.2718,157.2622,null,null,null,null,null,null,null,null,null,null,null,null,null,null],"ordersPerActive":[1.2263,1.7969,null,null,null,null,null,null,null,null,null,null,null,null,null,null],"aov":[94.8144,87.5184,null,null,null,null,null,null,null,null,null,null,null,null,null,null],"cumFirstRep":[519.0,893.0,null,null,null,null,null,null,null,null,null,null,null,null,null,null],"pctFirstRep":[16.1783,27.8367,null,null,null,null,null,null,null,null,null,null,null,null,null,null]},"y2019_q4":{"revenue":[1244790.52,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],"actives":[8601.0,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],"pctActive":[100.0,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],"revPerActive":[144.7263,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],"ordersPerActive":[1.3073,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],"aov":[110.7071,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],"cumFirstRep":[1750.0,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],"pctFirstRep":[20.3465,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]}}},"y":{"calLabels":["2016","2017","2018","2019"],"n":4,"cohorts":[{"key":"pre2016","label":"Pre-2016","family":0,"step":0,"size":8916},{"key":"2016","label":"2016","family":1,"step":0,"size":14917},{"key":"2017","label":"2017","family":2,"step":0,"size":12726},{"key":"2018","label":"2018","family":3,"step":0,"size":15165},{"key":"2019","label":"2019","family":4,"step":0,"size":18317}],"cal":{"pre2016":{"revenue":[1367752.2,1089809.04,1021230.67,971075.11],"actives":[5756.0,4616.0,4242.0,3913.0],"pctActive":[64.5581,51.7721,47.5774,43.8874],"revPerActive":[237.622,236.0938,240.7427,248.1664],"ordersPerActive":[2.3515,2.4129,2.5976,2.6282],"aov":[101.053,97.846,92.6791,94.4258],"cumFirstRep":[null,null,null,null],"pctFirstRep":[null,null,null,null]},"2016":{"revenue":[2396133.12,925617.89,780722.82,681326.31],"actives":[14917.0,4092.0,3495.0,3064.0],"pctActive":[100.0,27.4318,23.4296,20.5403],"revPerActive":[160.631,226.2018,223.3828,222.365],"ordersPerActive":[1.5481,2.4022,2.5001,2.4791],"aov":[103.7601,94.1626,89.348,89.6954],"cumFirstRep":[4276.0,6418.0,7295.0,7775.0],"pctFirstRep":[28.6653,43.0247,48.9039,52.1217]},"2017":{"revenue":[null,1970193.98,728658.85,592696.13],"actives":[null,12726.0,3352.0,2714.0],"pctActive":[null,100.0,26.3398,21.3264],"revPerActive":[null,154.8164,217.3803,218.3847],"ordersPerActive":[null,1.4983,2.4036,2.3965],"aov":[null,103.3246,90.438,91.1279],"cumFirstRep":[null,3465.0,5273.0,5962.0],"pctFirstRep":[null,27.2277,41.4349,46.849]},"2018":{"revenue":[null,null,2284889.92,829307.26],"actives":[null,null,15165.0,3847.0],"pctActive":[null,null,100.0,25.3676],"revPerActive":[null,null,150.6686,215.5725],"ordersPerActive":[null,null,1.5149,2.385],"aov":[null,null,99.4555,90.3877],"cumFirstRep":[null,null,4043.0,6090.0],"pctFirstRep":[null,null,26.6601,40.1583]},"2019":{"revenue":[null,null,null,2762307.55],"actives":[null,null,null,18317.0],"pctActive":[null,null,null,100.0],"revPerActive":[null,null,null,150.8057],"ordersPerActive":[null,null,null,1.4834],"aov":[null,null,null,101.6638],"cumFirstRep":[null,null,null,4753.0],"pctFirstRep":[null,null,null,25.9486]}},"tsa":{"2016":{"revenue":[2396133.12,925617.89,780722.82,681326.31],"actives":[14917.0,4092.0,3495.0,3064.0],"pctActive":[100.0,27.4318,23.4296,20.5403],"revPerActive":[160.631,226.2018,223.3828,222.365],"ordersPerActive":[1.5481,2.4022,2.5001,2.4791],"aov":[103.7601,94.1626,89.348,89.6954],"cumFirstRep":[4276.0,6418.0,7295.0,7775.0],"pctFirstRep":[28.6653,43.0247,48.9039,52.1217]},"2017":{"revenue":[1970193.98,728658.85,592696.13,null],"actives":[12726.0,3352.0,2714.0,null],"pctActive":[100.0,26.3398,21.3264,null],"revPerActive":[154.8164,217.3803,218.3847,null],"ordersPerActive":[1.4983,2.4036,2.3965,null],"aov":[103.3246,90.438,91.1279,null],"cumFirstRep":[3465.0,5273.0,5962.0,null],"pctFirstRep":[27.2277,41.4349,46.849,null]},"2018":{"revenue":[2284889.92,829307.26,null,null],"actives":[15165.0,3847.0,null,null],"pctActive":[100.0,25.3676,null,null],"revPerActive":[150.6686,215.5725,null,null],"ordersPerActive":[1.5149,2.385,null,null],"aov":[99.4555,90.3877,null,null],"cumFirstRep":[4043.0,6090.0,null,null],"pctFirstRep":[26.6601,40.1583,null,null]},"2019":{"revenue":[2762307.55,null,null,null],"actives":[18317.0,null,null,null],"pctActive":[100.0,null,null,null],"revPerActive":[150.8057,null,null,null],"ordersPerActive":[1.4834,null,null,null],"aov":[101.6638,null,null,null],"cumFirstRep":[4753.0,null,null,null],"pctFirstRep":[25.9486,null,null,null]}}}};
+
+const FAMILIES = [
+  { label: "Pre-2016", cls: "f0" },
+  { label: "2016", cls: "f1" },
+  { label: "2017", cls: "f2" },
+  { label: "2018", cls: "f3" },
+  { label: "2019", cls: "f4" },
+];
+
+const fmtInt = (v) => Math.round(v).toLocaleString("en-US");
+const fmtMoney = (v) => {
+  const a = Math.abs(v);
+  if (a >= 1e6) return "$" + (v / 1e6).toFixed(2) + "M";
+  if (a >= 1e4) return "$" + Math.round(v / 1e3) + "K";
+  return "$" + Math.round(v).toLocaleString("en-US");
+};
+const fmtMoneyAxis = (v) => {
+  const a = Math.abs(v);
+  if (a >= 1e6) return "$" + +(v / 1e6).toFixed(1) + "M";
+  if (a >= 1e3) return "$" + Math.round(v / 1e3) + "K";
+  return "$" + Math.round(v);
+};
+const fmtPct = (v) => v.toFixed(1) + "%";
+const fmtPctAxis = (v) => Math.round(v) + "%";
+const fmtDollar = (v) => "$" + Math.round(v).toLocaleString("en-US");
+const fmt2 = (v) => v.toFixed(2);
+const fmtCountAxis = (v) => (Math.abs(v) >= 1000 ? +(v / 1000).toFixed(1) + "K" : String(Math.round(v)));
+
+const state = { gran: "y", mode: "count", view: "cal", scale: "raw",
+  hidden: new Set(), hover: null, hoverK: null };
+const G = () => DATA[state.gran];
+const nX = () => G().n;
+const periodNoun = () => (state.gran === "y" ? "year" : "quarter");
+const indexedOn = () => state.view === "tsa" && state.scale === "idx";
+const fmtIdx = (v) => (v !== 0 && Math.abs(v) < 10 ? v.toFixed(1) : String(Math.round(v)));
+function seriesFor(c, metric) {
+  const a = G()[state.view][c.key][metric];
+  if (!indexedOn()) return a;
+  const base = a[0];
+  if (base == null || base === 0) return a.map(() => null);
+  return a.map((v) => (v == null ? null : (v / base) * 100));
+}
+const panelCtx = new Map();
+
+const PANELS = [
+  { el: "p-revenue", metric: () => "revenue",
+    title: () => "Cohort revenue", unit: () => "$ per " + periodNoun(),
+    fmt: () => fmtMoney, axisFmt: () => fmtMoneyAxis, zero: true },
+  { el: "p-customers",
+    metric: () => (state.mode === "count" ? "actives" : "pctActive"),
+    title: () => "Active customers",
+    unit: () => (state.mode === "count" ? "# buying that " + periodNoun() : "% of cohort buying"),
+    fmt: () => (state.mode === "count" ? fmtInt : fmtPct),
+    axisFmt: () => (state.mode === "count" ? fmtCountAxis : fmtPctAxis), zero: true },
+  { el: "p-revper", metric: () => "revPerActive",
+    title: () => "Revenue per active customer", unit: () => "$ per active",
+    fmt: () => fmtDollar, axisFmt: () => fmtDollar, zero: false },
+  { el: "p-orders", metric: () => "ordersPerActive",
+    title: () => "Orders per active customer", unit: () => "orders per active",
+    fmt: () => fmt2, axisFmt: () => fmt2, zero: false },
+  { el: "p-aov", metric: () => "aov",
+    title: () => "Revenue per order", unit: () => "average order value",
+    fmt: () => fmtDollar, axisFmt: () => fmtDollar, zero: false },
+  { el: "p-cum",
+    metric: () => (state.mode === "count" ? "cumFirstRep" : "pctFirstRep"),
+    title: () => "Customers who have repeated",
+    unit: () => (state.mode === "count" ? "# with a 1st repeat order, cumulative" : "% of cohort with a 1st repeat order"),
+    fmt: () => (state.mode === "count" ? fmtInt : fmtPct),
+    axisFmt: () => (state.mode === "count" ? fmtCountAxis : fmtPctAxis),
+    zero: true, skipPre: true },
+];
+
+function visibleCohorts() {
+  return G().cohorts.filter((c) => {
+    if (state.view === "tsa" && c.key === "pre2016") return false;
+    return !state.hidden.has(c.family);
+  });
+}
+const cohortCls = (c) => "f" + c.family + " st" + c.step;
+
+function niceTicks(min, max) {
+  const span = max - min || 1;
+  const step0 = Math.pow(10, Math.floor(Math.log10(span / 2)));
+  let step = step0;
+  for (const m of [1, 2, 2.5, 5, 10]) {
+    if (span / (step0 * m) <= 3.2) { step = step0 * m; break; }
+  }
+  const t = [];
+  for (let v = Math.ceil(min / step) * step; v <= max + 1e-9; v += step) t.push(v);
+  return t;
+}
+
+const SVGNS = "http://www.w3.org/2000/svg";
+function sEl(name, attrs, parent) {
+  const el = document.createElementNS(SVGNS, name);
+  for (const k in attrs) el.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(el);
+  return el;
+}
+
+function renderPanel(p) {
+  const host = document.getElementById(p.el);
+  const metric = p.metric();
+  const idx = indexedOn();
+  const fmtAx = idx ? fmtIdx : p.axisFmt();
+  host.innerHTML = "";
+  const h2 = document.createElement("h2");
+  h2.textContent = p.title() + " ";
+  const u = document.createElement("span");
+  u.className = "unit";
+  u.textContent = "(" + (idx ? "indexed" : p.unit()) + ")";
+  h2.appendChild(u);
+  host.appendChild(h2);
+
+  const plot = document.createElement("div");
+  plot.className = "plot";
+  host.appendChild(plot);
+
+  const W = Math.max(200, plot.clientWidth || host.clientWidth - 24);
+  const H = p.el === "p-cum" ? 200 : 148;
+  const M = { l: 46, r: 10, t: 8, b: 18 };
+  const svg = sEl("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: "img" }, plot);
+  svg.setAttribute("aria-label", p.title());
+
+  const n = nX();
+  const cohorts = visibleCohorts().filter((c) => !(p.skipPre && c.key === "pre2016"));
+  const seriesOf = (c) => seriesFor(c, metric);
+  let lo = Infinity, hi = -Infinity;
+  for (const c of cohorts) for (const v of seriesOf(c)) {
+    if (v != null) { if (v < lo) lo = v; if (v > hi) hi = v; }
+  }
+  if (!isFinite(lo)) { lo = 0; hi = 1; }
+  let y0 = p.zero ? 0 : lo - (hi - lo) * 0.12;
+  let y1 = hi + (hi - lo || Math.abs(hi) || 1) * 0.08;
+  if (!p.zero && y0 === y1) { y0 -= 1; y1 += 1; }
+
+  const xs = (i) => M.l + (i / (n - 1)) * (W - M.l - M.r);
+  const ys = (v) => M.t + (1 - (v - y0) / (y1 - y0)) * (H - M.t - M.b);
+
+  for (const tv of niceTicks(y0, y1)) {
+    sEl("line", { x1: M.l, x2: W - M.r, y1: ys(tv), y2: ys(tv), class: "gridline" }, svg);
+    const t = sEl("text", { x: M.l - 5, y: ys(tv) + 3, "text-anchor": "end" }, svg);
+    t.textContent = fmtAx(tv);
+  }
+  sEl("line", { x1: M.l, x2: W - M.r, y1: H - M.b, y2: H - M.b, class: "axisline" }, svg);
+
+  let xticks, xlab;
+  if (state.view === "cal") {
+    if (state.gran === "q") { xticks = [0, 4, 8, 12]; xlab = (i) => G().calLabels[i].slice(0, 4); }
+    else { xticks = [0, 1, 2, 3]; xlab = (i) => G().calLabels[i]; }
+  } else {
+    const step = (W - M.l - M.r) / (n - 1) < 17 ? 2 : 1;
+    xticks = [];
+    for (let i = 0; i < n; i += step) xticks.push(i);
+    xlab = (i) => String(i);
+  }
+  for (const i of xticks) {
+    const nearEdge = xs(i) > W - M.r - 14;
+    const t = sEl("text", { x: nearEdge ? Math.min(xs(i) + 2, W - 1) : xs(i),
+      y: H - M.b + 12, "text-anchor": nearEdge ? "end" : "middle" }, svg);
+    t.textContent = xlab(i);
+  }
+
+  for (const c of cohorts) {
+    const vals = seriesOf(c);
+    let d = "", pen = false, pts = 0, lastIdx = -1;
+    for (let i = 0; i < n; i++) {
+      const v = vals[i];
+      if (v == null) { pen = false; continue; }
+      d += (pen ? "L" : "M") + xs(i).toFixed(1) + " " + ys(v).toFixed(1);
+      pen = true; pts++; lastIdx = i;
+    }
+    if (pts > 1) sEl("path", { d, class: "line " + cohortCls(c), "data-f": c.family, "data-k": c.key }, svg);
+    if (pts === 1) {
+      sEl("circle", { cx: xs(lastIdx), cy: ys(vals[lastIdx]), r: 3.5, class: "dot " + cohortCls(c), "data-f": c.family, "data-k": c.key }, svg);
+    } else if (state.gran === "y") {
+      for (let i = 0; i < n; i++) {
+        if (vals[i] != null) sEl("circle", { cx: xs(i), cy: ys(vals[i]), r: 2.5, class: "dot " + cohortCls(c), "data-f": c.family, "data-k": c.key }, svg);
+      }
+    }
+  }
+
+  const hover = sEl("g", { class: "hoverg" }, svg);
+  const tip = document.createElement("div");
+  tip.className = "tip";
+  plot.appendChild(tip);
+
+  panelCtx.set(p.el, { svg, plot, tip, hover, xs, ys, W, H, M,
+    fmt: idx ? fmtIdx : p.fmt(), cohorts, seriesOf });
+
+  svg.addEventListener("pointermove", (e) => {
+    const r = svg.getBoundingClientRect();
+    const px = ((e.clientX - r.left) / r.width) * W;
+    const py = ((e.clientY - r.top) / r.height) * H;
+    const i = Math.max(0, Math.min(n - 1, Math.round(((px - M.l) / (W - M.l - M.r)) * (n - 1))));
+    let bestK = null, bestD = Infinity;
+    for (const c of cohorts) {
+      const v = seriesOf(c)[i];
+      if (v == null) continue;
+      const d = Math.abs(ys(v) - py);
+      if (d < bestD) { bestD = d; bestK = c.key; }
+    }
+    setHover(i, bestK);
+  });
+  svg.addEventListener("pointerleave", () => setHover(null, null));
+}
+
+function hoverText(i) {
+  if (i == null) return "";
+  if (state.view === "cal") return G().calLabels[i];
+  const noun = periodNoun();
+  return i + " " + noun + (i === 1 ? "" : "s") + " since acq.";
+}
+
+function setHover(i, k) {
+  state.hover = i;
+  state.hoverK = i == null ? null : (k === undefined ? state.hoverK : k);
+  const kk = state.hoverK;
+  const meta = kk == null ? null : G().cohorts.find((c) => c.key === kk);
+  document.getElementById("hoverlab").textContent =
+    i == null ? "" : (meta ? meta.label + ", " : "") + hoverText(i);
+  // highlight the hovered cohort everywhere, fade the rest
+  document.querySelectorAll(".line, .dot").forEach((el) => {
+    const ek = el.getAttribute("data-k");
+    if (ek == null) return;
+    el.classList.toggle("dim", kk != null && ek !== kk);
+  });
+  for (const ctx of panelCtx.values()) {
+    const { hover, tip, xs, ys, W, H, M, fmt, cohorts, seriesOf } = ctx;
+    hover.innerHTML = "";
+    tip.style.display = "none";
+    if (i == null) continue;
+    sEl("line", { x1: xs(i), x2: xs(i), y1: M.t, y2: H - M.b, class: "xline" }, hover);
+    const c = kk == null ? null : cohorts.find((cc) => cc.key === kk);
+    if (!c) continue;
+    const v = seriesOf(c)[i];
+    if (v == null) continue;
+    sEl("circle", { cx: xs(i), cy: ys(v), r: 3.5, class: "dot " + cohortCls(c) }, hover);
+    tip.textContent = "";
+    const row = document.createElement("div");
+    row.className = "row";
+    const key = document.createElement("span");
+    key.className = "kline " + cohortCls(c);
+    const val = document.createElement("span");
+    val.className = "v";
+    val.textContent = fmt(v);
+    const nEl = document.createElement("span");
+    nEl.className = "n";
+    nEl.textContent = c.label;
+    row.append(key, val, nEl);
+    tip.appendChild(row);
+    tip.style.display = "block";
+    tip.style.top = Math.max(2, Math.min(H - 40, ys(v) - 30)) + "px";
+    const flip = xs(i) > W * 0.55;
+    const frac = xs(i) / W;
+    if (flip) { tip.style.left = "auto"; tip.style.right = (100 - frac * 100) + "%"; tip.style.marginRight = "8px"; tip.style.marginLeft = "0"; }
+    else { tip.style.right = "auto"; tip.style.left = (frac * 100) + "%"; tip.style.marginLeft = "8px"; tip.style.marginRight = "0"; }
+  }
+}
+
+function drawConnectors() {
+  const tree = document.getElementById("tree");
+  const svg = document.getElementById("connectors");
+  svg.innerHTML = "";
+  if (getComputedStyle(svg).display === "none") return;
+  const tr = tree.getBoundingClientRect();
+  const box = (id) => {
+    const r = document.getElementById(id).getBoundingClientRect();
+    return { cy: r.top - tr.top + r.height / 2, left: r.left - tr.left, right: r.right - tr.left };
+  };
+  const chip = (x, y, ch) => {
+    sEl("circle", { cx: x, cy: y, r: 9 }, svg);
+    const t = sEl("text", { x, y: y + 4, "text-anchor": "middle", class: "op" }, svg);
+    t.textContent = ch;
+  };
+  const link = (parent, c1, c2) => {
+    const p = box(parent), a = box(c1), b = box(c2);
+    const midX = (p.right + Math.min(a.left, b.left)) / 2;
+    sEl("path", { d: `M${p.right} ${p.cy} H${midX} M${midX} ${a.cy} V${b.cy} M${midX} ${a.cy} H${a.left} M${midX} ${b.cy} H${b.left}` }, svg);
+    let my = (a.cy + b.cy) / 2;
+    if (Math.abs(my - p.cy) < 26) my = p.cy + 30;
+    chip(midX, p.cy, "=");
+    chip(midX, my, "×");
+  };
+  link("p-revenue", "p-customers", "p-revper");
+  link("p-revper", "p-orders", "p-aov");
+}
+
+function renderLegend() {
+  const host = document.getElementById("legend");
+  host.querySelectorAll(".chip").forEach((n) => n.remove());
+  FAMILIES.forEach((f, fi) => {
+    const b = document.createElement("button");
+    b.className = "chip";
+    const tsaOff = state.view === "tsa" && fi === 0;
+    b.setAttribute("aria-pressed", String(!state.hidden.has(fi) && !tsaOff));
+    if (tsaOff) {
+      b.disabled = true;
+      b.title = "Pre-2016 has no known acquisition date; calendar view only.";
+    } else if (state.gran === "q" && fi > 0) {
+      b.title = "Toggles all four quarterly cohorts of " + f.label;
+    }
+    const sw = document.createElement("span");
+    sw.className = "sw " + f.cls + " st0";
+    const t = document.createElement("span");
+    t.textContent = f.label;
+    b.append(sw, t);
+    b.addEventListener("click", () => {
+      if (state.hidden.has(fi)) state.hidden.delete(fi);
+      else if (state.hidden.size < FAMILIES.length - 1) state.hidden.add(fi);
+      renderAll();
+    });
+    b.addEventListener("pointerenter", () => emphasize(fi));
+    b.addEventListener("pointerleave", () => emphasize(null));
+    host.appendChild(b);
+  });
+}
+function emphasize(fi) {
+  document.querySelectorAll(".line, .dot").forEach((el) => {
+    const f = el.getAttribute("data-f");
+    if (f == null) return;
+    el.classList.toggle("dim", fi != null && +f !== fi);
+  });
+}
+
+function renderNotes() {
+  const vn = document.getElementById("viewnote");
+  const fn = document.getElementById("footnote");
+  const noun = periodNoun();
+  if (state.view === "tsa") {
+    vn.textContent = "Lines are left-aligned so 0 is each cohort's acquisition " + noun +
+      ". Each line simply ends where the 2016-2019 data window runs out for that cohort" +
+      (state.gran === "q" ? ": 2016-Q1 runs 15 quarters out, 2019-Q4 is a single dot."
+                          : ": 2016 runs 3 years out, 2019 is a single dot.");
+    fn.textContent = "Pre-2016 customers are hidden in this view (unknown acquisition dates). At 0 every customer is active by definition, so % active is 100%.";
+    if (indexedOn()) {
+      vn.textContent += " Indexed: each cohort is rebased so its value at 0 equals 100, so lines compare trajectories, not levels.";
+    }
+  } else {
+    vn.textContent = "Each cohort enters the picture in its acquisition " + noun +
+      ". Watch the layers: this is the C3 view your total revenue chart is hiding.";
+    fn.textContent = "Pre-2016 customers are excluded from the repeated-customers panel: their first purchase predates the data window, so their first repeat cannot be observed.";
+  }
+  if (state.gran === "q") {
+    fn.textContent += " The four quarterly cohorts of a year share its color, stepping shade Q1 to Q4.";
+  }
+}
+
+function renderTables() {
+  const host = document.getElementById("tables");
+  if (!host.classList.contains("open")) { host.innerHTML = ""; return; }
+  host.innerHTML = "";
+  const n = nX();
+  for (const p of PANELS) {
+    const cohorts = visibleCohorts().filter((c) => !(p.skipPre && c.key === "pre2016"));
+    const metric = p.metric();
+    const fmt = indexedOn() ? fmtIdx : p.fmt();
+    const h = document.createElement("h3");
+    h.textContent = p.title() + " (" + (indexedOn() ? "indexed, 100 at 0" : p.unit()) + ")";
+    host.appendChild(h);
+    const wrap = document.createElement("div");
+    wrap.className = "twrap";
+    const tbl = document.createElement("table");
+    const thead = document.createElement("thead");
+    const hr = document.createElement("tr");
+    const th0 = document.createElement("th");
+    th0.textContent = state.view === "cal"
+      ? (state.gran === "q" ? "Quarter" : "Year")
+      : (state.gran === "q" ? "Quarters since acq." : "Years since acq.");
+    hr.appendChild(th0);
+    for (const c of cohorts) {
+      const th = document.createElement("th");
+      th.textContent = c.label;
+      hr.appendChild(th);
+    }
+    thead.appendChild(hr);
+    tbl.appendChild(thead);
+    const tb = document.createElement("tbody");
+    for (let i = 0; i < n; i++) {
+      const tr = document.createElement("tr");
+      const td0 = document.createElement("td");
+      td0.textContent = state.view === "cal" ? G().calLabels[i] : String(i);
+      tr.appendChild(td0);
+      let any = false;
+      for (const c of cohorts) {
+        const td = document.createElement("td");
+        const v = seriesFor(c, metric)[i];
+        td.textContent = v == null ? "" : fmt(v);
+        if (v != null) any = true;
+        tr.appendChild(td);
+      }
+      if (any) tb.appendChild(tr);
+    }
+    tbl.appendChild(tb);
+    wrap.appendChild(tbl);
+    host.appendChild(wrap);
+  }
+}
+
+function renderAll() {
+  if (state.hover != null && state.hover > nX() - 1) state.hover = null;
+  const scaleOff = state.view !== "tsa";
+  for (const id of ["y-raw", "y-idx"]) {
+    const b = document.getElementById(id);
+    b.disabled = scaleOff;
+    b.title = scaleOff ? "Available in the time since acquisition view" : "";
+  }
+  panelCtx.clear();
+  renderLegend();
+  for (const p of PANELS) renderPanel(p);
+  renderNotes();
+  renderTables();
+  requestAnimationFrame(drawConnectors);
+  if (state.hover != null) setHover(state.hover);
+}
+
+function bindSeg(idA, idB, apply) {
+  const a = document.getElementById(idA), b = document.getElementById(idB);
+  const set = (which) => {
+    a.setAttribute("aria-pressed", String(which === "a"));
+    b.setAttribute("aria-pressed", String(which === "b"));
+    apply(which);
+    renderAll();
+  };
+  a.addEventListener("click", () => set("a"));
+  b.addEventListener("click", () => set("b"));
+  return set;
+}
+bindSeg("g-y", "g-q", (w) => { state.gran = w === "a" ? "y" : "q"; state.hover = null; });
+bindSeg("m-count", "m-pct", (w) => { state.mode = w === "a" ? "count" : "pct"; });
+bindSeg("t-cal", "t-tsa", (w) => { state.view = w === "a" ? "cal" : "tsa"; state.hover = null; });
+bindSeg("y-raw", "y-idx", (w) => { state.scale = w === "a" ? "raw" : "idx"; });
+
+document.getElementById("tbl-btn").addEventListener("click", (e) => {
+  const open = document.getElementById("tables").classList.toggle("open");
+  e.currentTarget.setAttribute("aria-pressed", String(open));
+  renderTables();
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { setHover(null, null); return; }
+  if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
+  e.preventDefault();
+  if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+    const list = visibleCohorts();
+    if (!list.length) return;
+    const dir = e.key === "ArrowDown" ? 1 : -1;
+    const cur = list.findIndex((c) => c.key === state.hoverK);
+    const next = list[(cur + dir + list.length) % list.length];
+    setHover(state.hover == null ? 0 : state.hover, next.key);
+    return;
+  }
+  const n = nX();
+  const cur = state.hover == null ? (e.key === "ArrowRight" ? -1 : n) : state.hover;
+  setHover(Math.max(0, Math.min(n - 1, cur + (e.key === "ArrowRight" ? 1 : -1))));
+});
+
+let rto = null;
+window.addEventListener("resize", () => {
+  clearTimeout(rto);
+  rto = setTimeout(renderAll, 120);
+});
+
+// deep links, e.g. #tsa, #pct, #quarterly, #idx, or combined: #quarterly,tsa,idx
+const hash = location.hash.slice(1).toLowerCase();
+const press = (on, off) => {
+  document.getElementById(on).setAttribute("aria-pressed", "true");
+  document.getElementById(off).setAttribute("aria-pressed", "false");
+};
+if (hash.includes("quarterly")) { state.gran = "q"; press("g-q", "g-y"); }
+if (hash.includes("pct")) { state.mode = "pct"; press("m-pct", "m-count"); }
+if (hash.includes("tsa")) { state.view = "tsa"; press("t-tsa", "t-cal"); }
+if (hash.includes("idx")) { state.scale = "idx"; press("y-idx", "y-raw"); }
+renderAll();
+</script>
+
+</body>
+</html>
