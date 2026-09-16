@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cohort Unit Economics: When does a cohort pay back its costs?</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --blue: #00274C;
+      --blue-mid: #2F65A7;
+      --blue-tint: #E7EDF4;
+      --maize: #FFCB05;
+      --maize-dark: #D9A900;
+      --maize-edge: #8A6D00;
+      --maize-tint: #FFF6D6;
+      --red: #9A3324;
+      --ink: #1F2A37;
+      --muted: #5B6B7C;
+      --paper: #FAFBFC;
+      --line: #D9E0E7;
+      --shadow: 0 14px 40px rgba(0, 39, 76, .08);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    button, input, select { font: inherit; }
+    button { color: inherit; }
+    :focus-visible { outline: 3px solid rgba(47, 101, 167, .45); outline-offset: 3px; }
+
+    .shell { width: min(1240px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 64px; }
+
+    .hero { display: grid; grid-template-columns: 1.5fr .7fr; gap: 28px; align-items: end; margin-bottom: 22px; padding-bottom: 20px; border-bottom: 4px solid var(--maize); }
+    .eyebrow { margin: 0 0 8px; color: var(--blue-mid); font-size: .76rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+    h1 { max-width: 860px; margin: 0; color: var(--blue); font-size: clamp(1.8rem, 3.6vw, 2.9rem); font-weight: 800; line-height: 1.12; letter-spacing: -.03em; }
+    h1 small { display: block; margin-bottom: 4px; color: var(--blue-mid); font-size: .58em; font-weight: 800; }
+    .lede { max-width: 680px; margin: 16px 0 0; color: var(--muted); font-size: 1.03rem; }
+    .hero-note { border-left: 3px solid var(--maize); padding: 6px 0 6px 18px; color: var(--muted); font-size: .89rem; }
+    .hero-note strong { display: block; margin-bottom: 4px; color: var(--blue); }
+
+    .card { border: 1px solid rgba(0, 39, 76, .12); border-radius: var(--radius); background: #fff; box-shadow: var(--shadow); }
+
+    .settings { padding: 18px; }
+    .settings-head { display: flex; gap: 16px; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; }
+    .settings h2, .visual h2, .table-wrap h2 { margin: 0; color: var(--blue); font-size: 1rem; }
+    .source-pill { border-radius: 999px; background: var(--blue-tint); padding: 5px 10px; color: var(--blue); font-size: .72rem; font-weight: 700; }
+    .controls { display: grid; grid-template-columns: 1.1fr repeat(3, minmax(140px, 1fr)); gap: 12px; }
+    .control { min-width: 0; border-left: 1px solid var(--line); padding-left: 12px; }
+    .control:first-child { border-left: 0; padding-left: 0; }
+    .control label { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 7px; color: var(--muted); font-size: .73rem; font-weight: 700; }
+    .control output { color: var(--ink); font-variant-numeric: tabular-nums; }
+    input[type="range"] { width: 100%; accent-color: var(--blue-mid); }
+    select { width: 100%; border: 1px solid var(--line); border-radius: 9px; background: #fff; padding: 7px 8px; color: var(--ink); font-size: .85rem; font-weight: 700; }
+    .control small { display: block; margin-top: 5px; color: var(--muted); font-size: .68rem; }
+
+    .metric-strip { display: grid; grid-template-columns: repeat(5, 1fr); margin: 14px 0 22px; overflow: hidden; }
+    .metric { min-height: 90px; border-right: 1px solid var(--line); padding: 16px 18px; }
+    .metric:last-child { border-right: 0; }
+    .metric b { display: block; color: var(--blue); font-size: 1.5rem; font-weight: 750; letter-spacing: -.02em; line-height: 1.15; font-variant-numeric: tabular-nums; }
+    .metric span { display: block; margin-top: 6px; color: var(--muted); font-size: .73rem; }
+    .metric.is-locked b { color: #9AA5AF; font-size: .82rem; }
+
+    .stepper { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 0 0 14px; }
+    .step { min-height: 66px; border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 10px 12px; text-align: left; cursor: pointer; }
+    .step small { display: block; color: var(--muted); font-size: .65rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .step span { display: block; margin-top: 4px; font-size: .83rem; font-weight: 700; }
+    .step[aria-selected="true"] { border-color: var(--blue); background: var(--blue); color: #fff; box-shadow: 0 8px 22px rgba(0, 39, 76, .25); }
+    .step[aria-selected="true"] small { color: var(--maize); }
+
+    .question { display: grid; grid-template-columns: auto 1fr auto; gap: 13px; align-items: center; margin-bottom: 14px; padding: 14px 16px; border: 1px solid #EAD98F; border-radius: 14px; background: var(--maize-tint); }
+    .question .qmark { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 50%; background: var(--maize); color: var(--blue); font-weight: 900; }
+    .question p { margin: 0; font-size: .89rem; }
+    .question button { border: 0; border-bottom: 1px solid currentColor; background: transparent; padding: 2px; color: #6E5600; font-size: .77rem; font-weight: 800; cursor: pointer; }
+    .answer { grid-column: 2 / -1; margin: 0; padding-top: 10px; border-top: 1px solid #EAD98F; color: #5B4A10; font-size: .84rem; }
+    .answer[hidden] { display: none; }
+
+    .visual { overflow: hidden; }
+    .visual-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 17px 18px 0; flex-wrap: wrap; }
+    .mode { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+    .mode button { border: 0; background: #fff; padding: 8px 15px; font-size: .78rem; font-weight: 800; cursor: pointer; color: var(--muted); }
+    .mode button[aria-pressed="true"] { background: var(--blue); color: var(--maize); }
+    .legend { display: flex; flex-wrap: wrap; gap: 13px; padding: 8px 18px 0; color: var(--muted); font-size: .72rem; }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .key { width: 10px; height: 10px; border-radius: 3px; background: var(--blue); }
+    .key.member { background: var(--maize); border: 1px solid var(--maize-edge); }
+    .key.outline { border: 2px solid #AEB9C2; background: transparent; }
+    .chart-scroll { overflow-x: auto; padding: 0 10px 4px; }
+    svg { display: block; width: 100%; min-width: 720px; height: auto; font-family: inherit; }
+    .axis { stroke: #A8B2BB; stroke-width: 1; }
+    .grid { stroke: #E9EDF1; stroke-width: 1; }
+    .tick { fill: #74828F; font-size: 11px; }
+    .zero-line { stroke: var(--red); stroke-width: 2; stroke-dasharray: 6 5; }
+
+    .lower { display: grid; grid-template-columns: .95fr 1.05fr; gap: 14px; margin-top: 14px; }
+    .cumulative { padding: 17px 18px; }
+    .cumulative[hidden] { display: none; }
+    .cumulative h2 { margin: 0 0 4px; color: var(--blue); font-size: 1rem; }
+    .cumulative p { margin: 0 0 8px; color: var(--muted); font-size: .76rem; }
+    .table-wrap { min-width: 0; padding: 17px 18px; }
+    .table-wrap p { margin: 4px 0 10px; color: var(--muted); font-size: .75rem; }
+    .table-scroll { max-height: 330px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: .73rem; font-variant-numeric: tabular-nums; }
+    th { position: sticky; top: 0; z-index: 1; background: var(--blue-tint); color: var(--blue); text-align: right; }
+    th:first-child, td:first-child { text-align: left; }
+    th, td { border-bottom: 1px solid #E9EDF1; padding: 8px 9px; text-align: right; white-space: nowrap; }
+    tbody tr:last-child td { border-bottom: 0; }
+    tr.highlight td { background: var(--maize-tint); }
+
+    .method { margin-top: 14px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+    .method summary { padding: 13px 16px; color: var(--blue); font-size: .8rem; font-weight: 800; cursor: pointer; }
+    .method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; padding: 0 16px 16px; color: var(--muted); font-size: .77rem; }
+    .method-grid p { margin: 0; }
+    code { border-radius: 4px; background: var(--blue-tint); padding: 1px 4px; color: var(--blue); }
+    footer { margin-top: 20px; color: var(--muted); font-size: .7rem; text-align: center; }
+
+    [data-mode-single], [data-mode-all] { transition: none; }
+    body.mode-all [data-mode-single] { display: none; }
+    body:not(.mode-all) [data-mode-all] { display: none; }
+
+    @media (max-width: 980px) {
+      .hero { grid-template-columns: 1fr; }
+      .controls { grid-template-columns: 1fr 1fr; }
+      .control:nth-child(3) { border-left: 0; padding-left: 0; }
+      .metric-strip { grid-template-columns: repeat(3, 1fr); }
+      .metric:nth-child(3) { border-right: 0; }
+      .metric:nth-child(n+4) { border-top: 1px solid var(--line); }
+      .lower { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 680px) {
+      .shell { width: min(100% - 20px, 1240px); padding-top: 20px; }
+      h1 { font-size: 2.3rem; }
+      .controls { grid-template-columns: 1fr; }
+      .control { border-left: 0; padding-left: 0; }
+      .metric-strip { grid-template-columns: 1fr 1fr; }
+      .metric:nth-child(odd) { border-right: 1px solid var(--line); }
+      .metric:nth-child(even) { border-right: 0; }
+      .stepper { grid-template-columns: 1fr 1fr; }
+      .question { grid-template-columns: auto 1fr; }
+      .question button { grid-column: 2; justify-self: start; }
+      .answer { grid-column: 1 / -1; }
+      .method-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">MKT 626 | Class 5 | Arbor Threads</p>
+        <h1><small>Cohort Unit Economics</small>When does a cohort pay back its costs?</h1>
+        <p class="lede">Take one real Arbor Threads cohort and build its discounted cash flow the way the class workbook does: start from revenue per active customer, scale by % active to get revenue per cohort member, scale by margin to get cash flow, discount it, then subtract what you paid to acquire them. Time runs in quarters since acquisition, and quarter 0 is the acquisition quarter itself.</p>
+      </div>
+      <div class="hero-note"><strong>Real cohort, real decay</strong>The activity and revenue numbers are computed straight from the transaction log you have. Only the blue-cell assumptions are yours to move.</div>
+    </header>
+
+    <section class="settings card" aria-labelledby="settings-title">
+      <div class="settings-head">
+        <h2 id="settings-title">Assumptions and cohort</h2>
+        <span class="source-pill">trlog_cds_5yr.csv | time = quarters since acquisition | quarter 0 = the acquisition quarter</span>
+      </div>
+      <div class="controls">
+        <div class="control">
+          <label for="cohort"><span>Cohort</span><output id="cohort-size-out"></output></label>
+          <select id="cohort"></select>
+          <small id="cohort-window"></small>
+        </div>
+        <div class="control">
+          <label for="discount"><span>Discount rate (annual)</span><output data-output="annual"></output></label>
+          <input id="discount" data-key="annual" type="range" min="0" max="0.40" step="0.005" value="0.10">
+          <small id="quarterly-out"></small>
+        </div>
+        <div class="control">
+          <label for="margin"><span>Contribution margin</span><output data-output="margin"></output></label>
+          <input id="margin" data-key="margin" type="range" min="0.05" max="0.70" step="0.01" value="0.40">
+          <small>Share of revenue left after variable costs.</small>
+        </div>
+        <div class="control">
+          <label for="cac"><span>CAC per customer</span><output data-output="cac"></output></label>
+          <input id="cac" data-key="cac" type="range" min="0" max="400" step="1" value="126">
+          <small id="spend-out"></small>
+        </div>
+      </div>
+    </section>
+
+    <section class="metric-strip card" aria-label="Model summary" data-mode-single>
+      <div class="metric"><b id="metric-size">...</b><span>Cohort members acquired</span></div>
+      <div class="metric is-locked" data-unlock="2"><b id="metric-rev">Unlocks in step 2</b><span>Expected revenue per member, all observed quarters</span></div>
+      <div class="metric is-locked" data-unlock="4"><b id="metric-pv">Unlocks in step 4</b><span>PV of expected cash flows per member</span></div>
+      <div class="metric is-locked" data-unlock="5"><b id="metric-net">Unlocks in step 5</b><span>Net per member after CAC</span></div>
+      <div class="metric is-locked" data-unlock="5"><b id="metric-roi">Unlocks in step 5</b><span>ROI and payback quarter</span></div>
+    </section>
+
+    <nav class="stepper" role="tablist" aria-label="Learning steps" data-mode-single>
+      <button class="step" type="button" role="tab" aria-selected="true" data-step="1"><small>Step 1</small><span>Revenue per active customer</span></button>
+      <button class="step" type="button" role="tab" aria-selected="false" data-step="2"><small>Step 2</small><span>Times % active: revenue per member</span></button>
+      <button class="step" type="button" role="tab" aria-selected="false" data-step="3"><small>Step 3</small><span>Times margin: expected cash flow</span></button>
+      <button class="step" type="button" role="tab" aria-selected="false" data-step="4"><small>Step 4</small><span>Times the discount factor</span></button>
+      <button class="step" type="button" role="tab" aria-selected="false" data-step="5"><small>Step 5</small><span>Subtract acquisition cost</span></button>
+    </nav>
+
+    <section class="question" aria-live="polite" data-mode-single>
+      <span class="qmark" aria-hidden="true">?</span>
+      <p id="question-text"></p>
+      <button id="answer-toggle" type="button" aria-expanded="false">Check your thinking</button>
+      <p class="answer" id="answer-text" hidden></p>
+    </section>
+
+    <section class="visual card" aria-labelledby="timeline-title">
+      <div class="visual-head">
+        <h2 id="timeline-title">One cohort, one row of the workbook at a time</h2>
+        <div class="mode" role="group" aria-label="View mode">
+          <button id="mode-single" type="button" aria-pressed="true">One cohort</button>
+          <button id="mode-all" type="button" aria-pressed="false">All cohorts</button>
+        </div>
+      </div>
+      <div class="legend" data-mode-single>
+        <span><i class="key" id="legend-fill-key"></i> <span id="legend-fill-text"></span></span>
+        <span id="legend-outline" hidden><i class="key outline"></i> <span id="legend-outline-text"></span></span>
+      </div>
+      <div class="legend" data-mode-all id="legend-all"></div>
+      <div class="chart-scroll" data-mode-single><svg id="main-chart" viewBox="0 0 1000 376" role="img" aria-label="Per-quarter values for the selected cohort, by quarters since acquisition"></svg></div>
+      <div class="chart-scroll" data-mode-all><svg id="all-chart" viewBox="0 0 1000 420" role="img" aria-label="Cumulative net expected discounted cash flow per member for every cohort"></svg></div>
+    </section>
+
+    <div class="lower" data-mode-single>
+      <section class="cumulative card" id="cumulative-card" hidden aria-labelledby="cumulative-title">
+        <h2 id="cumulative-title">Cumulative expected DCF per member</h2>
+        <p id="cumulative-note">Each quarter stacks its discounted expected cash flow on the pile.</p>
+        <div class="chart-scroll"><svg id="cumulative-chart" viewBox="0 0 720 300" role="img" aria-label="Cumulative discounted expected cash flow per cohort member"></svg></div>
+      </section>
+      <section class="table-wrap card" aria-labelledby="event-table-title">
+        <h2 id="event-table-title">The chart is this table</h2>
+        <p id="table-note">Every bar above is one row below, exactly the workbook's columns.</p>
+        <div class="table-scroll"><table><thead id="event-head"></thead><tbody id="event-body"></tbody></table></div>
+      </section>
+    </div>
+
+    <div class="lower" data-mode-all>
+      <section class="cumulative card" aria-labelledby="all-note-title">
+        <h2 id="all-note-title">Reading the race</h2>
+        <p>Every line is one cohort's cumulative net expected DCF per member, aligned by quarters since acquisition and using the sliders above. A line ends where the data ends: the 2023-Q4 cohort has one observed quarter, not worse economics. Crossing $0 is payback. Hover a line or its row to pick a cohort out.</p>
+        <p id="all-summary"></p>
+      </section>
+      <section class="table-wrap card" aria-labelledby="all-table-title">
+        <h2 id="all-table-title">Every cohort under the same assumptions</h2>
+        <p>PV and net are per member over the observed window only.</p>
+        <div class="table-scroll"><table><thead id="all-head"></thead><tbody id="all-body"></tbody></table></div>
+      </section>
+    </div>
+
+    <details class="method">
+      <summary>Model, conventions, and source notes</summary>
+      <div class="method-grid">
+        <p><strong>Workbook logic.</strong> This is the sheet <code>Class 5 - DCF in Cohort Unit Economics</code> made live. Time runs in quarters since acquisition; quarter 0 is the acquisition quarter itself. The ladder, per quarter: revenue per ACTIVE customer; times % active = expected revenue per newly acquired customer (equivalently, cohort revenue / cohort size, so revenue per cohort MEMBER); times contribution margin = expected cash flow per member; times the discount factor = expected discounted cash flow, at the quarterly rate implied by the annual slider, <code>(1 + annual)^(1/4) - 1</code>. Quarter 0 is not discounted (factor 1.000), and CAC is paid at quarter 0. ROI is net gain per member over CAC, the workbook's framing.</p>
+        <p><strong>Data.</strong> Aggregated from <code>trlog_cds_5yr.csv</code>, the Arbor Threads 20% customer sample you work with, cohorts 2019-Q1 through 2023-Q4. The class sheet's worked example uses the full customer file, so its 2022-Q1 cohort is about five times this size (4,576 members vs 908) with slightly different per-member revenue ($402 vs $382 in period 0). Sampling moves the counts, not the economics. Observed windows are censored: a cohort acquired later simply has fewer quarters of history.</p>
+      </div>
+    </details>
+    <footer>Self-contained teaching tool | No data leaves this file | Built for MKT 626 at Michigan Ross</footer>
+  </main>
+
+  <script>
+  /*MATH-CORE-START*/
+  'use strict';
+  const CohortDCF = (() => {
+    const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, Number(v)));
+
+    function normalize(raw) {
+      return {
+        annual: clamp(raw.annual, 0, 10),
+        margin: clamp(raw.margin, 0, 1),
+        cac: clamp(raw.cac, 0, 1e6)
+      };
+    }
+
+    function quarterlyRate(annual) {
+      return Math.pow(1 + clamp(annual, 0, 10), 0.25) - 1;
+    }
+
+    // One cohort, the workbook's rows, in the class's ladder: revenue per
+    // active customer, times % active = expected revenue per cohort member
+    // (= cohort revenue / cohort size), times margin = expected cash flow,
+    // times the discount factor = expected discounted cash flow. Quarter 0
+    // since acquisition is the acquisition quarter itself: factor 1, CAC paid.
+    function buildCohort(cohort, raw) {
+      const x = normalize(raw);
+      const rq = quarterlyRate(x.annual);
+      const rows = [];
+      let cum = 0;
+      for (let t = 0; t < cohort.active.length; t++) {
+        const active = cohort.active[t];
+        const revenue = cohort.revenue[t];
+        const pctActive = active / cohort.size;
+        const revPerActive = active > 0 ? revenue / active : null;
+        const expRev = revenue / cohort.size;
+        const expCF = expRev * x.margin;
+        const factor = Math.pow(1 + rq, -t);
+        const dcf = expCF * factor;
+        cum += dcf;
+        rows.push({ t, active, revenue, pctActive, revPerActive, expRev,
+          expCF, factor, dcf, cumDcf: cum, netCum: cum - x.cac });
+      }
+      const totalDcf = cum;
+      const netTotal = totalDcf - x.cac;
+      const paybackRow = rows.find(r => r.netCum >= 0);
+      return { rows, inputs: { ...x, quarterly: rq }, summary: {
+        totalDcf, netTotal,
+        roi: x.cac > 0 ? netTotal / x.cac : null,
+        paybackT: x.cac === 0 ? 0 : (paybackRow ? paybackRow.t : null),
+        totalSpend: x.cac * cohort.size
+      } };
+    }
+
+    function buildAll(data, raw) {
+      return Object.keys(data.cohorts).sort().map(key => {
+        const b = buildCohort(data.cohorts[key], raw);
+        return { key, size: data.cohorts[key].size, rows: b.rows, summary: b.summary };
+      });
+    }
+
+    return { normalize, quarterlyRate, buildCohort, buildAll };
+  })();
+  /*MATH-CORE-END*/
+
+  (() => {
+    const DATA = {"source":"trlog_cds_5yr.csv (Arbor Threads, 20% customer sample)","quarters":["2019-Q1","2019-Q2","2019-Q3","2019-Q4","2020-Q1","2020-Q2","2020-Q3","2020-Q4","2021-Q1","2021-Q2","2021-Q3","2021-Q4","2022-Q1","2022-Q2","2022-Q3","2022-Q4","2023-Q1","2023-Q2","2023-Q3","2023-Q4"],"cohorts":{"2019-Q1":{"size":257,"active":[257,58,18,24,18,11,13,4,7,18,11,12,18,17,15,13,15,16,12,13],"revenue":[53250.68,15363.77,4033.61,8168.36,6480.6,1985.19,4016.6,1199.45,1657.69,5197.61,8979.89,3420.91,8083.0,6365.47,5062.68,6325.09,2925.54,4299.76,4159.55,5428.97],"orders":[329,94,24,37,24,14,22,6,7,23,20,15,27,23,18,17,17,21,20,18]},"2019-Q2":{"size":404,"active":[404,60,45,28,15,16,25,11,19,17,20,17,31,17,23,15,24,22,20],"revenue":[87230.53,13410.9,13612.48,9538.76,2075.75,5110.19,6918.55,6291.61,5403.0,3799.79,8011.38,9353.19,10146.82,3812.83,11788.37,4634.03,6683.15,9912.36,8672.23],"orders":[517,80,63,32,17,21,34,17,29,25,27,29,45,19,32,19,30,30,29]},"2019-Q3":{"size":365,"active":[365,66,31,19,11,15,12,20,27,28,17,21,19,15,14,18,27,22],"revenue":[86403.2,18128.24,11584.63,5388.96,3007.81,4211.75,3402.54,4596.21,8107.66,8067.23,5480.8,7372.42,6485.77,7636.27,6756.84,6010.78,12435.95,8460.21],"orders":[442,88,39,23,19,19,16,25,33,35,18,29,22,19,19,23,35,24]},"2019-Q4":{"size":541,"active":[541,65,26,17,32,16,20,24,43,26,31,20,35,18,19,16,29],"revenue":[132324.41,20205.54,7959.02,5157.74,18896.0,4801.49,8498.28,8458.33,19285.89,14827.92,18720.84,13177.72,13112.63,6287.96,9740.47,5534.19,13135.22],"orders":[649,81,32,24,50,19,31,35,58,39,42,21,49,21,27,26,37]},"2020-Q1":{"size":335,"active":[335,20,23,19,7,19,20,37,15,20,23,20,16,17,20,21],"revenue":[92563.87,3455.92,8631.4,5378.32,3244.23,4872.57,6133.55,17126.14,6618.93,13015.77,11201.58,8123.98,7308.17,6830.05,7409.7,6891.99],"orders":[405,26,34,23,8,26,27,51,19,28,29,26,19,23,24,28]},"2020-Q2":{"size":178,"active":[178,23,14,9,15,10,10,9,11,10,9,6,7,4,11],"revenue":[40597.79,6366.66,4054.9,1862.09,5287.08,1914.96,6117.95,4149.93,4677.31,2599.31,2383.98,2407.16,5180.99,2018.45,5243.96],"orders":[213,33,22,14,23,11,14,13,16,10,10,9,12,7,15]},"2020-Q3":{"size":232,"active":[232,33,16,12,19,23,17,15,22,12,18,9,6,14],"revenue":[60476.67,9697.19,5925.62,3150.67,6300.85,8364.06,8680.9,4770.53,8677.37,10178.06,9734.62,4472.64,3868.23,6389.87],"orders":[292,42,21,15,25,30,25,20,31,17,28,12,6,18]},"2020-Q4":{"size":328,"active":[328,45,31,22,45,21,12,16,16,14,9,12,16],"revenue":[82750.67,11433.29,6797.13,6434.5,17612.02,6850.6,4395.86,6914.22,6738.26,5710.06,2980.47,4691.64,8332.69],"orders":[395,52,41,28,58,27,18,19,20,24,11,16,24]},"2021-Q1":{"size":367,"active":[367,66,40,46,36,29,24,31,35,27,31,17],"revenue":[118008.61,27062.28,18707.82,25320.22,13092.05,9750.49,10516.4,14270.72,12397.71,13013.97,12718.72,10734.05],"orders":[468,97,67,73,54,41,32,43,43,37,43,30]},"2021-Q2":{"size":641,"active":[641,92,74,50,60,60,53,41,43,43,41],"revenue":[195804.22,30405.26,24782.98,29592.51,24975.37,25468.7,19975.46,16415.12,24996.53,20965.17,19035.94],"orders":[841,142,111,82,111,97,87,63,79,66,67]},"2021-Q3":{"size":685,"active":[685,128,70,59,57,53,43,52,55,46],"revenue":[219216.76,47193.57,31300.56,22537.77,25732.02,21768.24,20928.04,21732.5,22023.94,26123.5],"orders":[892,200,94,77,81,74,66,75,91,68]},"2021-Q4":{"size":1034,"active":[1034,135,97,74,94,57,56,48,78],"revenue":[351861.5,41147.51,34967.44,30084.1,34715.81,20913.81,23974.52,16365.47,35291.46],"orders":[1251,180,133,98,119,79,78,63,101]},"2022-Q1":{"size":908,"active":[908,189,95,81,76,83,63,52],"revenue":[346491.53,63565.13,35887.81,32172.63,28680.62,35864.15,26196.44,21664.24],"orders":[1095,255,122,117,91,122,93,72]},"2022-Q2":{"size":1380,"active":[1380,177,99,78,106,86,71],"revenue":[530705.34,63399.62,38355.38,34000.79,37169.39,28703.63,31455.58],"orders":[1727,250,121,109,133,113,115]},"2022-Q3":{"size":1367,"active":[1367,204,113,120,103,80],"revenue":[534025.75,83944.66,44032.42,50863.21,38320.57,30573.42],"orders":[1702,291,145,156,139,111]},"2022-Q4":{"size":1542,"active":[1542,206,129,101,149],"revenue":[613293.57,70776.08,60605.25,42179.34,59150.88],"orders":[1903,286,172,128,196]},"2023-Q1":{"size":1243,"active":[1243,203,115,103],"revenue":[576510.18,79442.72,52722.11,53802.34],"orders":[1546,303,168,152]},"2023-Q2":{"size":1838,"active":[1838,262,172],"revenue":[803881.99,91297.65,91772.07],"orders":[2322,382,258]},"2023-Q3":{"size":1917,"active":[1917,252],"revenue":[875351.77,116748.2],"orders":[2475,390]},"2023-Q4":{"size":2260,"active":[2260],"revenue":[972770.32],"orders":[2802]}}};
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => [...document.querySelectorAll(s)];
+    const money = (v, d = 2) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
+    const pct = (v, d = 0) => `${(v * 100).toFixed(d)}%`;
+    const nfmt = (v) => new Intl.NumberFormat('en-US').format(v);
+
+    // Year hue families, quarter steps darken toward ink, as in the cohort
+    // decomposition tool next door.
+    const YEAR_HUES = { 2019: '#2F65A7', 2020: '#00836C', 2021: '#B36A00', 2022: '#8F0A80', 2023: '#9A3324' };
+    const mixHex = (hex, target, w) => {
+      const p = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+      const [a, b] = [p(hex), p(target)];
+      return '#' + a.map((v, i) => Math.round(v * (1 - w) + b[i] * w).toString(16).padStart(2, '0')).join('');
+    };
+    const cohortColor = (key) => {
+      const [y, q] = key.split('-Q');
+      return mixHex(YEAR_HUES[y] || '#5B6B7C', '#10161C', (Number(q) - 1) * 0.18);
+    };
+
+    const initialAll = location.hash.includes('all');
+    const initialStep = Math.min(5, Math.max(1, Number(location.hash.match(/step-(\d)/)?.[1] || 1)));
+    const state = { step: initialStep, cohort: '2022-Q1', mode: initialAll ? 'all' : 'single', focus: null };
+
+    const cohortSel = $('#cohort');
+    Object.keys(DATA.cohorts).sort().forEach(key => {
+      const opt = document.createElement('option');
+      opt.value = key; opt.textContent = key;
+      if (key === state.cohort) opt.selected = true;
+      cohortSel.appendChild(opt);
+    });
+
+    function inputs() {
+      return Object.fromEntries($$('[data-key]').map(el => [el.dataset.key, Number(el.value)]));
+    }
+
+    const questions = {
+      1: (b, key) => {
+        const r = b.rows[Math.min(1, b.rows.length - 1)];
+        return {
+          q: `Quarter 0 since acquisition is ${key} itself, when every member buys at least once. In quarter 1, the average ACTIVE customer spends ${money(r.revPerActive ?? 0)}. Does a typical cohort member bring in about that much revenue that quarter?`,
+          a: `No. Revenue per active customer is conditioned on still buying, and by quarter 1 only ${pct(r.pctActive, 1)} of the cohort is. Survivors look healthy in every quarter; the cohort as a whole does not. That gap is the next step.`
+        };
+      },
+      2: (b, key) => {
+        const r = b.rows[Math.min(1, b.rows.length - 1)];
+        return {
+          q: `Scale quarter 1's ${money(r.revPerActive ?? 0)} per active customer by the ${pct(r.pctActive, 1)} of the ${nfmt(DATA.cohorts[key].size)} members still active. What is the expected revenue per newly acquired customer?`,
+          a: `${money(r.expRev)}: revenue per active x % active, which is exactly cohort revenue / cohort size. Call it revenue per cohort member. The retention curve, not the spending of survivors, is what shrinks it quarter after quarter.`
+        };
+      },
+      3: (b) => {
+        const r = b.rows[Math.min(1, b.rows.length - 1)];
+        return {
+          q: `Revenue is not profit. At a ${pct(b.inputs.margin)} contribution margin, what does quarter 1's ${money(r.expRev)} of expected revenue per member leave as expected CASH FLOW per member?`,
+          a: `${money(r.expCF)}: expected revenue x margin. Only this slice of revenue is available to pay back acquisition spending; the rest went to cost of goods and other variable costs.`
+        };
+      },
+      4: (b) => ({
+        q: `The annual discount rate is ${pct(b.inputs.annual)}. What quarterly rate does that imply, and why does quarter 0 since acquisition keep a factor of exactly 1.000?`,
+        a: `${pct(b.inputs.quarterly, 2)} per quarter, from (1 + ${pct(b.inputs.annual)})^(1/4) - 1, so four quarters compound back to the annual rate. Quarter 0 is money arriving now, in the acquisition quarter, so there is nothing to discount. Every later quarter multiplies by 1/(1 + quarterly rate) once more, so the factor is always below 1 and falling.`
+      }),
+      5: (b, key) => {
+        const s = b.summary;
+        const pay = s.paybackT === null
+          ? `never inside the observed window: the pile tops out at ${money(s.totalDcf)}`
+          : `in quarter ${s.paybackT} since acquisition`;
+        return {
+          q: `You paid ${money(b.inputs.cac, 0)} to acquire each member (about ${money(s.totalSpend, 0)} for the whole cohort). When is that covered, and what is the ROI?`,
+          a: `Cumulative expected discounted cash flow crosses CAC ${pay}. ROI is net gain over CAC: (${money(s.totalDcf)} - ${money(b.inputs.cac, 0)}) / ${money(b.inputs.cac, 0)} = ${s.roi === null ? 'undefined at $0 CAC' : pct(s.roi, 1)}. Push CAC up with the slider and watch payback slide right, then vanish. That is the whole acquisition budget argument in one picture.`
+        };
+      }
+    };
+
+    function setStep(step) {
+      state.step = Number(step);
+      $$('.step').forEach(btn => {
+        const on = Number(btn.dataset.step) === state.step;
+        btn.setAttribute('aria-selected', String(on));
+        btn.tabIndex = on ? 0 : -1;
+      });
+      render();
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      document.body.classList.toggle('mode-all', mode === 'all');
+      $('#mode-single').setAttribute('aria-pressed', String(mode === 'single'));
+      $('#mode-all').setAttribute('aria-pressed', String(mode === 'all'));
+      $('#timeline-title').textContent = mode === 'all'
+        ? 'Every cohort, aligned by quarters since acquisition'
+        : 'One cohort, one row of the workbook at a time';
+      render();
+    }
+
+    function renderMetrics(b, key) {
+      const c = DATA.cohorts[key];
+      $('#metric-size').textContent = nfmt(c.size);
+      $('#metric-rev').textContent = state.step >= 2 ? money(b.rows.reduce((a, r) => a + r.expRev, 0)) : 'Unlocks in step 2';
+      $('#metric-pv').textContent = state.step >= 4 ? money(b.summary.totalDcf) : 'Unlocks in step 4';
+      $('#metric-net').textContent = state.step >= 5 ? money(b.summary.netTotal) : 'Unlocks in step 5';
+      $('#metric-roi').textContent = state.step >= 5
+        ? `${b.summary.roi === null ? 'n/a' : pct(b.summary.roi, 0)} | ${b.summary.paybackT === null ? 'no payback' : 'quarter ' + b.summary.paybackT}`
+        : 'Unlocks in step 5';
+      $$('[data-unlock]').forEach(el => el.classList.toggle('is-locked', state.step < Number(el.dataset.unlock)));
+    }
+
+    function renderQuestion(b, key) {
+      const content = questions[state.step](b, key);
+      $('#question-text').textContent = content.q;
+      $('#answer-text').textContent = content.a;
+      $('#answer-text').hidden = true;
+      $('#answer-toggle').setAttribute('aria-expanded', 'false');
+      $('#answer-toggle').textContent = 'Check your thinking';
+    }
+
+    // The ladder of quantities, one per step. Each step's bars are the current
+    // quantity; the grey outline is the previous step's, so the shrink is visible.
+    const LADDER = {
+      1: { get: (r) => r.revPerActive ?? 0, label: 'Revenue per active customer' },
+      2: { get: (r) => r.expRev, label: 'Expected revenue per cohort member (revenue per active x % active)' },
+      3: { get: (r) => r.expCF, label: 'Expected cash flow per member (revenue per member x margin)' },
+      4: { get: (r) => r.dcf, label: 'Expected discounted cash flow per member (cash flow x discount factor)' }
+    };
+    const ladderStep = () => Math.min(state.step, 4);
+
+    function mainSvg(b, key) {
+      const W = 1000, H = 376, left = 78, right = 26, top = 30, bottom = 80;
+      const n = b.rows.length;
+      const x = (t) => left + (t + 0.5) / n * (W - left - right);
+      const bw = Math.min(56, (W - left - right) / n * 0.42);
+      const ls = ladderStep();
+      const fillQ = LADDER[ls], outQ = ls > 1 ? LADDER[ls - 1] : null;
+      // One fixed y-scale across all steps: the step-1 quantity (revenue per
+      // active customer) sets it, so each step's shrink stays visible.
+      const maxV = Math.max(...b.rows.map(r => LADDER[1].get(r)), 1) * 1.08;
+      const y = (v) => top + (1 - v / maxV) * (H - top - bottom);
+      const parts = [];
+      const gridSteps = 4;
+      for (let i = 0; i <= gridSteps; i++) {
+        const v = maxV / gridSteps * i;
+        parts.push(`<line class="grid" x1="${left}" y1="${y(v)}" x2="${W - right}" y2="${y(v)}"/><text class="tick" x="${left - 8}" y="${y(v) + 4}" text-anchor="end">${money(v, 0)}</text>`);
+      }
+      parts.push(`<line class="axis" x1="${left}" y1="${y(0)}" x2="${W - right}" y2="${y(0)}"/>`);
+      const fillColor = ls === 1 ? 'var(--blue)' : 'var(--maize)';
+      const fillEdge = ls === 1 ? '' : ` stroke="var(--maize-edge)" stroke-width="1"`;
+      for (const r of b.rows) {
+        const cal = DATA.quarters[DATA.quarters.indexOf(key) + r.t] || '';
+        parts.push(`<text class="tick" x="${x(r.t)}" y="${H - 58}" text-anchor="middle">${r.t}</text>`);
+        parts.push(`<text class="tick" x="${x(r.t)}" y="${H - 44}" text-anchor="middle" opacity=".65" font-size="9.5">${cal}</text>`);
+        if (state.step >= 2) parts.push(`<text class="tick" x="${x(r.t)}" y="${H - 26}" text-anchor="middle" fill="#8A6D00">${pct(r.pctActive, 0)} active</text>`);
+        if (outQ) {
+          const ov = outQ.get(r);
+          parts.push(`<rect x="${x(r.t) - bw / 2 - 3}" y="${y(ov)}" width="${bw + 6}" height="${Math.max(0, y(0) - y(ov))}" rx="3" fill="none" stroke="#AEB9C2" stroke-width="2"><title>Quarter ${r.t} since acquisition: ${money(ov)} ${outQ.label.toLowerCase()}</title></rect>`);
+        }
+        const fv = fillQ.get(r);
+        parts.push(`<rect x="${x(r.t) - bw / 2}" y="${y(fv)}" width="${bw}" height="${Math.max(0, y(0) - y(fv))}" rx="2.5" fill="${fillColor}"${fillEdge}><title>Quarter ${r.t} since acquisition: ${money(fv)} ${fillQ.label.toLowerCase()}</title></rect>`);
+      }
+      parts.push(`<text class="tick" x="${(left + W - right) / 2}" y="${H - 4}" text-anchor="middle">Quarters since acquisition (0 = the acquisition quarter, ${key})</text>`);
+      return parts.join('');
+    }
+
+    function cumulativeSvg(b) {
+      const W = 720, H = 300, left = 66, right = 22, top = 24, bottom = 44;
+      const n = b.rows.length;
+      const x = (t) => left + t / Math.max(1, n - 1) * (W - left - right);
+      const net = state.step >= 5;
+      const vals = b.rows.map(r => net ? r.netCum : r.cumDcf);
+      const lo = Math.min(0, ...vals, net ? -b.inputs.cac : 0) * 1.12;
+      const hi = Math.max(...vals, 10) * 1.12;
+      const y = (v) => top + (hi - v) / (hi - lo) * (H - top - bottom);
+      const parts = [];
+      for (const r of b.rows) parts.push(`<line class="grid" x1="${x(r.t)}" y1="${top}" x2="${x(r.t)}" y2="${H - bottom}"/><text class="tick" x="${x(r.t)}" y="${H - 24}" text-anchor="middle">${r.t}</text>`);
+      parts.push(`<line class="${lo < 0 ? 'zero-line' : 'axis'}" x1="${left}" y1="${y(0)}" x2="${W - right}" y2="${y(0)}"/><text class="tick" x="${left - 8}" y="${y(0) + 4}" text-anchor="end">$0</text>`);
+      let d = '';
+      if (net) { d = `M ${x(0)} ${y(-b.inputs.cac)}`; }
+      vals.forEach((v, i) => {
+        d += (i === 0 && !net) ? `M ${x(0)} ${y(v)}` : ` L ${x(i)} ${y(v)}`;
+      });
+      parts.push(`<path d="${d}" fill="none" stroke="var(--blue)" stroke-width="3" stroke-linejoin="round"/>`);
+      vals.forEach((v, i) => parts.push(`<circle cx="${x(i)}" cy="${y(v)}" r="4" fill="var(--blue)" stroke="#fff" stroke-width="1.5"><title>Quarter ${i} since acquisition: ${money(v)}</title></circle>`));
+      if (net && b.summary.paybackT !== null) {
+        const pt = b.summary.paybackT;
+        parts.push(`<circle cx="${x(pt)}" cy="${y(b.rows[pt].netCum)}" r="7" fill="none" stroke="var(--red)" stroke-width="3"><title>Payback: quarter ${pt} since acquisition</title></circle>`);
+      }
+      parts.push(`<text class="tick" x="${(left + W - right) / 2}" y="${H - 4}" text-anchor="middle">Quarters since acquisition</text>`);
+      return parts.join('');
+    }
+
+    function renderTable(b, key) {
+      const heads = ['Qtr since acq.', 'Active', 'Revenue', 'Rev / active'];
+      if (state.step >= 2) heads.push('% active', 'Exp rev / member');
+      if (state.step >= 3) heads.push('Exp cash flow / member');
+      if (state.step >= 4) heads.push('Factor', 'Discounted', 'Cumulative');
+      if (state.step >= 5) heads.push('Net after CAC');
+      $('#event-head').innerHTML = `<tr>${heads.map(h => `<th>${h}</th>`).join('')}</tr>`;
+      $('#event-body').innerHTML = b.rows.map(r => {
+        const cal = DATA.quarters[DATA.quarters.indexOf(key) + r.t] || '';
+        const cells = [`<td>${r.t} (${cal})</td>`, `<td>${nfmt(r.active)}</td>`, `<td>${money(r.revenue, 0)}</td>`,
+          `<td>${r.revPerActive === null ? 'no actives' : money(r.revPerActive)}</td>`];
+        if (state.step >= 2) cells.push(`<td>${pct(r.pctActive, 1)}</td>`, `<td>${money(r.expRev)}</td>`);
+        if (state.step >= 3) cells.push(`<td>${money(r.expCF)}</td>`);
+        if (state.step >= 4) cells.push(`<td>${r.factor.toFixed(3)}</td>`, `<td>${money(r.dcf)}</td>`, `<td>${money(r.cumDcf)}</td>`);
+        if (state.step >= 5) cells.push(`<td>${money(r.netCum)}</td>`);
+        const hl = state.step >= 5 && b.summary.paybackT === r.t ? ' class="highlight"' : '';
+        return `<tr${hl}>${cells.join('')}</tr>`;
+      }).join('');
+      $('#table-note').textContent = state.step === 1 ? 'Revenue per active customer: what the average still-buying customer spends, by quarters since acquisition.'
+        : state.step === 2 ? 'The % active column is the cohort\'s retention curve. Rev per active x % active = expected revenue per member, which is also cohort revenue / cohort size.'
+        : state.step === 3 ? 'Expected cash flow per member = expected revenue x contribution margin. Revenue is not profit.'
+        : state.step === 4 ? 'Factor = 1/(1 + quarterly rate)^t, with quarter 0 (the acquisition quarter) untouched at 1.000. Cumulative is the pile so far.'
+        : 'CAC enters once, at quarter 0. The highlighted row is where the pile first covers it.';
+    }
+
+    function allSvg(all) {
+      const W = 1000, H = 420, left = 78, right = 26, top = 28, bottom = 52;
+      const maxT = Math.max(...all.map(c => c.rows.length));
+      const x = (t) => left + t / Math.max(1, maxT - 1) * (W - left - right);
+      let lo = 0, hi = 10;
+      for (const c of all) for (const r of c.rows) { lo = Math.min(lo, r.netCum); hi = Math.max(hi, r.netCum); }
+      const cac = all[0] ? -CohortDCF.normalize(inputs()).cac : 0;
+      lo = Math.min(lo, cac) * 1.1; hi = hi * 1.1;
+      const y = (v) => top + (hi - v) / (hi - lo) * (H - top - bottom);
+      const parts = [];
+      for (let t = 0; t < maxT; t++) parts.push(`<line class="grid" x1="${x(t)}" y1="${top}" x2="${x(t)}" y2="${H - bottom}"/><text class="tick" x="${x(t)}" y="${H - 32}" text-anchor="middle">${t}</text>`);
+      const span = hi - lo, rawStep = span / 5;
+      const yStep = [25, 50, 100, 200, 500].find(s => s >= rawStep) || 1000;
+      for (let v = Math.ceil(lo / yStep) * yStep; v <= hi; v += yStep) {
+        if (Math.abs(v) < 1e-9) continue;
+        parts.push(`<line class="grid" x1="${left}" y1="${y(v)}" x2="${W - right}" y2="${y(v)}"/><text class="tick" x="${left - 8}" y="${y(v) + 4}" text-anchor="end">${money(v, 0)}</text>`);
+      }
+      parts.push(`<line class="zero-line" x1="${left}" y1="${y(0)}" x2="${W - right}" y2="${y(0)}"/><text class="tick" x="${left - 8}" y="${y(0) + 4}" text-anchor="end">$0</text>`);
+      if (cac < 0) parts.push(`<text class="tick" x="${left - 8}" y="${y(cac) + 4}" text-anchor="end" fill="#9A3324">-CAC</text>`);
+      const others = [], focused = [];
+      for (const c of all) {
+        const color = cohortColor(c.key);
+        const dim = state.focus && state.focus !== c.key;
+        let d = `M ${x(0)} ${y(cac)}`;
+        c.rows.forEach((r, i) => { d += ` L ${x(i)} ${y(r.netCum)}`; });
+        const last = c.rows[c.rows.length - 1];
+        const path = `<path data-cohort="${c.key}" d="${d}" fill="none" stroke="${color}" stroke-width="${dim ? 1.5 : state.focus === c.key ? 4 : 2.2}" opacity="${dim ? 0.18 : 1}" stroke-linejoin="round"><title>${c.key}: ${money(last.netCum)} net per member after ${c.rows.length} quarters</title></path>`
+          + `<circle data-cohort="${c.key}" cx="${x(c.rows.length - 1)}" cy="${y(last.netCum)}" r="${state.focus === c.key ? 5 : 3.5}" fill="${color}" opacity="${dim ? 0.18 : 1}"><title>${c.key} ends: ${money(last.netCum)}</title></circle>`;
+        (state.focus === c.key ? focused : others).push(path);
+      }
+      parts.push(...others, ...focused);
+      parts.push(`<text class="tick" x="${(left + W - right) / 2}" y="${H - 8}" text-anchor="middle">Quarters since acquisition</text>`);
+      return parts.join('');
+    }
+
+    function renderAll(all) {
+      $('#all-chart').innerHTML = allSvg(all);
+      $('#legend-all').innerHTML = Object.entries(YEAR_HUES).map(([yr, hue]) =>
+        `<span><i class="key" style="background:${hue}"></i> ${yr} cohorts (Q1 light to Q4 dark)</span>`).join('');
+      $('#all-head').innerHTML = '<tr><th>Cohort</th><th>Members</th><th>Quarters seen</th><th>PV / member</th><th>Net / member</th><th>ROI</th><th>Payback</th></tr>';
+      $('#all-body').innerHTML = all.map(c => {
+        const s = c.summary;
+        const hl = state.focus === c.key ? ' class="highlight"' : '';
+        return `<tr${hl} data-cohort="${c.key}"><td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${cohortColor(c.key)};margin-right:6px"></span>${c.key}</td>` +
+          `<td>${nfmt(c.size)}</td><td>${c.rows.length}</td><td>${money(s.totalDcf)}</td><td>${money(s.netTotal)}</td>` +
+          `<td>${s.roi === null ? 'n/a' : pct(s.roi, 0)}</td><td>${s.paybackT === null ? 'not yet' : 'quarter ' + s.paybackT}</td></tr>`;
+      }).join('');
+      const paid = all.filter(c => c.summary.paybackT !== null).length;
+      const best = [...all].sort((a, b2) => b2.summary.netTotal - a.summary.netTotal)[0];
+      $('#all-summary').innerHTML = `Under these assumptions, <b>${paid} of ${all.length}</b> cohorts have already covered CAC within their observed quarters. Best net per member so far: <b>${best.key}</b> at <b>${money(best.summary.netTotal)}</b>. Remember the older cohorts have had more time; the fair comparison is between lines at the SAME quarter since acquisition.`;
+      $$('#all-body tr').forEach(tr => {
+        tr.addEventListener('mouseenter', () => { state.focus = tr.dataset.cohort; renderAllOnly(); });
+        tr.addEventListener('mouseleave', () => { state.focus = null; renderAllOnly(); });
+      });
+      $('#all-chart').querySelectorAll('[data-cohort]').forEach(el => {
+        el.addEventListener('mouseenter', () => { state.focus = el.dataset.cohort; renderAllOnly(); });
+        el.addEventListener('mouseleave', () => { state.focus = null; renderAllOnly(); });
+      });
+    }
+    function renderAllOnly() {
+      const all = CohortDCF.buildAll(DATA, inputs());
+      $('#all-chart').innerHTML = allSvg(all);
+      $$('#all-body tr').forEach(tr => tr.classList.toggle('highlight', tr.dataset.cohort === state.focus));
+      $('#all-chart').querySelectorAll('[data-cohort]').forEach(el => {
+        el.addEventListener('mouseenter', () => { state.focus = el.dataset.cohort; renderAllOnly(); });
+        el.addEventListener('mouseleave', () => { state.focus = null; renderAllOnly(); });
+      });
+    }
+
+    function render() {
+      const raw = inputs();
+      const m = CohortDCF.normalize(raw);
+      $('[data-output="annual"]').textContent = pct(m.annual, 1);
+      $('[data-output="margin"]').textContent = pct(m.margin);
+      $('[data-output="cac"]').textContent = money(m.cac, 0);
+      $('#quarterly-out').textContent = `Implies ${pct(CohortDCF.quarterlyRate(m.annual), 2)} per quarter.`;
+      const c = DATA.cohorts[state.cohort];
+      $('#cohort-size-out').textContent = `${nfmt(c.size)} members`;
+      const lastCal = DATA.quarters[DATA.quarters.indexOf(state.cohort) + c.active.length - 1];
+      $('#cohort-window').textContent = `Observed ${c.active.length} quarters, ${state.cohort} to ${lastCal}.`;
+      $('#spend-out').textContent = `About ${money(m.cac * c.size, 0)} for this cohort.`;
+      if (state.mode === 'all') { renderAll(CohortDCF.buildAll(DATA, raw)); return; }
+      const b = CohortDCF.buildCohort(c, raw);
+      renderMetrics(b, state.cohort);
+      renderQuestion(b, state.cohort);
+      $('#main-chart').innerHTML = mainSvg(b, state.cohort);
+      renderTable(b, state.cohort);
+      const ls = ladderStep();
+      $('#timeline-title').textContent = {
+        1: 'Step 1: Revenue per ACTIVE customer, by quarters since acquisition',
+        2: 'Step 2: Expected revenue per cohort MEMBER = revenue per active x % active',
+        3: 'Step 3: Expected cash flow per member = expected revenue x margin',
+        4: 'Step 4: Expected DISCOUNTED cash flow = expected cash flow x discount factor',
+        5: 'Step 5: The same discounted cash flows, now against the CAC you paid'
+      }[state.step];
+      $('#legend-fill-key').className = ls === 1 ? 'key' : 'key member';
+      $('#legend-fill-text').textContent = LADDER[ls].label;
+      $('#legend-outline').hidden = ls === 1;
+      if (ls > 1) $('#legend-outline-text').textContent = `${LADDER[ls - 1].label}, before this step's shrink`;
+      $('#cumulative-card').hidden = state.step < 4;
+      if (state.step >= 4) {
+        $('#cumulative-chart').innerHTML = cumulativeSvg(b);
+        $('#cumulative-title').textContent = state.step >= 5 ? 'Cumulative net per member: does it cross $0?' : 'Cumulative expected discounted cash flow per member';
+        $('#cumulative-note').textContent = state.step >= 5
+          ? `Starts at -${money(b.inputs.cac, 0)} (CAC, paid in quarter 0, the acquisition quarter) and climbs by each quarter's discounted expected cash flow. The circled point is payback.`
+          : 'Each quarter since acquisition stacks its discounted expected cash flow on the pile.';
+      }
+    }
+
+    $$('.step').forEach(btn => btn.addEventListener('click', () => setStep(btn.dataset.step)));
+    $$('[data-key]').forEach(el => el.addEventListener('input', render));
+    cohortSel.addEventListener('change', () => { state.cohort = cohortSel.value; render(); });
+    $('#mode-single').addEventListener('click', () => setMode('single'));
+    $('#mode-all').addEventListener('click', () => setMode('all'));
+    $('#answer-toggle').addEventListener('click', () => {
+      const answer = $('#answer-text'), willOpen = answer.hidden;
+      answer.hidden = !willOpen;
+      $('#answer-toggle').setAttribute('aria-expanded', String(willOpen));
+      $('#answer-toggle').textContent = willOpen ? 'Hide explanation' : 'Check your thinking';
+    });
+    document.addEventListener('keydown', (event) => {
+      if (!event.target.classList || !event.target.classList.contains('step') || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+      event.preventDefault();
+      const next = Math.min(5, Math.max(1, state.step + (event.key === 'ArrowRight' ? 1 : -1)));
+      setStep(next);
+      $(`.step[data-step="${next}"]`).focus();
+    });
+    setMode(state.mode);
+    if (state.mode === 'single') setStep(state.step);
+  })();
+  </script>
+</body>
+</html>
