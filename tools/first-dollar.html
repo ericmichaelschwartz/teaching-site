@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The First Dollar</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --blue: #00274C;
+      --blue-mid: #2F65A7;
+      --blue-tint: #E7EDF4;
+      --maize: #FFCB05;
+      --maize-dark: #D9A900;
+      --maize-edge: #8A6D00;
+      --maize-tint: #FFF6D6;
+      --red: #9A3324;
+      --ink: #1F2A37;
+      --muted: #5B6B7C;
+      --paper: #FAFBFC;
+      --line: #D9E0E7;
+      --shadow: 0 14px 40px rgba(0, 39, 76, .08);
+      --radius: 16px;
+      /* semantic ink from the class deck: money, risk, time */
+      --money: #2E7D32;
+      --risk: #C62828;
+      --time: #00274C;
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    :focus-visible { outline: 3px solid rgba(47, 101, 167, .45); outline-offset: 3px; }
+
+    .shell { width: min(1240px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 64px; }
+
+    .hero { display: grid; grid-template-columns: 1.5fr .7fr; gap: 28px; align-items: end; margin-bottom: 22px; padding-bottom: 20px; border-bottom: 4px solid var(--maize); }
+    .eyebrow { margin: 0 0 8px; color: var(--blue-mid); font-size: .76rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+    h1 { max-width: 860px; margin: 0; color: var(--blue); font-size: clamp(2rem, 4.3vw, 3.4rem); font-weight: 800; line-height: 1.06; letter-spacing: -.035em; }
+    .lede { max-width: 680px; margin: 16px 0 0; color: var(--muted); font-size: 1.03rem; }
+    .hero-note { border-left: 3px solid var(--maize); padding: 6px 0 6px 18px; color: var(--muted); font-size: .89rem; }
+    .hero-note strong { display: block; margin-bottom: 4px; color: var(--blue); }
+
+    .card { border: 1px solid rgba(0, 39, 76, .12); border-radius: var(--radius); background: #fff; box-shadow: var(--shadow); }
+
+    .settings { padding: 18px; }
+    .settings-head { display: flex; gap: 16px; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; }
+    .settings h2, .visual h2, .table-wrap h2 { margin: 0; color: var(--blue); font-size: 1rem; }
+    .source-pill { border-radius: 999px; background: var(--blue-tint); padding: 5px 10px; color: var(--blue); font-size: .72rem; font-weight: 700; }
+    .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .control { min-width: 0; border-left: 1px solid var(--line); padding-left: 12px; }
+    .control:first-child { border-left: 0; padding-left: 0; }
+    .control label { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 7px; color: var(--muted); font-size: .73rem; font-weight: 700; }
+    .control output { color: var(--ink); font-variant-numeric: tabular-nums; }
+    input[type="range"] { width: 100%; accent-color: var(--blue-mid); }
+    .control small { display: block; margin-top: 5px; color: var(--muted); font-size: .68rem; }
+    .control.cm label span:first-child, .control.cm output { color: var(--money); }
+    .control.cd label span:first-child, .control.cd output { color: var(--time); }
+    .control.cr label span:first-child, .control.cr output { color: var(--risk); }
+
+    .metric-strip { display: grid; grid-template-columns: repeat(5, 1fr); margin: 14px 0 22px; overflow: hidden; }
+    .metric { min-height: 96px; border-right: 1px solid var(--line); padding: 14px 16px; }
+    .metric:last-child { border-right: 0; }
+    .metric b { display: block; color: var(--blue); font-size: 1.4rem; font-weight: 750; letter-spacing: -.02em; line-height: 1.15; font-variant-numeric: tabular-nums; }
+    .metric span { display: block; margin-top: 6px; color: var(--muted); font-size: .72rem; }
+    .metric.spread b { color: var(--maize-edge); }
+
+    .stepper { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0 0 14px; }
+    .step { min-height: 66px; border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 10px 12px; text-align: left; cursor: pointer; }
+    .step small { display: block; color: var(--muted); font-size: .65rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .step span { display: block; margin-top: 4px; font-size: .83rem; font-weight: 700; }
+    .step[aria-selected="true"] { border-color: var(--blue); background: var(--blue); color: #fff; box-shadow: 0 8px 22px rgba(0, 39, 76, .25); }
+    .step[aria-selected="true"] small { color: var(--maize); }
+
+    .question { display: grid; grid-template-columns: auto 1fr auto; gap: 13px; align-items: center; margin-bottom: 14px; padding: 14px 16px; border: 1px solid #EAD98F; border-radius: 14px; background: var(--maize-tint); }
+    .question .qmark { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 50%; background: var(--maize); color: var(--blue); font-weight: 900; }
+    .question p { margin: 0; font-size: .89rem; }
+    .question button { border: 0; border-bottom: 1px solid currentColor; background: transparent; padding: 2px; color: #6E5600; font-size: .77rem; font-weight: 800; cursor: pointer; }
+    .answer { grid-column: 2 / -1; margin: 0; padding-top: 10px; border-top: 1px solid #EAD98F; color: #5B4A10; font-size: .84rem; }
+    .answer[hidden] { display: none; }
+
+    .visual { overflow: hidden; padding-bottom: 10px; }
+    .visual-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 17px 18px 0; flex-wrap: wrap; }
+    .chart-scroll { overflow-x: auto; padding: 0 10px 4px; }
+    svg.fig { display: block; width: 100%; min-width: 720px; height: auto; font-family: inherit; }
+    .axis { stroke: #A8B2BB; stroke-width: 1; }
+    .grid { stroke: #E9EDF1; stroke-width: 1; }
+    .tick { fill: #74828F; font-size: 11px; }
+
+    /* semantic text */
+    .vm { color: var(--money); font-weight: 700; }
+    .vd { color: var(--time); font-weight: 700; }
+    .vr { color: var(--risk); font-weight: 700; }
+
+    /* stacked fractions */
+    .frac { display: inline-block; vertical-align: middle; text-align: center; font-weight: 700; line-height: 1.12; margin: 0 3px; font-variant-numeric: tabular-nums; }
+    .frac .nu { display: block; border-bottom: 2px solid var(--ink); padding: 0 6px 1px; }
+    .frac .de { display: block; padding: 1px 6px 0; }
+
+    /* 2x2 grid */
+    .mx { display: grid; grid-template-columns: 132px 1fr 1fr; gap: 8px; padding: 14px 18px 8px; }
+    .mx .hd { display: grid; place-items: center; text-align: center; color: var(--blue); font-size: .8rem; font-weight: 800; padding: 6px; }
+    .mx .hd small { display: block; font-weight: 700; font-size: .72rem; margin-top: 2px; }
+    .mx .cell { border: 1.5px solid var(--line); border-radius: 12px; background: #fff; padding: 12px 14px; text-align: left; cursor: pointer; }
+    .mx .cell:hover { border-color: var(--blue-mid); }
+    .mx .cell[aria-pressed="true"] { border-color: var(--maize-edge); background: var(--maize-tint); box-shadow: 0 8px 22px rgba(138, 109, 0, .18); }
+    .mx .cell .nm { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--blue); font-weight: 800; font-size: .92rem; }
+    .mx .cell .eg { color: var(--muted); font-size: .72rem; margin-top: 2px; }
+    .mx .cell .cv { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+    .mx .cell .cv .frac { font-size: .82rem; }
+    .mx .cell .cv .cveq { color: var(--muted); font-weight: 700; font-size: 1.1rem; }
+    .mx .cell .cv b { font-size: 1.5rem; font-weight: 750; color: var(--ink); letter-spacing: -.02em; }
+    .mx .cell svg { width: 84px; height: 34px; flex: none; }
+    .mxnote { padding: 2px 18px 10px; color: var(--muted); font-size: .8rem; }
+    .mxnote b { color: var(--ink); }
+
+    .lower { display: grid; grid-template-columns: .95fr 1.05fr; gap: 14px; margin-top: 14px; }
+    .lower.solo { grid-template-columns: 1fr; }
+    .table-wrap { min-width: 0; padding: 17px 18px; }
+    .table-wrap p { margin: 4px 0 10px; color: var(--muted); font-size: .75rem; }
+    .table-scroll { max-height: 330px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: .73rem; font-variant-numeric: tabular-nums; }
+    th { position: sticky; top: 0; z-index: 1; background: var(--blue-tint); color: var(--blue); text-align: right; }
+    th:first-child, td:first-child { text-align: left; }
+    th, td { border-bottom: 1px solid #E9EDF1; padding: 8px 9px; text-align: right; white-space: nowrap; }
+    tbody tr:last-child td { border-bottom: 0; }
+    tr.total td { font-weight: 700; background: var(--blue-tint); }
+
+    .method { margin-top: 14px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+    .method summary { padding: 13px 16px; color: var(--blue); font-size: .8rem; font-weight: 800; cursor: pointer; }
+    .method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; padding: 0 16px 16px; color: var(--muted); font-size: .77rem; }
+    .method-grid p { margin: 0; }
+    code { border-radius: 4px; background: var(--blue-tint); padding: 1px 4px; color: var(--blue); }
+    footer { margin-top: 20px; color: var(--muted); font-size: .7rem; text-align: center; }
+
+    @media (max-width: 980px) {
+      .hero { grid-template-columns: 1fr; }
+      .metric-strip { grid-template-columns: repeat(3, 1fr); }
+      .metric:nth-child(3) { border-right: 0; }
+      .metric:nth-child(n+4) { border-top: 1px solid var(--line); }
+      .mx { grid-template-columns: 100px 1fr 1fr; }
+      .lower { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 680px) {
+      .shell { width: min(100% - 20px, 1240px); padding-top: 20px; }
+      .controls { grid-template-columns: 1fr; }
+      .control { border-left: 0; padding-left: 0; }
+      .metric-strip { grid-template-columns: 1fr 1fr; }
+      .metric:nth-child(odd) { border-right: 1px solid var(--line); }
+      .metric:nth-child(even) { border-right: 0; }
+      .stepper { grid-template-columns: 1fr 1fr; }
+      .mx { grid-template-columns: 1fr; }
+      .mx .hd { display: none; }
+      .question { grid-template-columns: auto 1fr; }
+      .question button { grid-column: 2; justify-self: start; }
+      .answer { grid-column: 1 / -1; }
+      .method-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <g id="coin-solid">
+        <circle r="26" fill="#2E7D32" />
+        <text y="10" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="30" fill="#fff">$</text>
+      </g>
+      <g id="coin-ghost">
+        <circle r="26" fill="#2E7D32" fill-opacity=".08" stroke="#C62828" stroke-width="2.5" stroke-dasharray="6 5" />
+        <text y="10" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="30" fill="#C62828" fill-opacity=".55">$</text>
+      </g>
+      <symbol id="mini-now-solid" viewBox="0 0 110 44"><line x1="4" y1="34" x2="106" y2="34" stroke="#5B6B7C" stroke-width="1.4"/><use href="#coin-solid" transform="translate(18,17) scale(.5)"/></symbol>
+      <symbol id="mini-later-solid" viewBox="0 0 110 44"><line x1="4" y1="34" x2="106" y2="34" stroke="#5B6B7C" stroke-width="1.4"/><use href="#coin-solid" transform="translate(92,20) scale(.4)"/></symbol>
+      <symbol id="mini-now-ghost" viewBox="0 0 110 44"><line x1="4" y1="34" x2="106" y2="34" stroke="#5B6B7C" stroke-width="1.4"/><use href="#coin-ghost" transform="translate(18,17) scale(.5)"/></symbol>
+      <symbol id="mini-later-ghost" viewBox="0 0 110 44"><line x1="4" y1="34" x2="106" y2="34" stroke="#5B6B7C" stroke-width="1.4"/><use href="#coin-ghost" transform="translate(92,20) scale(.4)"/></symbol>
+    </defs>
+  </svg>
+
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">MKT 626 | Customer value | Payment terms</p>
+        <h1>The First Dollar</h1>
+        <p class="lede">One customer, four contracts, four values. Everything hinges on the first payment: WHEN it arrives, and WHETHER it arrives.</p>
+      </div>
+      <div class="hero-note"><strong>IF you could see one customer's dials</strong>Everything here imagines you could see an individual customer's own retention propensity <span class="vr">r</span>, constant period to period, and their own margin <span class="vm">m</span>, also constant. NOT the company's rate, not a cohort's, not any group average.</div>
+    </header>
+
+    <section class="settings card" aria-labelledby="settings-title">
+      <div class="settings-head">
+        <h2 id="settings-title">The three ingredients</h2>
+        <span class="source-pill">one individual customer | constant m and r | annual periods | infinite horizon</span>
+      </div>
+      <div class="controls">
+        <div class="control cm">
+          <label for="m"><span>m: margin per year</span><output data-output="m"></output></label>
+          <input id="m" data-key="m" type="range" min="20" max="300" step="5" value="100">
+          <small>This customer's own margin, held constant.</small>
+        </div>
+        <div class="control cd">
+          <label for="d"><span>d: annual discount rate</span><output data-output="d"></output></label>
+          <input id="d" data-key="d" type="range" min="0" max="0.40" step="0.005" value="0.10">
+          <small>Each year of waiting divides by (1+d).</small>
+        </div>
+        <div class="control cr">
+          <label for="r"><span>r: renewal probability</span><output data-output="r"></output></label>
+          <input id="r" data-key="r" type="range" min="0.05" max="0.95" step="0.01" value="0.80">
+          <small>This customer's own propensity, constant period to period.</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="metric-strip card" aria-label="The four contract values">
+      <div class="metric"><b id="v-prepaid">...</b><span>Prepaid: pay now, this payment sure</span></div>
+      <div class="metric"><b id="v-signed">...</b><span>Good for the money: signed now, billed later</span></div>
+      <div class="metric"><b id="v-trial">...</b><span>Free trial just ended: pay now, if they convert</span></div>
+      <div class="metric"><b id="v-freemium">...</b><span>Maybe pay, maybe leave: billed later, if they stay</span></div>
+      <div class="metric spread"><b id="v-spread">...</b><span>Spread: best contract vs worst, same customer</span></div>
+    </section>
+
+    <nav class="stepper" role="tablist" aria-label="Learning steps">
+      <button class="step" type="button" role="tab" aria-selected="true" data-step="1"><small>Step 1</small><span>Later money is smaller money</span></button>
+      <button class="step" type="button" role="tab" aria-selected="false" data-step="2"><small>Step 2</small><span>Unsure money is ghost money</span></button>
+      <button class="step" type="button" role="tab" aria-selected="false" data-step="3"><small>Step 3</small><span>The infinite sum collapses</span></button>
+      <button class="step" type="button" role="tab" aria-selected="false" data-step="4"><small>Step 4</small><span>Two questions, four business models</span></button>
+    </nav>
+
+    <section class="question" aria-live="polite">
+      <span class="qmark" aria-hidden="true">?</span>
+      <p id="question-text"></p>
+      <button id="answer-toggle" type="button" aria-expanded="false">Check your thinking</button>
+      <p class="answer" id="answer-text" hidden></p>
+    </section>
+
+    <section class="visual card" aria-labelledby="visual-title">
+      <div class="visual-head"><h2 id="visual-title"></h2></div>
+      <div id="mx" class="mx" hidden></div>
+      <div class="chart-scroll" id="fig-wrap"><svg class="fig" id="fig" viewBox="0 0 1000 300" role="img" aria-label="Illustration for the current step"></svg></div>
+      <p class="mxnote" id="mxnote" hidden>Every cell = <span class="frac"><span class="nu"><span class="vm">m</span></span><span class="de">1+<span class="vd">d</span>&minus;<span class="vr">r</span></span></span> times a first-payment adjustment: <span class="vd">left = &times;(1+d)</span>, <span class="vr">up = &divide;r</span>. <b>The entire spread is payment one.</b> Click a cell to see its payment timeline.</p>
+    </section>
+
+    <div class="lower solo">
+      <section class="table-wrap card" id="table-card" hidden aria-labelledby="table-title">
+        <h2 id="table-title">The picture is this table</h2>
+        <p id="table-note"></p>
+        <div class="table-scroll"><table><thead id="t-head"></thead><tbody id="t-body"></tbody></table></div>
+      </section>
+    </div>
+
+    <details class="method">
+      <summary>Model, conventions, and source notes</summary>
+      <div class="method-grid">
+        <p><strong>The model.</strong> One customer, infinite horizon, annual periods. Each payment is worth <span class="vm">m</span>, needs one more <span class="vr">&times;r</span> per survival required, and one more <span class="vd">&divide;(1+d)</span> per period of waiting. The geometric series always collapses to the shared base <code>m / (1 + d &minus; r)</code>; the four contracts differ only in the first payment's timing (now vs a period from now) and certainty (probability 1 vs r). Prepaid <code>m(1+d)/(1+d&minus;r)</code>; signed now, billed later <code>m/(1+d&minus;r)</code>; trial just ended <code>m&middot;r(1+d)/(1+d&minus;r)</code>; maybe pay, maybe leave <code>m&middot;r/(1+d&minus;r)</code>. Signature value = the middle column gap = <code>m(1&minus;r)/(1+d&minus;r)</code>.</p>
+        <p><strong>Caveats from class.</strong> The whole page is an IF: as if you could see one individual customer's own retention propensity <span class="vr">r</span>, constant period to period, and their own constant <span class="vm">m</span>. Neither is observable in practice, and neither is a company-wide, cohort, or group-average rate; averaging across customers with different r's is a different (and later) lecture. Strictly, free-to-paid conversion at the end of a trial deserves its own rate (r&#8320; at the buzzer vs r ongoing); this tool sets r&#8320; = r, as the class deck does. Source: "The First Dollar" class deck (m = $100/yr, d = 10%, r = 80%).</p>
+      </div>
+    </details>
+    <footer>Self-contained teaching tool | No data leaves this file | Built for MKT 626 at Michigan Ross</footer>
+  </main>
+
+  <script>
+  /*MATH-CORE-START*/
+  'use strict';
+  const FirstDollar = (() => {
+    const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, Number(v)));
+
+    function normalize(raw) {
+      return {
+        m: clamp(raw.m, 0.01, 1e6),
+        d: clamp(raw.d, 0, 10),
+        r: clamp(raw.r, 0.0001, 0.995)
+      };
+    }
+
+    // First-payment configuration per contract: when it arrives (0 = now,
+    // 1 = a period from now) and how many survivals it needs (0 or 1).
+    // Payment k (k = 0, 1, 2, ...) then arrives at t0 + k and needs s0 + k
+    // survivals, so its expected discounted value is m * r^(s0+k) / (1+d)^(t0+k).
+    const CONFIG = {
+      prepaid: { t0: 0, s0: 0 },
+      signed: { t0: 1, s0: 0 },
+      trial: { t0: 0, s0: 1 },
+      freemium: { t0: 1, s0: 1 }
+    };
+
+    function cells(raw) {
+      const x = normalize(raw);
+      const base = x.m / (1 + x.d - x.r);
+      const out = {};
+      for (const key of Object.keys(CONFIG)) {
+        const c = CONFIG[key];
+        out[key] = { key, value: base * Math.pow(x.r, c.s0) * Math.pow(1 + x.d, 1 - c.t0) / (1 + x.d) * (1 + x.d) };
+      }
+      // written plainly: prepaid = base*(1+d); signed = base; trial = base*r*(1+d); freemium = base*r
+      out.prepaid.value = base * (1 + x.d);
+      out.signed.value = base;
+      out.trial.value = base * x.r * (1 + x.d);
+      out.freemium.value = base * x.r;
+      return out;
+    }
+
+    function summary(raw) {
+      const x = normalize(raw);
+      const c = cells(x);
+      const spread = c.prepaid.value - c.freemium.value;
+      return {
+        base: x.m / (1 + x.d - x.r),
+        signature: c.signed.value - c.freemium.value,   // = m(1-r)/(1+d-r)
+        spread,
+        spreadYears: spread / x.m,
+        spreadPct: spread / c.freemium.value
+      };
+    }
+
+    function terms(key, raw, n) {
+      const x = normalize(raw);
+      const c = CONFIG[key];
+      const out = [];
+      for (let k = 0; k < n; k++) {
+        const arrivesAt = c.t0 + k, survPow = c.s0 + k;
+        out.push({ k, arrivesAt, survPow, discPow: arrivesAt,
+          value: x.m * Math.pow(x.r, survPow) / Math.pow(1 + x.d, arrivesAt) });
+      }
+      return out;
+    }
+
+    return { normalize, cells, summary, terms, CONFIG };
+  })();
+  /*MATH-CORE-END*/
+
+  (() => {
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => [...document.querySelectorAll(s)];
+    const money = (v, d = 2) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
+    const pct = (v, d = 0) => `${(v * 100).toFixed(d)}%`;
+
+    const CELL_META = {
+      prepaid: { name: 'Prepaid', icon: 'mini-now-solid', eg: 'Costco, annual SaaS, insurance premiums',
+        row: 'certain', col: 'now' },
+      signed: { name: 'Good for the money', icon: 'mini-later-solid', eg: 'Enterprise SaaS, payroll, leases',
+        row: 'certain', col: 'later' },
+      trial: { name: 'Free trial just ended', icon: 'mini-now-ghost', eg: '7- and 30-day trials, leads, abandoned carts',
+        row: 'uncertain', col: 'now' },
+      freemium: { name: 'Maybe pay, maybe leave', icon: 'mini-later-ghost', eg: 'Freemium free tier, retail, usage billing',
+        row: 'uncertain', col: 'later' }
+    };
+
+    const state = {
+      step: Math.min(4, Math.max(1, Number(location.hash.match(/step-(\d)/)?.[1] || 1))),
+      cell: 'prepaid'
+    };
+
+    const inputs = () => Object.fromEntries($$('[data-key]').map(el => [el.dataset.key, Number(el.value)]));
+
+    const fracHtml = (nu, de) => `<span class="frac"><span class="nu">${nu}</span><span class="de">${de}</span></span>`;
+    const baseDen = () => `1+<span class="vd">d</span>&minus;<span class="vr">r</span>`;
+    const CELL_FRAC = {
+      prepaid: () => fracHtml(`<span class="vm">m</span><span class="vd">(1+d)</span>`, baseDen()),
+      signed: () => fracHtml(`<span class="vm">m</span>`, baseDen()),
+      trial: () => fracHtml(`<span class="vm">m</span>&middot;<span class="vr">r</span><span class="vd">(1+d)</span>`, baseDen()),
+      freemium: () => fracHtml(`<span class="vm">m</span>&middot;<span class="vr">r</span>`, baseDen())
+    };
+
+    function questions(x, c, s) {
+      return {
+        1: {
+          q: `With d at ${pct(x.d, 1)}, a ${money(x.m, 0)} payment arriving one year from now is worth what today?`,
+          a: `${money(x.m / (1 + x.d))}: one divide-by-(1+d) per period of waiting. Two years out it is ${money(x.m / Math.pow(1 + x.d, 2))}. Nothing about the customer changed, only when the money lands.`
+        },
+        2: {
+          q: `This customer renews with probability r = ${pct(x.r)}. Before any discounting for time, what is a promised-but-uncertain ${money(x.m, 0)} payment worth?`,
+          a: `${money(x.m * x.r)}: one multiply-by-r per survival required. The dashed coin is ghost money, and r here is this one customer's own propensity, constant period to period, not a company or cohort retention rate.`
+        },
+        3: {
+          q: `Add up every future payment of the prepaid contract: ${money(x.m, 0)} now, then each renewal one more year out and one more survival away. What does the infinite sum collapse to?`,
+          a: `Each term is the last one times r/(1+d) = ${(x.r / (1 + x.d)).toFixed(3)}, a geometric series. It sums to m(1+d)/(1+d-r) = ${money(c.prepaid.value)}. The fraction IS the infinite sum, and the only thing a contract changes is the first term.`
+        },
+        4: {
+          q: `Same customer, same m, d, r. Which contract is worth most, which least, and where does the whole spread come from?`,
+          a: `Prepaid ${money(c.prepaid.value)} vs maybe-pay-maybe-leave ${money(c.freemium.value)}: a spread of ${money(s.spread)}, which is ${(s.spreadYears).toFixed(1)} year${Math.abs(s.spreadYears - 1) < 0.05 ? '' : 's'} of margin (${pct(s.spreadPct)} of the lowest value). All of it comes from payment one: paid now vs a period later (x (1+d)) and certain vs needing a survival (x r). A signature alone, moving up the right column, is worth ${money(s.signature)}.`
+        }
+      }[state.step];
+    }
+
+    /* ---------- step figures ---------- */
+    function coin(x, y, scale, ghost, label, labelColor) {
+      return `<use href="#coin-${ghost ? 'ghost' : 'solid'}" transform="translate(${x},${y}) scale(${scale})"/>` +
+        (label ? `<text x="${x}" y="${y - 26 * scale - 10}" text-anchor="middle" font-weight="700" font-size="15" fill="${labelColor || 'var(--money)'}">${label}</text>` : '');
+    }
+
+    function fig1(x) {
+      const W = 1000, H = 300, left = 90, right = 60, base = 190;
+      const n = 6;
+      const xx = (t) => left + t / n * (W - left - right);
+      const parts = [`<line class="axis" x1="${left - 30}" y1="${base}" x2="${W - right + 30}" y2="${base}"/>`];
+      for (let t = 0; t <= n; t++) {
+        const v = x.m / Math.pow(1 + x.d, t);
+        parts.push(`<line x1="${xx(t)}" y1="${base - 6}" x2="${xx(t)}" y2="${base + 6}" stroke="#A8B2BB"/>`);
+        parts.push(`<text class="tick" x="${xx(t)}" y="${base + 24}" text-anchor="middle">${t === 0 ? 'now' : t}</text>`);
+        parts.push(coin(xx(t), base - 34, Math.max(0.34, Math.sqrt(v / x.m)), false, money(v, 0)));
+      }
+      parts.push(`<text class="tick" x="${(left + W - right) / 2}" y="${H - 8}" text-anchor="middle">Years of waiting before the same ${money(x.m, 0)} payment lands</text>`);
+      parts.push(`<text x="${(left + W - right) / 2}" y="46" text-anchor="middle" font-weight="800" font-size="19" fill="var(--time)">&divide; (1+d) per period of waiting</text>`);
+      return parts.join('');
+    }
+
+    function fig2(x) {
+      const W = 1000, H = 300, base = 196;
+      const parts = [];
+      parts.push(coin(300, base - 40, 1.35, false, money(x.m, 0)));
+      parts.push(`<text class="tick" x="300" y="${base + 44}" text-anchor="middle">promised, probability 1</text>`);
+      parts.push(`<text x="300" y="${base + 64}" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">worth ${money(x.m)}</text>`);
+      parts.push(coin(700, base - 40, 1.35, true, `${money(x.m, 0)} &times; ${x.r.toFixed(2)}`, 'var(--risk)'));
+      parts.push(`<text class="tick" x="700" y="${base + 44}" text-anchor="middle" fill="var(--risk)">must still be around, probability r</text>`);
+      parts.push(`<text x="700" y="${base + 64}" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">worth ${money(x.m * x.r)}</text>`);
+      parts.push(`<text x="500" y="46" text-anchor="middle" font-weight="800" font-size="19" fill="var(--risk)">&times; r per survival required</text>`);
+      return parts.join('');
+    }
+
+    function fig3(x, c) {
+      const W = 1000, H = 300, left = 78, right = 26, top = 40, bottom = 46;
+      const N = 15;
+      const t = FirstDollar.terms('prepaid', x, N);
+      const xx = (k) => left + (k + 0.5) / N * (W - left - right);
+      const bw = (W - left - right) / N * 0.55;
+      const maxV = x.m * 1.1;
+      const y = (v) => top + (1 - v / maxV) * (H - top - bottom);
+      const parts = [`<line class="axis" x1="${left}" y1="${y(0)}" x2="${W - right}" y2="${y(0)}"/>`];
+      let cum = 0;
+      const cumPts = [];
+      t.forEach(tt => {
+        cum += tt.value;
+        cumPts.push(cum);
+        parts.push(`<rect x="${xx(tt.k) - bw / 2}" y="${y(tt.value)}" width="${bw}" height="${Math.max(0, y(0) - y(tt.value))}" rx="2.5" fill="var(--money)" opacity="${tt.k === 0 ? 1 : 0.75}"><title>Payment ${tt.k + 1}: ${money(tt.value)} = m x (r/(1+d))^${tt.k}</title></rect>`);
+        if (tt.k <= 3) parts.push(`<text class="tick" x="${xx(tt.k)}" y="${y(tt.value) - 5}" text-anchor="middle" font-weight="700" fill="var(--money)">${money(tt.value, 0)}</text>`);
+        parts.push(`<text class="tick" x="${xx(tt.k)}" y="${H - 28}" text-anchor="middle">${tt.k}</text>`);
+      });
+      // cumulative, scaled to its own max = cell value
+      const cy = (v) => top + (1 - v / (c.prepaid.value * 1.06)) * (H - top - bottom);
+      parts.push(`<path d="${cumPts.map((v, i) => `${i ? 'L' : 'M'} ${xx(i)} ${cy(v)}`).join(' ')}" fill="none" stroke="var(--time)" stroke-width="2.5" stroke-dasharray="5 4"/>`);
+      parts.push(`<line x1="${left}" y1="${cy(c.prepaid.value)}" x2="${W - right}" y2="${cy(c.prepaid.value)}" stroke="var(--time)" stroke-width="1" stroke-dasharray="2 4"/>`);
+      parts.push(`<text x="${W - right}" y="${cy(c.prepaid.value) - 6}" text-anchor="end" font-size="13" font-weight="800" fill="var(--time)">running total &rarr; ${money(c.prepaid.value)}</text>`);
+      parts.push(`<text class="tick" x="${(left + W - right) / 2}" y="${H - 6}" text-anchor="middle">Payment number (prepaid contract): each bar is the last one &times; r/(1+d) = ${(x.r / (1 + x.d)).toFixed(3)}</text>`);
+      return parts.join('');
+    }
+
+    function fig4(x, key) {
+      // payment timeline of the selected contract
+      const W = 1000, H = 300, left = 90, right = 40, base = 186;
+      const N = 8;
+      const t = FirstDollar.terms(key, x, N);
+      const maxT = FirstDollar.CONFIG[key].t0 + N - 1;
+      const xx = (tt) => left + tt / Math.max(1, maxT) * (W - left - right);
+      const parts = [`<line class="axis" x1="${left - 30}" y1="${base}" x2="${W - right + 20}" y2="${base}"/>`];
+      for (let p = 0; p <= maxT; p++) {
+        parts.push(`<line x1="${xx(p)}" y1="${base - 6}" x2="${xx(p)}" y2="${base + 6}" stroke="#A8B2BB"/>`);
+        parts.push(`<text class="tick" x="${xx(p)}" y="${base + 24}" text-anchor="middle">${p === 0 ? 'now' : p}</text>`);
+      }
+      t.forEach(tt => {
+        const ghost = tt.survPow > 0;
+        const scale = Math.max(0.3, Math.sqrt(tt.value / x.m) * 1.05);
+        parts.push(coin(xx(tt.arrivesAt), base - 34, scale, ghost, tt.k < 4 ? money(tt.value, 0) : '', ghost ? 'var(--risk)' : 'var(--money)'));
+        if (tt.k === 0) parts.push(`<text x="${xx(tt.arrivesAt)}" y="${base - 34 - 26 * scale - 28}" text-anchor="middle" font-size="12.5" font-weight="800" fill="var(--blue-mid, #2F65A7)">payment one</text>`);
+      });
+      parts.push(`<text class="tick" x="${(left + W - right) / 2}" y="${H - 8}" text-anchor="middle">Years from now. Solid coin: certain. Dashed coin: needs surviving (one more &times;r each step right). Values already discounted.</text>`);
+      return parts.join('');
+    }
+
+    /* ---------- table ---------- */
+    function renderTable(x, c, key) {
+      const t = FirstDollar.terms(key, x, 10);
+      $('#t-head').innerHTML = `<tr><th>Payment</th><th>Arrives at year</th><th>Survivals needed</th><th>&times; r^k</th><th>&divide; (1+d)^t</th><th>Worth today</th><th>Running total</th></tr>`;
+      let cum = 0;
+      const rows = t.map(tt => {
+        cum += tt.value;
+        return `<tr><td>${tt.k + 1}${tt.k === 0 ? ' (the first dollar)' : ''}</td><td>${tt.arrivesAt}</td><td>${tt.survPow}</td>` +
+          `<td>${Math.pow(x.r, tt.survPow).toFixed(3)}</td><td>${(1 / Math.pow(1 + x.d, tt.discPow)).toFixed(3)}</td>` +
+          `<td>${money(tt.value)}</td><td>${money(cum)}</td></tr>`;
+      });
+      rows.push(`<tr><td colspan="6">... and so on, forever, each payment ${(x.r / (1 + x.d)).toFixed(3)} times the one before</td><td></td></tr>`);
+      rows.push(`<tr class="total"><td colspan="6">Infinite sum = the fraction</td><td>${money(c[key].value)}</td></tr>`);
+      $('#t-body').innerHTML = rows.join('');
+      $('#table-note').textContent = `${CELL_META[key].name}: first payment arrives at year ${FirstDollar.CONFIG[key].t0} and needs ${FirstDollar.CONFIG[key].s0} survival${FirstDollar.CONFIG[key].s0 === 1 ? '' : 's'}; every later payment adds one year of waiting and one survival.`;
+    }
+
+    /* ---------- 2x2 ---------- */
+    function renderMatrix(x, c) {
+      const cellBtn = (key) => {
+        const meta = CELL_META[key];
+        return `<button class="cell" type="button" data-cell="${key}" aria-pressed="${state.cell === key}">
+          <span class="nm">${meta.name} <svg viewBox="0 0 110 44" aria-hidden="true"><use href="#${meta.icon}"/></svg></span>
+          <span class="eg">${meta.eg}</span>
+          <span class="cv">${CELL_FRAC[key]()} <span class="cveq">=</span> <b>${money(c[key].value)}</b></span>
+        </button>`;
+      };
+      $('#mx').innerHTML = `
+        <div class="hd"></div>
+        <div class="hd">Paid now<small class="vd">discount &times; 1</small></div>
+        <div class="hd">Paid at period end<small class="vd">&divide; (1+d)</small></div>
+        <div class="hd">Certain<small class="vr">probability 1</small></div>
+        ${cellBtn('prepaid')}${cellBtn('signed')}
+        <div class="hd">Uncertain<small class="vr">&times; r</small></div>
+        ${cellBtn('trial')}${cellBtn('freemium')}`;
+      $$('#mx .cell').forEach(btn => btn.addEventListener('click', () => { state.cell = btn.dataset.cell; render(); }));
+    }
+
+    /* ---------- render ---------- */
+    function setStep(step) {
+      state.step = Number(step);
+      $$('.step').forEach(btn => {
+        const on = Number(btn.dataset.step) === state.step;
+        btn.setAttribute('aria-selected', String(on));
+        btn.tabIndex = on ? 0 : -1;
+      });
+      render();
+    }
+
+    function render() {
+      const x = FirstDollar.normalize(inputs());
+      $('[data-output="m"]').textContent = money(x.m, 0) + '/yr';
+      $('[data-output="d"]').textContent = pct(x.d, 1);
+      $('[data-output="r"]').textContent = pct(x.r);
+      const c = FirstDollar.cells(x);
+      const s = FirstDollar.summary(x);
+      $('#v-prepaid').textContent = money(c.prepaid.value);
+      $('#v-signed').textContent = money(c.signed.value);
+      $('#v-trial').textContent = money(c.trial.value);
+      $('#v-freemium').textContent = money(c.freemium.value);
+      $('#v-spread').textContent = `${money(s.spread)} (${pct(s.spreadPct, 1)})`;
+
+      const content = questions(x, c, s);
+      $('#question-text').textContent = content.q;
+      $('#answer-text').textContent = content.a;
+      $('#answer-text').hidden = true;
+      $('#answer-toggle').setAttribute('aria-expanded', 'false');
+      $('#answer-toggle').textContent = 'Check your thinking';
+
+      $('#visual-title').innerHTML = {
+        1: 'Step 1: WHEN do they pay? One &divide;(1+d) per period of waiting',
+        2: 'Step 2: WHETHER they pay? One &times;r per survival required',
+        3: 'Step 3: The infinite sum of payments collapses into one fraction',
+        4: 'Step 4: Two questions about the first payment = four business models'
+      }[state.step];
+
+      const showMx = state.step === 4;
+      $('#fig-wrap').hidden = showMx;
+      $('#mx').hidden = !showMx;
+      $('#mxnote').hidden = !showMx;
+      if (!showMx) {
+        $('#fig').innerHTML = { 1: () => fig1(x), 2: () => fig2(x), 3: () => fig3(x, c) }[state.step]();
+      } else {
+        renderMatrix(x, c);
+      }
+
+      $('#table-card').hidden = state.step < 3;
+      if (state.step >= 3) renderTable(x, c, showMx ? state.cell : 'prepaid');
+      if (showMx) {
+        // draw the selected contract's timeline under the grid
+        $('#fig-wrap').hidden = false;
+        $('#fig').innerHTML = fig4(x, state.cell);
+      }
+    }
+
+    $$('.step').forEach(btn => btn.addEventListener('click', () => setStep(btn.dataset.step)));
+    $$('[data-key]').forEach(el => el.addEventListener('input', render));
+    $('#answer-toggle').addEventListener('click', () => {
+      const answer = $('#answer-text'), willOpen = answer.hidden;
+      answer.hidden = !willOpen;
+      $('#answer-toggle').setAttribute('aria-expanded', String(willOpen));
+      $('#answer-toggle').textContent = willOpen ? 'Hide explanation' : 'Check your thinking';
+    });
+    document.addEventListener('keydown', (event) => {
+      if (!event.target.classList || !event.target.classList.contains('step') || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+      event.preventDefault();
+      const next = Math.min(4, Math.max(1, state.step + (event.key === 'ArrowRight' ? 1 : -1)));
+      setStep(next);
+      $(`.step[data-step="${next}"]`).focus();
+    });
+    setStep(state.step);
+  })();
+  </script>
+</body>
+</html>
