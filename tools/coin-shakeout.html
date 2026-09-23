@@ -267,6 +267,34 @@
       background: rgba(255, 203, 5, .10)
     }
 
+    .seg.seg-mini {
+      grid-template-columns: repeat(2, auto);
+      gap: 4px
+    }
+
+    .seg.seg-mini button {
+      padding: 4px 9px;
+      font-size: 11.5px;
+      border-radius: 6px
+    }
+
+    .btn.case {
+      width: 100%;
+      margin-top: 8px;
+      border-color: rgba(237, 231, 216, .35);
+      color: var(--ink)
+    }
+
+    .btn.case.on {
+      border-color: var(--gold);
+      background: rgba(255, 203, 5, .10)
+    }
+
+    .case-note {
+      margin-top: 5px;
+      line-height: 1.35
+    }
+
     .ctl label {
       display: flex;
       justify-content: space-between;
@@ -582,6 +610,25 @@
       border-top: 1.5px solid var(--ink)
     }
 
+    /* dashed chips for the two theoretical curves on the retention chart */
+    .chip.model {
+      border-top: 2px dashed #EDE7D8
+    }
+
+    .chip.ident {
+      border-top: 2px dotted #9AA4AE
+    }
+
+    .chip.obs {
+      border-top: 3px solid #B38900
+    }
+
+    #chartLegend {
+      margin: 0 0 2px;
+      flex-wrap: wrap;
+      gap: 6px 14px
+    }
+
     #chart,
     #hist {
       display: block;
@@ -698,6 +745,9 @@
           <button id="pMixed" class="on">Mixed</button>
           <button id="pExtreme">Extremes</button>
         </div>
+        <button class="btn case" id="pBlueApron">Mint the Blue Apron cohort</button>
+        <p class="hint case-note">The sBG fit from class: average 35%, wide variety. These coins
+          reproduce the survival curve in <i>Class 7 - BG and CLV</i>.</p>
 
         <div class="ctl">
           <label for="muSlider">Average P(death) <output id="muOut">20%</output></label>
@@ -729,10 +779,15 @@
         <div class="charts">
           <div class="chartcard">
             <div class="chart-head">
-              <h2>How many are still alive?</h2>
+              <h2 id="chartTitle">How many are still alive?</h2>
+              <div class="seg seg-mini" role="group" aria-label="Chart view">
+                <button id="vAlive" class="on">Share alive</button>
+                <button id="vRate">Retention rate</button>
+              </div>
             </div>
+            <div class="legend" id="chartLegend"></div>
             <svg id="chart" viewBox="0 0 460 258" role="img"
-              aria-label="Retention curve: share of the cohort still alive each round"></svg>
+              aria-label="Retention curve: share of the cohort still alive each round, against the model"></svg>
           </div>
           <div class="chartcard">
             <div class="chart-head">
@@ -1076,22 +1131,84 @@
 
     /* ── retention chart ── */
     const CH = { W: 460, H: 250, l: 40, r: 16, t: 14, b: 30 };
-    function chartScales() {
+    /* lo is the bottom of the y axis. Share-alive uses the full 0-100%; the retention
+       rate view zooms in, because a rate climbing from 80% to 91% is invisible on a
+       full scale and that climb is the entire point of the view. */
+    function chartScales(lo = 0) {
       const X = Math.max(8, S.round + 2);
       const xOf = t => CH.l + (t / X) * (CH.W - CH.l - CH.r);
-      const yOf = p => CH.t + (1 - p) * (CH.H - CH.t - CH.b);
-      return { X, xOf, yOf };
+      const yOf = p => CH.t + (1 - (p - lo) / (1 - lo)) * (CH.H - CH.t - CH.b);
+      return { X, xOf, yOf, lo };
     }
+    /* Bottom of the axis for the current view, rounded down to a clean tenth so the
+       gridline labels stay readable. */
+    function chartFloor(sr) {
+      if (!sr.rate) return 0;
+      const all = [...sr.obs, ...sr.model, ...sr.ident].map(p => p[1]);
+      if (!all.length) return 0;
+      return Math.max(0, Math.min(0.9, Math.floor((Math.min(...all) - 0.05) * 10) / 10));
+    }
+    /* view state for this chart: share alive S(t), or retention rate r(t) */
+    const VIEW = { mode: 'alive' };
+    /* Deliberately NOT blue. His --blue (#4E97DB) is already a dashed ring on a coin
+       meaning "died unluckily", so a blue dashed line on the chart right beside it
+       reads as the same idea. Neutral grey says "reference curve" and collides with
+       nothing; it is also dimmer than the cream, which keeps the correct model
+       visually dominant. */
+    const CC = { obs: '#B38900', model: '#EDE7D8', ident: '#9AA4AE' };
+
+    /* The observed cohort plus the two model curves the math core already provides.
+       In "rate" mode every series becomes r(t) = S(t)/S(t-1). The identical-coins
+       benchmark is flat at 1-mu there, which is the whole point: only a mixed cohort
+       produces an aggregate retention rate that climbs. */
+    function chartSeries(X) {
+      const K = hetToK(S.het);
+      const identical = !isFinite(K);
+      const rate = VIEW.mode === 'rate';
+      const obs = [], model = [], ident = [];
+      if (rate) {
+        for (let t = 1; t <= X; t++) {
+          if (t < S.history.length && S.history[t - 1] > 0) obs.push([t, S.history[t] / S.history[t - 1]]);
+          const b0 = COINS.bgExpectedRetention(S.mu, K, t - 1);
+          const b1 = COINS.bgExpectedRetention(S.mu, K, t);
+          if (b0 > 0) model.push([t, b1 / b0]);
+          ident.push([t, 1 - S.mu]);
+        }
+      } else {
+        for (let t = 0; t <= X; t++) {
+          if (t < S.history.length) obs.push([t, S.history[t]]);
+          model.push([t, COINS.bgExpectedRetention(S.mu, K, t)]);
+          ident.push([t, COINS.homogeneousRetention(S.mu, t)]);
+        }
+      }
+      return { obs, model, ident, identical, rate };
+    }
+
+    function renderChartLegend(sr) {
+      const bits = [`<span><span class="chip obs"></span>this cohort, observed</span>`];
+      bits.push(sr.identical
+        ? `<span><span class="chip model"></span>what the model expects</span>`
+        : `<span><span class="chip model"></span>mixed coins, expected</span>`
+        + `<span><span class="chip ident"></span>if every coin were identical</span>`);
+      $('chartLegend').innerHTML = bits.join('');
+      $('chartTitle').textContent = sr.rate
+        ? 'What share of the survivors renew?'
+        : 'How many are still alive?';
+    }
+
     function renderChart() {
       const svg = $('chart');
-      const { X, xOf, yOf } = chartScales();
-      const gold = '#B38900';
+      const X = Math.max(8, S.round + 2);
+      const sr = chartSeries(X);
+      const { xOf, yOf, lo } = chartScales(chartFloor(sr));
+      renderChartLegend(sr);
 
       let g = '';
-      for (const p of [0, 0.25, 0.5, 0.75, 1]) {
+      for (let i = 0; i <= 4; i++) {
+        const p = lo + (1 - lo) * i / 4;
         g += `<line x1="${CH.l}" y1="${yOf(p)}" x2="${CH.W - CH.r}" y2="${yOf(p)}"
-            stroke="rgba(214,226,240,${p === 0 ? 0.25 : 0.08})"/>
-          <text x="${CH.l - 8}" y="${yOf(p) + 3.5}" text-anchor="end">${p * 100}%</text>`;
+            stroke="rgba(214,226,240,${i === 0 ? 0.25 : 0.08})"/>
+          <text x="${CH.l - 8}" y="${yOf(p) + 3.5}" text-anchor="end">${Math.round(p * 100)}%</text>`;
       }
       const step = X > 16 ? 4 : X > 8 ? 2 : 1;
       for (let t = 0; t <= X; t += step) {
@@ -1099,11 +1216,20 @@
       }
       g += `<text x="${(CH.l + CH.W - CH.r) / 2}" y="${CH.H + 5}" text-anchor="middle" font-size="10.5">round</text>`;
 
-      const obs = S.history.map((p, t) => [xOf(t), yOf(p)]);
-      const oPath = 'M ' + obs.map(p => p.map(v => v.toFixed(1)).join(' ')).join(' L ');
-      g += `<path d="${oPath}" fill="none" stroke="${gold}" stroke-width="2.5"/>`;
-      obs.forEach(p => {
-        g += `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="${gold}" stroke="#0D2032" stroke-width="2"/>`;
+      const path = pts => pts.length
+        ? 'M ' + pts.map(([t, y]) => `${xOf(t).toFixed(1)} ${yOf(y).toFixed(1)}`).join(' L ')
+        : '';
+      // both model curves sit behind the observed line
+      if (!sr.identical) {
+        g += `<path d="${path(sr.ident)}" fill="none" stroke="${CC.ident}" stroke-width="2"
+            stroke-dasharray="2 4" stroke-linecap="round" opacity=".95"/>`;
+      }
+      g += `<path d="${path(sr.model)}" fill="none" stroke="${CC.model}" stroke-width="2"
+          stroke-dasharray="6 4" opacity=".9"/>`;
+      g += `<path d="${path(sr.obs)}" fill="none" stroke="${CC.obs}" stroke-width="2.5"/>`;
+      sr.obs.forEach(([t, y]) => {
+        g += `<circle cx="${xOf(t).toFixed(1)}" cy="${yOf(y).toFixed(1)}" r="3.5"
+            fill="${CC.obs}" stroke="#0D2032" stroke-width="2"/>`;
       });
       g += `<g id="xhair" style="display:none">
           <line y1="${CH.t}" y2="${CH.H - CH.b}" stroke="rgba(237,231,216,.4)"/>
@@ -1112,6 +1238,7 @@
           height="${CH.H - CH.t - CH.b}" fill="transparent"/>`;
       svg.innerHTML = g;
 
+      const at = (pts, t) => { const hit = pts.find(p => p[0] === t); return hit ? pct(hit[1]) : '—'; };
       const pad2 = svg.querySelector('#hoverpad'), xh = svg.querySelector('#xhair');
       pad2.addEventListener('mousemove', e => {
         const r = svg.getBoundingClientRect();
@@ -1120,9 +1247,13 @@
         xh.style.display = '';
         xh.querySelector('line').setAttribute('x1', xOf(t));
         xh.querySelector('line').setAttribute('x2', xOf(t));
-        const ob = t < S.history.length ? pct(S.history[t]) : '—';
-        tip.innerHTML = `<b>Round ${t}</b><br>
-      <span class="t-sub"><b>${ob}</b> of the cohort alive</span>`;
+        const label = sr.rate ? 'renewed' : 'of the cohort alive';
+        const seen = at(sr.obs, t);
+        let html = `<b>Round ${t}</b><br><span class="t-sub">`;
+        html += seen === '—' ? `not flipped yet` : `<b>${seen}</b> ${label} · observed`;
+        html += `<br>${at(sr.model, t)} · ${sr.identical ? 'model' : 'mixed coins, expected'}`;
+        if (!sr.identical) html += `<br>${at(sr.ident, t)} · if coins were identical`;
+        tip.innerHTML = html + `</span>`;
         tip.classList.add('show');
         tip.style.left = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8) + 'px';
         tip.style.top = (e.clientY - tip.offsetHeight - 10) + 'px';
@@ -1241,29 +1372,68 @@
     }
 
     /* ── controls ── */
+    const SHAPE_PRESETS = ['pIdent', 'pMixed', 'pExtreme'];
+    function clearPresetHighlights() {
+      SHAPE_PRESETS.forEach(id => $(id).classList.remove('on'));
+      $('pBlueApron').classList.remove('on');
+    }
     function setPreset(which) {
-      ['pIdent', 'pMixed', 'pExtreme'].forEach(id => $(id).classList.remove('on'));
+      clearPresetHighlights();
       $(which).classList.add('on');
       S.het = which === 'pIdent' ? 0 : which === 'pMixed' ? 55 : 100;
       $('hetSlider').value = S.het;
       $('hetOut').textContent = hetWord(S.het);
       mint(false);
     }
+    /* The sBG fit used throughout the course: Class 7 - BG and CLV.xlsx carries
+       a = 0.6746, b = 1.2336, so mean churn a/(a+b) = 35.4% and concentration
+       a+b = 1.908. On this tool's two controls that is mu 35% and variety 80,
+       which reproduces the workbook's survival curve to within a rounding error. */
+    const BLUE_APRON = { mu: 0.35, het: 80 };
+    function setBlueApron() {
+      clearPresetHighlights();
+      $('pBlueApron').classList.add('on');
+      S.mu = BLUE_APRON.mu;
+      S.het = BLUE_APRON.het;
+      $('muSlider').value = Math.round(S.mu * 100);
+      $('muOut').textContent = pct(S.mu);
+      $('hetSlider').value = S.het;
+      $('hetOut').textContent = hetWord(S.het);
+      mint(false);
+    }
+    function setView(mode) {
+      VIEW.mode = mode;
+      $('vAlive').classList.toggle('on', mode === 'alive');
+      $('vRate').classList.toggle('on', mode === 'rate');
+      renderChart();
+    }
     $('pIdent').addEventListener('click', () => setPreset('pIdent'));
     $('pMixed').addEventListener('click', () => setPreset('pMixed'));
     $('pExtreme').addEventListener('click', () => setPreset('pExtreme'));
+    $('pBlueApron').addEventListener('click', setBlueApron);
+    $('vAlive').addEventListener('click', () => setView('alive'));
+    $('vRate').addEventListener('click', () => setView('rate'));
 
+    /* Light up whichever preset the current settings happen to match. */
+    function syncPresetHighlight() {
+      clearPresetHighlights();
+      if (Math.abs(S.mu - BLUE_APRON.mu) < 1e-9 && S.het === BLUE_APRON.het) {
+        $('pBlueApron').classList.add('on');
+        return;
+      }
+      const match = S.het === 0 ? 'pIdent' : S.het === 55 ? 'pMixed' : S.het === 100 ? 'pExtreme' : null;
+      if (match) $(match).classList.add('on');
+    }
     $('muSlider').addEventListener('input', e => {
       S.mu = +e.target.value / 100;
       $('muOut').textContent = pct(S.mu);
+      syncPresetHighlight();
       mint(false);
     });
     $('hetSlider').addEventListener('input', e => {
       S.het = +e.target.value;
       $('hetOut').textContent = hetWord(S.het);
-      ['pIdent', 'pMixed', 'pExtreme'].forEach(id => $(id).classList.remove('on'));
-      const match = S.het === 0 ? 'pIdent' : S.het === 55 ? 'pMixed' : S.het === 100 ? 'pExtreme' : null;
-      if (match) $(match).classList.add('on');
+      syncPresetHighlight();
       mint(false);
     });
 
@@ -1283,8 +1453,10 @@
     /* deep-link params for class demos: ?rounds=5&sort=1&labels=1&mu=20&variety=55 */
     {
       const q = new URLSearchParams(location.search);
+      if (q.get('case') === 'blueapron') setBlueApron();
       if (q.has('mu')) { $('muSlider').value = q.get('mu'); $('muSlider').dispatchEvent(new Event('input')); }
       if (q.has('variety')) { $('hetSlider').value = q.get('variety'); $('hetSlider').dispatchEvent(new Event('input')); }
+      if (q.get('view') === 'rate') setView('rate');
       if (q.get('labels') === '1') { $('togLabels').checked = true; document.body.classList.add('labels-on'); }
       if (q.get('sort') === '1') { $('togSort').checked = true; applySort(false); }
       const r = +q.get('rounds');
