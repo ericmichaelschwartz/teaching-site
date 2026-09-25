@@ -71,6 +71,11 @@
     .coord label { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: .72rem; margin-bottom: 3px; }
     .coord label output { color: var(--blue); font-weight: 700; font-variant-numeric: tabular-nums; }
     .coord input { width: 100%; accent-color: var(--blue); }
+    .coords.stacked { grid-template-columns: 1fr; gap: 12px; padding-top: 10px; }
+    .coords.stacked .coord label { font-size: .85rem; }
+    .coords.stacked .coord label span { color: var(--blue); font-weight: 700; }
+    .panel-head.sub { border-top: 1px solid var(--line); padding-top: 12px; padding-bottom: 8px; }
+    .panel-head.sub h2 { font-size: .9rem; }
     .coord-note { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: .7rem; line-height: 1.4; }
     .presets { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 18px 16px; }
     .presets button { border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 5px 9px; font: inherit; font-size: .74rem; color: var(--ink); cursor: pointer; }
@@ -99,8 +104,7 @@
     .fitbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 18px 16px; }
     .fitbar b { color: var(--blue); font-size: 1.15rem; font-variant-numeric: tabular-nums; }
     .fitbar button { border: 1px solid var(--blue); border-radius: 9px; background: var(--blue); color: #fff; padding: 7px 13px; font: inherit; font-size: .8rem; font-weight: 650; cursor: pointer; }
-    .fitbar .verdict { font-size: .8rem; color: var(--muted); }
-    .fitbar .verdict.good { color: #1F7A3D; font-weight: 650; }
+    .legend i.hold { border-top: 0; height: 8px; width: 8px; border-radius: 50%; background: #fff; border: 2px solid var(--red); }
     details.method { margin-top: 18px; }
     details.method summary { cursor: pointer; color: var(--muted); font-size: .82rem; }
     details.method p { color: var(--muted); font-size: .82rem; max-width: 95ch; }
@@ -123,7 +127,8 @@
     <div class="metric"><b id="m-pol">…</b><span>Polarization, 1 / (a + b + 1)</span></div>
     <div class="metric locked" data-unlock="3"><b id="m-r1">Unlocks in step 3</b><span>Retention into month 2, r(1)</span></div>
     <div class="metric locked" data-unlock="3"><b id="m-r12">Unlocks in step 3</b><span>Retention into month 13, r(12)</span></div>
-    <div class="metric locked" data-unlock="4"><b id="m-sse">Unlocks in step 4</b><span>Fit to Blue Apron, sum of squared error</span></div>
+    <div class="metric locked" data-unlock="4"><b id="m-mape-fit">Unlocks in step 4</b><span>MAPE, months 1-6 (fit)</span></div>
+    <div class="metric locked" data-unlock="4"><b id="m-mape-hold">Unlocks in step 4</b><span>MAPE, months 7-12 (holdout)</span></div>
   </section>
 
   <nav class="stepper" role="tablist" aria-label="Learning steps">
@@ -141,18 +146,23 @@
   </section>
 
   <div class="main">
-    <section class="card" aria-labelledby="plane-title">
+    <section class="card" aria-labelledby="params-title">
       <div class="panel-head">
-        <h2 id="plane-title">The parameter plane</h2>
-        <p>Click or drag anywhere. Both axes are log scale, so the lines at 1 split the four shapes.</p>
+        <h2 id="params-title">Parameters</h2>
+        <p>Drag a slider. Both run on a log scale from 0.1 to 10.</p>
       </div>
-      <div class="plane-wrap"><svg id="plane" viewBox="0 0 340 340" role="img" aria-label="Parameter plane for a and b with four regions"></svg></div>
-      <div class="coords">
+      <div class="coords stacked">
         <div class="coord"><label for="param-a"><span>a</span><output id="out-a"></output></label><input id="param-a" type="range" min="-1" max="1" step="0.001" value="-0.171"></div>
         <div class="coord"><label for="param-b"><span>b</span><output id="out-b"></output></label><input id="param-b" type="range" min="-1" max="1" step="0.001" value="0.091"></div>
-        <p class="coord-note" id="coord-note"></p>
       </div>
+      <div class="panel-head sub"><h2>Presets to explore</h2></div>
       <div class="presets" id="presets"></div>
+      <div class="panel-head sub">
+        <h2 id="plane-title">The parameter plane</h2>
+        <p>Where the current a and b sit. Both axes are log scale, so the lines at 1 split the four shapes. You can also click or drag here.</p>
+      </div>
+      <div class="plane-wrap"><svg id="plane" viewBox="0 0 340 340" role="img" aria-labelledby="plane-title"></svg></div>
+      <div class="coords"><p class="coord-note" id="coord-note"></p></div>
     </section>
 
     <div class="charts">
@@ -177,12 +187,12 @@
       </section>
 
       <section class="chart-card card" id="fit-card" hidden aria-labelledby="fit-title">
-        <div class="chart-head"><h2 id="fit-title">Fit to the Blue Apron cohort</h2><p>The red dots are the real observed retention rates from class. Move the point to fit them by hand.</p></div>
-        <div class="legend"><span><i class="obs"></i>observed</span><span><i></i>model</span></div>
+        <div class="chart-head"><h2 id="fit-title">Fit to the Blue Apron cohort</h2><p>The red dots are the real observed retention rates from class. Months 1-6 are used to fit the model; months 7-12 are held out to test it. Move the point to fit by hand.</p></div>
+        <div class="legend"><span><i class="obs"></i>observed, months 1-6 (fit)</span><span><i class="hold"></i>observed, months 7-12 (holdout)</span><span><i></i>model</span></div>
         <div class="chart-wrap"><svg id="fit-chart" class="chart" viewBox="0 0 560 210" role="img" aria-label="Model retention against observed Blue Apron retention"></svg></div>
         <div class="fitbar">
-          <span>Sum of squared error: <b id="fit-sse">…</b></span>
-          <span class="verdict" id="fit-verdict"></span>
+          <span>Mean absolute percent error (MAPE), months 1-6: <b id="fit-mape-fit">…</b></span>
+          <span>Months 7-12: <b id="fit-mape-hold">…</b></span>
           <button id="reveal-fit" type="button">Show the fitted answer</button>
         </div>
       </section>
@@ -193,7 +203,7 @@
     <summary>Model and source notes</summary>
     <p><strong>The model.</strong> Each customer has a churn probability that stays constant for life. Across the cohort those probabilities follow Beta(a, b). Aggregate retention is r(t) = (b + t - 1) / (a + b + t - 1) and survival is the running product, S(t) = S(t-1) x r(t). Equivalently S(t) = B(a, b + t) / B(a, b). Averages: mean churn is a / (a + b) and polarization is 1 / (a + b + 1). The bars show the share of customers whose churn probability falls in each 1-point-wide bin.</p>
     <p><strong>Why survivors look loyal.</strong> After n renewals the customers still present are not a random sample. Their churn probabilities follow Beta(a, b + n): same a, larger b, so the mix has shifted toward the loyal end. Nobody changed; the churn-prone left first.</p>
-    <p><strong>Source.</strong> Observed survival comes from <code>Class 7 Data - Blue Apron.xlsx</code>, seven months carried into the <code>Blue Apron Data</code> sheet of <code>Class 7 - BG and CLV.xlsx</code>. The fitted values a = 0.6746182701085135 and b = 1.2336012934958855 are the ones on the <code>Beta Geometric (BG)</code> sheet, found there with Solver by minimising squared error on retention rates for t = 1 to 6. This tool computes the same objective, so the number here matches the workbook.</p>
+    <p><strong>Source.</strong> Observed survival comes from <code>Class 7 Data - Blue Apron.xlsx</code> (the 12-month series), as carried into the <code>Beta Geometric (BG)</code> sheet of <code>Class 7 - BG and CLV.xlsx</code>. The fitted values a = 0.6746182701085135 and b = 1.2336012934958855 are the ones on that sheet, found there with Solver by minimising squared error on retention rates for months 1 to 6 only; months 7 to 12 are a holdout. MAPE is the average of |observed r(t) - model r(t)| / observed r(t), computed separately for months 1-6 and months 7-12. The observed survival is flat from month 10 to 11 in the source data, so observed retention at month 11 is 100%.</p>
   </details>
   <footer>Self-contained teaching prototype. No data leaves this file. Built for MKT 626 at Michigan Ross.</footer>
 </main>
@@ -287,9 +297,13 @@ const BGShape = (() => {
   // Survivors after n renewals are Beta(a, b + n): same a, larger b.
   const posterior = (a, b, n) => ({ a, b: b + n });
 
-  // Observed Blue Apron survival, Class 7 Data - Blue Apron.xlsx, months 0 to 6.
+  // Observed Blue Apron survival, months 0 to 12, from the Beta Geometric (BG) sheet of
+  // Class 7 - BG and CLV.xlsx. Months 1-6 fit the model; months 7-12 are the holdout.
   const BLUE_APRON_SURVIVAL = [1, 0.6425963478611785, 0.5022775423728814,
-    0.4145782889426957, 0.355580609362389, 0.31093371670702175, 0.282232142857143];
+    0.4145782889426957, 0.355580609362389, 0.31093371670702175, 0.282232142857143,
+    0.2535305690072639, 0.2312071226795803, 0.2104782082324455, 0.1945328894269572,
+    0.1945328894269572, 0.17858757062146893];
+  const FIT_MONTHS = 6;
   const BLUE_APRON_FIT = { a: 0.6746182701085135, b: 1.2336012934958855 };
 
   function observedRetention() {
@@ -304,11 +318,18 @@ const BGShape = (() => {
   function sse(a, b) {
     const obs = observedRetention();
     let total = 0;
-    for (let t = 1; t <= obs.length; t++) {
+    for (let t = 1; t <= FIT_MONTHS; t++) {
       const d = obs[t - 1] - retention(a, b, t);
       total += d * d;
     }
     return total;
+  }
+  // Mean absolute percent error on retention rates over months from..to (inclusive).
+  function mape(a, b, from, to) {
+    const obs = observedRetention();
+    let total = 0;
+    for (let t = from; t <= to; t++) total += Math.abs(obs[t - 1] - retention(a, b, t)) / obs[t - 1];
+    return total / (to - from + 1);
   }
 
   function shapeName(a, b) {
@@ -322,7 +343,7 @@ const BGShape = (() => {
 
   return { clamp, lnGamma, lnBeta, betaPdf, betaCdf, binnedMass, survival, retention,
     meanChurn, polarization, fromMeanPolarization, homogeneousSurvival, posterior,
-    observedRetention, sse, shapeName, BLUE_APRON_SURVIVAL, BLUE_APRON_FIT };
+    observedRetention, sse, mape, FIT_MONTHS, shapeName, BLUE_APRON_SURVIVAL, BLUE_APRON_FIT };
 })();
 /*MATH-CORE-END*/
 
@@ -371,10 +392,10 @@ const BGShape = (() => {
     // drift away from what the tool actually shows.
     4: () => {
       const tight = PRESETS.find(p => p.key === 'clustered');
-      const ratio = M.sse(tight.a, tight.b) / M.sse(M.BLUE_APRON_FIT.a, M.BLUE_APRON_FIT.b);
+      const F = M.BLUE_APRON_FIT;
       return {
-        q: 'Set the shape to Near-identical, which has almost no spread, and read the error. Then press the reveal button. How much of the fit is heterogeneity actually buying?',
-        a: `About two orders of magnitude. Near-identical carries almost the same average churn as the fitted shape, ${pct(M.meanChurn(tight.a, tight.b))} against ${pct(M.meanChurn(M.BLUE_APRON_FIT.a, M.BLUE_APRON_FIT.b))}, yet it misses the observed curve about ${Math.round(ratio)} times worse. Heterogeneity is not a refinement here. It is the difference between a model that tracks the data and one that does not.`
+        q: 'Set the shape to Near-identical, which has almost no spread, and read the MAPE for months 1-6 and for months 7-12. Then press the reveal button. How much of the fit is heterogeneity actually buying?',
+        a: `A lot, and it shows up most in the months the model never saw. Near-identical carries almost the same average churn as the fitted shape, ${pct(M.meanChurn(tight.a, tight.b))} against ${pct(M.meanChurn(F.a, F.b))}, yet its MAPE is ${pct(M.mape(tight.a, tight.b, 1, 6))} on months 1-6 and ${pct(M.mape(tight.a, tight.b, 7, 12))} on months 7-12, against ${pct(M.mape(F.a, F.b, 1, 6))} and ${pct(M.mape(F.a, F.b, 7, 12))} for the fitted shape. Without heterogeneity the model cannot bend upward, so it keeps missing further out.`
       };
     }
   };
@@ -428,15 +449,23 @@ const BGShape = (() => {
     // quadrant shading and dividers at 1
     p.push(`<line x1="${px(1)}" y1="16" x2="${px(1)}" y2="${S - pad}" stroke="${'#2F65A7'}" stroke-dasharray="4 3" opacity=".55"/>`);
     p.push(`<line x1="${pad}" y1="${py(1)}" x2="${S - 16}" y2="${py(1)}" stroke="${'#2F65A7'}" stroke-dasharray="4 3" opacity=".55"/>`);
+    // Each quadrant carries a thumbnail of its typical beta shape, drawn from the matching preset.
     const quads = [
-      [0.3, 3.2, 'mostly', 'loyal'],
-      [3.2, 3.2, 'near-', 'identical'],
-      [0.3, 0.3, 'polar-', 'ized'],
-      [3.2, 0.3, 'mostly', 'churn-prone']
+      [0.3, 3.2, 'mostly', 'loyal', 0.5, 4],
+      [3.2, 3.2, 'near-', 'identical', 6, 11],
+      [0.3, 0.3, 'polar-', 'ized', 0.3, 0.4],
+      [3.2, 0.3, 'mostly', 'churn-prone', 4, 0.5]
     ];
-    for (const [qa, qb, l1, l2] of quads) {
+    for (const [qa, qb, l1, l2, sa, sb] of quads) {
       p.push(`<text class="tick" x="${px(qa)}" y="${py(qb)}" text-anchor="middle" opacity=".75">${l1}</text>` +
         `<text class="tick" x="${px(qa)}" y="${py(qb) + 11}" text-anchor="middle" opacity=".75">${l2}</text>`);
+      const w = 46, h = 22, x0 = px(qa) - w / 2, yb = py(qb) + 16 + h;
+      const ys = [];
+      for (let i = 0; i <= 40; i++) ys.push(Math.min(M.betaPdf(0.02 + 0.96 * i / 40, sa, sb), 3.5));
+      const top = Math.max(...ys);
+      const d = ys.map((y, i) => `${i ? 'L' : 'M'} ${(x0 + w * i / 40).toFixed(1)} ${(yb - h * y / top).toFixed(1)}`).join(' ');
+      p.push(`<line x1="${x0}" y1="${yb}" x2="${x0 + w}" y2="${yb}" stroke="#C6D0DA"/>` +
+        `<path d="${d}" fill="none" stroke="#2F65A7" stroke-width="1.6" opacity=".85"/>`);
     }
     for (const v of [0.1, 0.3, 1, 3, 10]) {
       p.push(`<text class="tick" x="${px(v)}" y="${S - pad + 14}" text-anchor="middle">${v}</text>`);
@@ -528,14 +557,22 @@ const BGShape = (() => {
     const T = obs.length;
     const all = obs.concat(Array.from({ length: T }, (_, i) => M.retention(state.a, state.b, i + 1)));
     const yMin = Math.max(0, Math.floor((Math.min(...all) - 0.05) * 10) / 10);
-    const f = frame({ xMin: 1, xMax: T, yMin, yMax: 1,
-      xLabel: 'month t', yLabel: 'r(t)', xFmt: v => Math.round(v), yFmt: v => pct(v, 0) });
+    const f = frame({ xMin: 0.5, xMax: T + 0.5, yMin, yMax: 1, xTicks: monthTicks(1),
+      xLabel: 'time since acquisition, t', yLabel: 'r(t)', xFmt: v => Math.round(v), yFmt: v => pct(v, 0) });
+    // Divider between the months used to fit and the held-out months.
+    const xd = f.x(M.FIT_MONTHS + 0.5);
+    f.parts.push(`<line x1="${xd}" y1="${f.top}" x2="${xd}" y2="${f.H - f.bottom}" stroke="#9AA4AE" stroke-dasharray="4 3"/>` +
+      `<text class="tick" x="${xd - 6}" y="${f.H - f.bottom - 6}" text-anchor="end">fit</text>` +
+      `<text class="tick" x="${xd + 6}" y="${f.H - f.bottom - 6}">holdout</text>`);
     const model = obs.map((_, i) => [i + 1, Math.max(yMin, M.retention(state.a, state.b, i + 1))]);
     f.parts.push(`<path d="${path(model, f)}" fill="none" stroke="#00274C" stroke-width="2.6"/>`);
     obs.forEach((r, i) => {
       const x = f.x(i + 1), y = f.y(Math.max(yMin, r));
+      const held = i + 1 > M.FIT_MONTHS;
       f.parts.push(`<line x1="${x}" y1="${y}" x2="${x}" y2="${f.y(Math.max(yMin, M.retention(state.a, state.b, i + 1)))}" stroke="#9A3324" stroke-width="1" opacity=".5"/>`);
-      f.parts.push(`<circle cx="${x}" cy="${y}" r="4.5" fill="#9A3324"/>`);
+      f.parts.push(held
+        ? `<circle cx="${x}" cy="${y}" r="4" fill="#fff" stroke="#9A3324" stroke-width="2"/>`
+        : `<circle cx="${x}" cy="${y}" r="4.5" fill="#9A3324"/>`);
     });
     $('#fit-chart').innerHTML = f.parts.join('');
   }
@@ -580,8 +617,9 @@ const BGShape = (() => {
     $('#m-pol').textContent = num(M.polarization(a, b));
     $('#m-r1').textContent = state.step >= 3 ? pct(M.retention(a, b, 1)) : 'Unlocks in step 3';
     $('#m-r12').textContent = state.step >= 3 ? pct(M.retention(a, b, 12)) : 'Unlocks in step 3';
-    const sse = M.sse(a, b);
-    $('#m-sse').textContent = state.step >= 4 ? sse.toExponential(2) : 'Unlocks in step 4';
+    const mapeFit = M.mape(a, b, 1, M.FIT_MONTHS), mapeHold = M.mape(a, b, M.FIT_MONTHS + 1, 12);
+    $('#m-mape-fit').textContent = state.step >= 4 ? pct(mapeFit) : 'Unlocks in step 4';
+    $('#m-mape-hold').textContent = state.step >= 4 ? pct(mapeHold) : 'Unlocks in step 4';
     $$('[data-unlock]').forEach(el => el.classList.toggle('locked', state.step < Number(el.dataset.unlock)));
     $('#coord-note').innerHTML = `Shape: <b>${M.shapeName(a, b)}</b>. Average churn and polarization are just another way of naming the same point: a + b = ${num(a + b, 2)} sets the spread, and how it splits sets the average.`;
 
@@ -608,14 +646,8 @@ const BGShape = (() => {
     }
     if (state.step >= 4) {
       renderFit();
-      $('#fit-sse').textContent = sse.toExponential(2);
-      const best = M.sse(M.BLUE_APRON_FIT.a, M.BLUE_APRON_FIT.b);
-      const ratio = sse / best;
-      const v = $('#fit-verdict');
-      v.textContent = ratio < 1.05 ? 'That is the best fit available.'
-        : ratio < 3 ? `Close: about ${ratio.toFixed(1)}x the best possible error.`
-        : `About ${ratio < 10 ? ratio.toFixed(1) : Math.round(ratio)}x worse than the best fit.`;
-      v.classList.toggle('good', ratio < 1.05);
+      $('#fit-mape-fit').textContent = pct(mapeFit);
+      $('#fit-mape-hold').textContent = pct(mapeHold);
     }
   }
 
