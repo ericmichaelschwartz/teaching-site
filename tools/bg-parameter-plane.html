@@ -4,7 +4,7 @@
 <meta name="robots" content="noindex">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>What do gamma and delta actually do? | MKT 626</title>
+  <title>Subscriber-Base Value Explorer | MKT 626</title>
   <style>
     :root {
       color-scheme: light;
@@ -91,8 +91,9 @@
     .chart-label { fill: var(--blue); font-size: 10.5px; font-weight: 700; }
     .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 0 18px 4px; color: var(--muted); font-size: .72rem; }
     .legend i { display: inline-block; width: 16px; height: 0; margin-right: 5px; vertical-align: middle; border-top: 3px solid var(--blue); }
-    .legend i.homog { border-top: 2px dashed var(--grey); }
-    .legend i.post { border-top: 3px solid var(--maize-dark); }
+    .legend i.bar { height: 10px; border: 1px solid var(--blue-mid); background: #C9D8EA; }
+    .legend i.avg { border-top: 2px solid var(--blue-mid); }
+    .legend i.post { height: 10px; border: 1px solid var(--maize-dark); background: rgba(255, 203, 5, .55); }
     .legend i.obs { border-top: 0; height: 8px; width: 8px; border-radius: 50%; background: var(--red); }
 
     .fitbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 18px 16px; }
@@ -110,16 +111,16 @@
 <main class="shell">
   <header class="hero">
     <div>
-      <p class="eyebrow">MKT 626 · Customer heterogeneity · Tool 3</p>
-      <h1>What do gamma and delta actually do?</h1>
-      <p class="lede">They are not two arbitrary numbers. Together they are the <b>shape</b> of how churn risk is spread across a cohort, and that shape is the reason aggregate retention climbs while nobody changes. Move the point and all three curves follow.</p>
+      <p class="eyebrow">MKT 626 | Customer heterogeneity | Tool 3</p>
+      <h1>Subscriber-Base Value Explorer</h1>
+      <p class="lede">What do a and b actually do? They are not two arbitrary numbers. Together they are the <b>shape</b> of how churn risk is spread across a cohort, and that shape is the reason aggregate retention climbs while nobody changes. Move the point and all three curves follow.</p>
     </div>
-    <div class="hero-note"><strong>Same average, different shape</strong>Every chart also shows a cohort where everyone shares the same average churn. Where the two disagree, heterogeneity is doing the work.</div>
+    <div class="hero-note"><strong>Two numbers, one shape</strong>a pushes churn risk up and b pushes it down. Their ratio sets the average churn; their sum sets how tightly customers cluster around it.</div>
   </header>
 
   <section class="metrics card" aria-label="Current shape">
-    <div class="metric"><b id="m-mean">…</b><span>Average churn, gamma / (gamma + delta)</span></div>
-    <div class="metric"><b id="m-pol">…</b><span>Polarization, 1 / (gamma + delta + 1)</span></div>
+    <div class="metric"><b id="m-mean">…</b><span>Average churn, a / (a + b)</span></div>
+    <div class="metric"><b id="m-pol">…</b><span>Polarization, 1 / (a + b + 1)</span></div>
     <div class="metric locked" data-unlock="3"><b id="m-r1">Unlocks in step 3</b><span>Retention into month 2, r(1)</span></div>
     <div class="metric locked" data-unlock="3"><b id="m-r12">Unlocks in step 3</b><span>Retention into month 13, r(12)</span></div>
     <div class="metric locked" data-unlock="4"><b id="m-sse">Unlocks in step 4</b><span>Fit to Blue Apron, sum of squared error</span></div>
@@ -145,10 +146,10 @@
         <h2 id="plane-title">The parameter plane</h2>
         <p>Click or drag anywhere. Both axes are log scale, so the lines at 1 split the four shapes.</p>
       </div>
-      <div class="plane-wrap"><svg id="plane" viewBox="0 0 340 340" role="img" aria-label="Gamma and delta parameter plane with four regions"></svg></div>
+      <div class="plane-wrap"><svg id="plane" viewBox="0 0 340 340" role="img" aria-label="Parameter plane for a and b with four regions"></svg></div>
       <div class="coords">
-        <div class="coord"><label for="gamma"><span>gamma (a)</span><output id="out-gamma"></output></label><input id="gamma" type="range" min="-1" max="1" step="0.001" value="-0.171"></div>
-        <div class="coord"><label for="delta"><span>delta (b)</span><output id="out-delta"></output></label><input id="delta" type="range" min="-1" max="1" step="0.001" value="0.091"></div>
+        <div class="coord"><label for="param-a"><span>a</span><output id="out-a"></output></label><input id="param-a" type="range" min="-1" max="1" step="0.001" value="-0.171"></div>
+        <div class="coord"><label for="param-b"><span>b</span><output id="out-b"></output></label><input id="param-b" type="range" min="-1" max="1" step="0.001" value="0.091"></div>
         <p class="coord-note" id="coord-note"></p>
       </div>
       <div class="presets" id="presets"></div>
@@ -157,20 +158,20 @@
     <div class="charts">
       <section class="chart-card card" aria-labelledby="beta-title">
         <div class="chart-head"><h2 id="beta-title">How churn risk is spread across the cohort</h2><p>Each customer draws one churn probability from this distribution and keeps it for life.</p></div>
-        <div class="legend"><span><i></i>this cohort</span><span data-min-step="3"><i class="post"></i>survivors after n renewals</span><span><i class="homog"></i>everyone at the average</span></div>
-        <div class="chart-wrap"><svg id="beta-chart" class="chart" viewBox="0 0 560 210" role="img" aria-label="Beta distribution of churn probability"></svg></div>
+        <div class="legend"><span><i class="bar"></i>initial cohort</span><span data-min-step="3"><i class="post"></i>survivors after n renewals</span><span><i class="avg"></i>average churn</span></div>
+        <div class="chart-wrap"><svg id="beta-chart" class="chart" viewBox="0 0 560 210" role="img" aria-label="Distribution of churn probabilities across customers"></svg></div>
       </section>
 
       <section class="chart-card card" id="survival-card" hidden aria-labelledby="surv-title">
-        <div class="chart-head"><h2 id="surv-title">Survivor curve</h2><p>Share of the original cohort still active. The dashed line is a cohort where everyone churns at the average rate.</p></div>
-        <div class="chart-wrap"><svg id="survival-chart" class="chart" viewBox="0 0 560 210" role="img" aria-label="Survivor curve against the homogeneous benchmark"></svg></div>
+        <div class="chart-head"><h2 id="surv-title">Survivor curve</h2><p>Share of the original cohort still active, S(t).</p></div>
+        <div class="chart-wrap"><svg id="survival-chart" class="chart" viewBox="0 0 560 210" role="img" aria-label="Survivor curve"></svg></div>
       </section>
 
       <section class="chart-card card" id="retention-card" hidden aria-labelledby="ret-title">
         <div class="chart-head"><h2 id="ret-title">Retention rate</h2><p>The share of last month's survivors who stay. It climbs, and no individual customer ever changes.</p></div>
-        <div class="chart-wrap"><svg id="retention-chart" class="chart" viewBox="0 0 560 210" role="img" aria-label="Aggregate retention rate against the flat homogeneous benchmark"></svg></div>
+        <div class="chart-wrap"><svg id="retention-chart" class="chart" viewBox="0 0 560 210" role="img" aria-label="Aggregate retention rate curve"></svg></div>
         <div class="coords" id="renewal-row" hidden style="grid-template-columns:1fr">
-          <div class="coord"><label for="renewals"><span>Look at the survivors after n renewals</span><output id="out-renewals"></output></label><input id="renewals" type="range" min="0" max="12" step="1" value="0"></div>
+          <div class="coord"><label for="renewals"><span>Look at the survivors after n renewals</span><output id="out-renewals"></output></label><input id="renewals" type="range" min="0" max="11" step="1" value="0"></div>
           <p class="coord-note" id="posterior-note"></p>
         </div>
       </section>
@@ -190,11 +191,11 @@
 
   <details class="method">
     <summary>Model and source notes</summary>
-    <p><strong>The model.</strong> Each customer has a churn probability that stays constant for life. Across the cohort those probabilities follow Beta(gamma, delta). Aggregate retention is r(t) = (delta + t - 1) / (gamma + delta + t - 1) and survival is the running product, S(t) = S(t-1) x r(t). Equivalently S(t) = B(gamma, delta + t) / B(gamma, delta). Averages: mean churn is gamma / (gamma + delta) and polarization is 1 / (gamma + delta + 1).</p>
-    <p><strong>Why survivors look loyal.</strong> After n renewals the customers still present are not a random sample. Their churn probabilities follow Beta(gamma, delta + n): same gamma, larger delta, so the mix has shifted toward the loyal end. Nobody changed; the churn-prone left first.</p>
-    <p><strong>Source.</strong> Observed survival comes from <code>Class 7 Data - Blue Apron.xlsx</code>, seven months carried into the <code>Blue Apron Data</code> sheet of <code>Class 7 - BG and CLV.xlsx</code>. The fitted values gamma 0.6746182701085135 and delta 1.2336012934958855 are the ones on the <code>Beta Geometric (BG)</code> sheet, found there with Solver by minimising squared error on retention rates for t = 1 to 6. This tool computes the same objective, so the number here matches the workbook.</p>
+    <p><strong>The model.</strong> Each customer has a churn probability that stays constant for life. Across the cohort those probabilities follow Beta(a, b). Aggregate retention is r(t) = (b + t - 1) / (a + b + t - 1) and survival is the running product, S(t) = S(t-1) x r(t). Equivalently S(t) = B(a, b + t) / B(a, b). Averages: mean churn is a / (a + b) and polarization is 1 / (a + b + 1). The bars show the share of customers whose churn probability falls in each 1-point-wide bin.</p>
+    <p><strong>Why survivors look loyal.</strong> After n renewals the customers still present are not a random sample. Their churn probabilities follow Beta(a, b + n): same a, larger b, so the mix has shifted toward the loyal end. Nobody changed; the churn-prone left first.</p>
+    <p><strong>Source.</strong> Observed survival comes from <code>Class 7 Data - Blue Apron.xlsx</code>, seven months carried into the <code>Blue Apron Data</code> sheet of <code>Class 7 - BG and CLV.xlsx</code>. The fitted values a = 0.6746182701085135 and b = 1.2336012934958855 are the ones on the <code>Beta Geometric (BG)</code> sheet, found there with Solver by minimising squared error on retention rates for t = 1 to 6. This tool computes the same objective, so the number here matches the workbook.</p>
   </details>
-  <footer>Self-contained teaching prototype · No data leaves this file · Built for MKT 626 at Michigan Ross</footer>
+  <footer>Self-contained teaching prototype. No data leaves this file. Built for MKT 626 at Michigan Ross.</footer>
 </main>
 
 <script>
@@ -222,17 +223,50 @@ const BGShape = (() => {
     if (x <= 0 || x >= 1) return Infinity;
     return Math.exp((a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) - lnBeta(a, b));
   }
-  // Sampled on an open grid and scaled so the peak is 1, which keeps a spike drawable.
-  function densityGrid(a, b, n = 240) {
-    const xs = [], ys = [];
-    let max = 0;
-    for (let i = 0; i <= n; i++) {
-      const x = 0.002 + (0.996 * i) / n;
-      const y = betaPdf(x, a, b);
-      xs.push(x); ys.push(y);
-      if (Number.isFinite(y) && y > max) max = y;
+  // Continued fraction for the regularized incomplete beta (modified Lentz).
+  function betacf(x, a, b) {
+    const TINY = 1e-300;
+    let c = 1, d = 1 - (a + b) * x / (a + 1);
+    if (Math.abs(d) < TINY) d = TINY;
+    d = 1 / d;
+    let h = d;
+    for (let m = 1; m <= 300; m++) {
+      const m2 = 2 * m;
+      let aa = m * (b - m) * x / ((a + m2 - 1) * (a + m2));
+      d = 1 + aa * d; if (Math.abs(d) < TINY) d = TINY;
+      c = 1 + aa / c; if (Math.abs(c) < TINY) c = TINY;
+      d = 1 / d; h *= d * c;
+      aa = -(a + m) * (a + b + m) * x / ((a + m2) * (a + m2 + 1));
+      d = 1 + aa * d; if (Math.abs(d) < TINY) d = TINY;
+      c = 1 + aa / c; if (Math.abs(c) < TINY) c = TINY;
+      d = 1 / d;
+      const del = d * c;
+      h *= del;
+      if (Math.abs(del - 1) < 1e-12) break;
     }
-    return { xs, ys: ys.map(y => (Number.isFinite(y) && max > 0 ? y / max : (y === Infinity ? 1 : 0))) };
+    return h;
+  }
+  function betaCdf(x, a, b) {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    const bt = Math.exp(a * Math.log(x) + b * Math.log(1 - x) - lnBeta(a, b));
+    return x < (a + 1) / (a + b + 2)
+      ? bt * betacf(x, a, b) / a
+      : 1 - bt * betacf(1 - x, b, a) / b;
+  }
+  // Share of customers whose churn probability falls in each of n equal bins on [0, 1],
+  // the same CDF-difference bars the Shiny app drew. Sums to 1, so the y axis is a
+  // real proportion of customers even when the density spikes at an edge.
+  function binnedMass(a, b, n = 100) {
+    const lo = [], mass = [];
+    let prev = 0;
+    for (let i = 1; i <= n; i++) {
+      const c = betaCdf(i / n, a, b);
+      lo.push((i - 1) / n);
+      mass.push(Math.max(0, c - prev));
+      prev = c;
+    }
+    return { lo, width: 1 / n, mass };
   }
 
   const survival = (a, b, t) => (t <= 0 ? 1 : Math.exp(lnBeta(a, b + t) - lnBeta(a, b)));
@@ -241,7 +275,7 @@ const BGShape = (() => {
   const polarization = (a, b) => 1 / (a + b + 1);
 
   // Two coordinate systems on the same object. Polarization fixes the concentration
-  // gamma + delta; the mean then splits it between the two parameters.
+  // a + b; the mean then splits it between the two parameters.
   function fromMeanPolarization(mean, pol) {
     const K = 1 / pol - 1;
     return { a: mean * K, b: (1 - mean) * K };
@@ -250,7 +284,7 @@ const BGShape = (() => {
   // Benchmark cohort: everyone shares one churn probability equal to this cohort's mean.
   const homogeneousSurvival = (theta, t) => Math.pow(1 - theta, t);
 
-  // Survivors after n renewals are Beta(gamma, delta + n): same gamma, larger delta.
+  // Survivors after n renewals are Beta(a, b + n): same a, larger b.
   const posterior = (a, b, n) => ({ a, b: b + n });
 
   // Observed Blue Apron survival, Class 7 Data - Blue Apron.xlsx, months 0 to 6.
@@ -286,7 +320,7 @@ const BGShape = (() => {
     return 'clustered near the average';
   }
 
-  return { clamp, lnGamma, lnBeta, betaPdf, densityGrid, survival, retention,
+  return { clamp, lnGamma, lnBeta, betaPdf, betaCdf, binnedMass, survival, retention,
     meanChurn, polarization, fromMeanPolarization, homogeneousSurvival, posterior,
     observedRetention, sse, shapeName, BLUE_APRON_SURVIVAL, BLUE_APRON_FIT };
 })();
@@ -320,15 +354,18 @@ const BGShape = (() => {
   const questions = {
     1: () => ({
       q: 'Two cohorts can share the same average churn and still look nothing alike. What else has to be true for that?',
-      a: 'The spread. Average churn is gamma / (gamma + delta), and many pairs give the same average. Polarization, 1 / (gamma + delta + 1), decides whether customers cluster near that average or split into camps. Try Polarized and Near-identical: the average barely moves, the shape changes completely.'
+      a: 'The spread. Average churn is a / (a + b), and many pairs give the same average. Polarization, 1 / (a + b + 1), decides whether customers cluster near that average or split into camps. Try Polarized and Near-identical: the average barely moves, the shape changes completely.'
     }),
-    2: () => ({
-      q: 'You are about to compare this cohort with one where everyone churns at exactly the average rate. Which one keeps more customers alive at month 12, or is it a tie?',
-      a: 'The mixed cohort, always, unless there is no spread at all. High-risk customers leave early, so the survivors are increasingly the low-risk ones and the curve flattens out above the benchmark. A model without heterogeneity understates how much of the cohort is still there later.'
-    }),
+    2: () => {
+      const theta = M.meanChurn(state.a, state.b);
+      return {
+        q: 'The survivor curve drops steeply at first and then flattens. No customer ever changes their churn probability, so why does the curve not keep falling at the same pace?',
+        a: `Because customers differ. High-risk customers leave early, so the survivors are increasingly the low-risk ones and each month's losses shrink. If everyone instead churned at the average rate of ${pct(theta)}, the cohort would lose the same share every month and keep only ${pct(M.homogeneousSurvival(theta, 12))} at month 12, against ${pct(M.survival(state.a, state.b, 12))} for this shape. A model without heterogeneity understates how much of the cohort is still there later.`
+      };
+    },
     3: () => ({
       q: 'Aggregate retention climbs month after month. Which customers changed their behaviour to make that happen?',
-      a: 'None of them. Every customer keeps the churn probability they were born with. The mix changes, not the customers: after n renewals the survivors follow Beta(gamma, delta + n), the same gamma with a larger delta, which is shifted toward the loyal end. Drag the renewals slider and watch the distribution slide left.'
+      a: 'None of them. Every customer keeps the churn probability they were born with. The mix changes, not the customers: after n renewals the survivors follow Beta(a, b + n), the same a with a larger b, which is shifted toward the loyal end. Drag the renewals slider and watch the distribution slide left.'
     }),
     // The multiple is computed rather than written down, so the sentence can never
     // drift away from what the tool actually shows.
@@ -357,7 +394,7 @@ const BGShape = (() => {
   }
   function frame({ W = 560, H = 210, left = 46, right = 16, top = 14, bottom = 34,
     xMin, xMax, yMin, yMax, xLabel = '', yLabel = '', xFmt = v => v, yFmt = v => v,
-    yGrid = true }) {
+    yGrid = true, xTicks = null }) {
     const x = v => left + (v - xMin) / (xMax - xMin) * (W - left - right);
     const y = v => top + (yMax - v) / (yMax - yMin) * (H - top - bottom);
     const parts = [];
@@ -367,7 +404,7 @@ const BGShape = (() => {
       parts.push(`<line class="grid" x1="${left}" y1="${y(v)}" x2="${W - right}" y2="${y(v)}"/>` +
         `<text class="tick" x="${left - 7}" y="${y(v) + 3.5}" text-anchor="end">${yFmt(v)}</text>`);
     }
-    for (const v of niceTicks(xMin, xMax, 6)) {
+    for (const v of (xTicks || niceTicks(xMin, xMax, 6))) {
       parts.push(`<line class="grid" x1="${x(v)}" y1="${top}" x2="${x(v)}" y2="${H - bottom}"/>` +
         `<text class="tick" x="${x(v)}" y="${H - 18}" text-anchor="middle">${xFmt(v)}</text>`);
     }
@@ -405,8 +442,8 @@ const BGShape = (() => {
       p.push(`<text class="tick" x="${px(v)}" y="${S - pad + 14}" text-anchor="middle">${v}</text>`);
       p.push(`<text class="tick" x="${pad - 6}" y="${py(v) + 3.5}" text-anchor="end">${v}</text>`);
     }
-    p.push(`<text class="chart-label" x="${(pad + S - 16) / 2}" y="${S - 6}" text-anchor="middle">gamma (a), higher is more churn-y</text>`);
-    p.push(`<text class="chart-label" transform="translate(11 ${(16 + S - pad) / 2}) rotate(-90)" text-anchor="middle">delta (b), higher is more retain-y</text>`);
+    p.push(`<text class="chart-label" x="${(pad + S - 16) / 2}" y="${S - 6}" text-anchor="middle">a, higher is more churn-y</text>`);
+    p.push(`<text class="chart-label" transform="translate(11 ${(16 + S - pad) / 2}) rotate(-90)" text-anchor="middle">b, higher is more retain-y</text>`);
     // the fitted point, always shown as a reference
     const F = M.BLUE_APRON_FIT;
     p.push(`<circle cx="${px(F.a)}" cy="${py(F.b)}" r="4.5" fill="none" stroke="${'#9A3324'}" stroke-width="1.6"/>`);
@@ -430,55 +467,58 @@ const BGShape = (() => {
   }
 
   /* ---------- charts ---------- */
+  // Bars, as in the Shiny app: share of customers in each churn-probability bin.
+  const bars = (bm, f, fill, stroke) => bm.mass.map((m, i) => {
+    const x0 = f.x(bm.lo[i]), x1 = f.x(bm.lo[i] + bm.width), y0 = f.y(Math.min(m, f.yMax));
+    return `<rect x="${x0.toFixed(1)}" y="${y0.toFixed(1)}" width="${Math.max(0.5, x1 - x0).toFixed(2)}" height="${Math.max(0, f.y(0) - y0).toFixed(1)}" fill="${fill}" stroke="${stroke}" stroke-width=".5"/>`;
+  }).join('');
+
   function renderBeta() {
-    const g = M.densityGrid(state.a, state.b);
-    const f = frame({ H: 210, xMin: 0, xMax: 1, yMin: 0, yMax: 1.08, yGrid: false,
-      xLabel: 'churn probability of one customer', yLabel: 'relative frequency',
-      xFmt: v => pct(v, 0) });
-    const pts = g.xs.map((x, i) => [x, g.ys[i]]);
-    f.parts.push(`<path d="${path(pts, f)}" fill="none" stroke="#00274C" stroke-width="2.4"/>`);
-    if (state.step >= 3 && state.renewals > 0) {
-      const post = M.posterior(state.a, state.b, state.renewals);
-      const gp = M.densityGrid(post.a, post.b);
-      f.parts.push(`<path d="${path(gp.xs.map((x, i) => [x, gp.ys[i]]), f)}" fill="none" stroke="#D9A900" stroke-width="2.4"/>`);
+    const bm = M.binnedMass(state.a, state.b);
+    const showPost = state.step >= 3 && state.renewals > 0;
+    const post = M.posterior(state.a, state.b, state.renewals);
+    const bp = showPost ? M.binnedMass(post.a, post.b) : null;
+    const peak = Math.max(...bm.mass, ...(bp ? bp.mass : [0]));
+    const f = frame({ H: 210, left: 50, xMin: 0, xMax: 1, yMin: 0, yMax: peak * 1.1,
+      xLabel: 'churn probability of one customer', yLabel: 'proportion of customers',
+      xFmt: v => pct(v, 0), yFmt: v => pct(v, peak * 1.1 < 0.05 ? 1 : 0) });
+    f.yMax = peak * 1.1;
+    f.parts.push(bars(bm, f, 'rgba(201, 216, 234, .85)', '#2F65A7'));
+    if (showPost) {
+      f.parts.push(bars(bp, f, 'rgba(255, 203, 5, .55)', '#D9A900'));
       const mp = M.meanChurn(post.a, post.b);
-      f.parts.push(`<line x1="${f.x(mp)}" y1="${f.top}" x2="${f.x(mp)}" y2="${f.y(0)}" stroke="#D9A900" stroke-dasharray="3 3"/>`);
+      f.parts.push(`<line x1="${f.x(mp)}" y1="${f.top}" x2="${f.x(mp)}" y2="${f.y(0)}" stroke="#D9A900" stroke-width="1.6"/>`);
     }
     const mean = M.meanChurn(state.a, state.b);
-    f.parts.push(`<line x1="${f.x(mean)}" y1="${f.top}" x2="${f.x(mean)}" y2="${f.y(0)}" stroke="#9AA4AE" stroke-dasharray="4 3" stroke-width="2"/>`);
-    f.parts.push(`<text class="tick" x="${f.x(mean) + 5}" y="${f.top + 11}" fill="#5B6B7C">average ${pct(mean)}</text>`);
+    f.parts.push(`<line x1="${f.x(mean)}" y1="${f.top}" x2="${f.x(mean)}" y2="${f.y(0)}" stroke="#2F65A7" stroke-width="1.6"/>`);
+    f.parts.push(`<text class="tick" x="${f.x(mean) + 5}" y="${f.top + 11}" fill="#2F65A7">average ${pct(mean)}</text>`);
     $('#beta-chart').innerHTML = f.parts.join('');
   }
 
+  const T_CURVE = 12;
+  const monthTicks = from => Array.from({ length: T_CURVE - from + 1 }, (_, i) => i + from);
+
   function renderSurvival() {
-    const T = 24, theta = M.meanChurn(state.a, state.b);
-    const f = frame({ xMin: 0, xMax: T, yMin: 0, yMax: 1,
-      xLabel: 'months since acquisition', yLabel: 'S(t)',
+    const f = frame({ xMin: 0, xMax: T_CURVE, yMin: 0, yMax: 1, xTicks: monthTicks(0),
+      xLabel: 'time since acquisition, t', yLabel: 'S(t)',
       xFmt: v => Math.round(v), yFmt: v => pct(v, 0) });
-    const bg = [], hom = [];
-    for (let t = 0; t <= T; t++) { bg.push([t, M.survival(state.a, state.b, t)]); hom.push([t, M.homogeneousSurvival(theta, t)]); }
-    f.parts.push(`<path d="${path(hom, f)}" fill="none" stroke="#9AA4AE" stroke-width="2" stroke-dasharray="5 4"/>`);
+    const bg = [];
+    for (let t = 0; t <= T_CURVE; t++) bg.push([t, M.survival(state.a, state.b, t)]);
     f.parts.push(`<path d="${path(bg, f)}" fill="none" stroke="#00274C" stroke-width="2.6"/>`);
-    const gap = M.survival(state.a, state.b, 12) - M.homogeneousSurvival(theta, 12);
     f.parts.push(`<text class="tick" x="${f.W - f.right - 4}" y="${f.top + 12}" text-anchor="end" fill="#5B6B7C">` +
-      `at month 12: ${pct(M.survival(state.a, state.b, 12))} vs ${pct(M.homogeneousSurvival(theta, 12))}` +
-      `${gap > 0.001 ? ` (+${pct(gap)})` : ''}</text>`);
+      `S(12) = ${pct(M.survival(state.a, state.b, 12))}</text>`);
     $('#survival-chart').innerHTML = f.parts.join('');
   }
 
   function renderRetention() {
-    const T = 24, theta = M.meanChurn(state.a, state.b);
     const rs = [];
-    for (let t = 1; t <= T; t++) rs.push(M.retention(state.a, state.b, t));
-    const lo = Math.min(theta > 0 ? 1 - theta : 1, ...rs);
-    const yMin = Math.max(0, Math.floor((lo - 0.05) * 10) / 10);
-    const f = frame({ xMin: 1, xMax: T, yMin, yMax: 1,
-      xLabel: 'month t', yLabel: 'r(t)', xFmt: v => Math.round(v), yFmt: v => pct(v, 0) });
-    f.parts.push(`<path d="${path(rs.map((r, i) => [i + 1, Math.max(yMin, r)]), f)}" fill="none" stroke="#00274C" stroke-width="2.6"/>`);
-    f.parts.push(`<path d="${path(rs.map((_, i) => [i + 1, Math.max(yMin, 1 - theta)]), f)}" fill="none" stroke="#9AA4AE" stroke-width="2" stroke-dasharray="5 4"/>`);
+    for (let t = 1; t <= T_CURVE; t++) rs.push(M.retention(state.a, state.b, t));
+    const f = frame({ xMin: 1, xMax: T_CURVE, yMin: 0, yMax: 1, xTicks: monthTicks(1),
+      xLabel: 'time since acquisition, t', yLabel: 'r(t)', xFmt: v => Math.round(v), yFmt: v => pct(v, 0) });
+    f.parts.push(`<path d="${path(rs.map((r, i) => [i + 1, r]), f)}" fill="none" stroke="#00274C" stroke-width="2.6"/>`);
     if (state.step >= 3 && state.renewals > 0) {
-      const t = Math.min(T, state.renewals + 1);
-      f.parts.push(`<circle cx="${f.x(t)}" cy="${f.y(Math.max(yMin, M.retention(state.a, state.b, t)))}" r="5.5" fill="#D9A900" stroke="#8A6D00" stroke-width="1.6"/>`);
+      const t = Math.min(T_CURVE, state.renewals + 1);
+      f.parts.push(`<circle cx="${f.x(t)}" cy="${f.y(M.retention(state.a, state.b, t))}" r="5.5" fill="#D9A900" stroke="#8A6D00" stroke-width="1.6"/>`);
     }
     $('#retention-chart').innerHTML = f.parts.join('');
   }
@@ -532,10 +572,10 @@ const BGShape = (() => {
 
   function render() {
     const a = state.a, b = state.b;
-    $('#gamma').value = toLog(a) * 2 - 1;
-    $('#delta').value = toLog(b) * 2 - 1;
-    $('#out-gamma').textContent = num(a);
-    $('#out-delta').textContent = num(b);
+    $('#param-a').value = toLog(a) * 2 - 1;
+    $('#param-b').value = toLog(b) * 2 - 1;
+    $('#out-a').textContent = num(a);
+    $('#out-b').textContent = num(b);
     $('#m-mean').textContent = pct(M.meanChurn(a, b));
     $('#m-pol').textContent = num(M.polarization(a, b));
     $('#m-r1').textContent = state.step >= 3 ? pct(M.retention(a, b, 1)) : 'Unlocks in step 3';
@@ -543,7 +583,7 @@ const BGShape = (() => {
     const sse = M.sse(a, b);
     $('#m-sse').textContent = state.step >= 4 ? sse.toExponential(2) : 'Unlocks in step 4';
     $$('[data-unlock]').forEach(el => el.classList.toggle('locked', state.step < Number(el.dataset.unlock)));
-    $('#coord-note').innerHTML = `Shape: <b>${M.shapeName(a, b)}</b>. Average churn and polarization are just another way of naming the same point: gamma + delta = ${num(a + b, 2)} sets the spread, and how it splits sets the average.`;
+    $('#coord-note').innerHTML = `Shape: <b>${M.shapeName(a, b)}</b>. Average churn and polarization are just another way of naming the same point: a + b = ${num(a + b, 2)} sets the spread, and how it splits sets the average.`;
 
     const q = questions[state.step]();
     $('#question-text').textContent = q.q;
@@ -564,7 +604,7 @@ const BGShape = (() => {
       const post = M.posterior(a, b, state.renewals);
       $('#posterior-note').innerHTML = state.renewals === 0
         ? 'Slide right to keep only the customers who survived that many renewals.'
-        : `Survivors after ${state.renewals} follow Beta(${num(post.a, 2)}, ${num(post.b, 2)}): same gamma, delta up by ${state.renewals}. Their average churn is <b>${pct(M.meanChurn(post.a, post.b))}</b>, down from ${pct(M.meanChurn(a, b))}. Nobody changed.`;
+        : `Survivors after ${state.renewals} follow Beta(${num(post.a, 2)}, ${num(post.b, 2)}): same a, b up by ${state.renewals}. Their average churn is <b>${pct(M.meanChurn(post.a, post.b))}</b>, down from ${pct(M.meanChurn(a, b))}. Nobody changed.`;
     }
     if (state.step >= 4) {
       renderFit();
@@ -581,8 +621,8 @@ const BGShape = (() => {
 
   /* ---------- wiring ---------- */
   $$('.step').forEach(b => b.addEventListener('click', () => setStep(b.dataset.step)));
-  $('#gamma').addEventListener('input', e => { state.a = M.clamp(fromLog((Number(e.target.value) + 1) / 2), GMIN, GMAX); render(); });
-  $('#delta').addEventListener('input', e => { state.b = M.clamp(fromLog((Number(e.target.value) + 1) / 2), GMIN, GMAX); render(); });
+  $('#param-a').addEventListener('input', e => { state.a = M.clamp(fromLog((Number(e.target.value) + 1) / 2), GMIN, GMAX); render(); });
+  $('#param-b').addEventListener('input', e => { state.b = M.clamp(fromLog((Number(e.target.value) + 1) / 2), GMIN, GMAX); render(); });
   $('#renewals').addEventListener('input', e => { state.renewals = Number(e.target.value); render(); });
   $('#reveal-fit').addEventListener('click', () => { state.a = M.BLUE_APRON_FIT.a; state.b = M.BLUE_APRON_FIT.b; render(); });
   $('#answer-toggle').addEventListener('click', () => {
