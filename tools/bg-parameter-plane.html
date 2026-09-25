@@ -44,7 +44,6 @@
     .metric:last-child { border-right: 0; }
     .metric b { display: block; color: var(--blue); font-size: 1.4rem; font-weight: 750; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
     .metric span { display: block; margin-top: 2px; color: var(--muted); font-size: .72rem; }
-    .metric.locked b { color: #9AA6AF; font-size: .8rem; font-weight: 600; }
 
     .stepper { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
     .step { min-height: 66px; border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 10px 12px; text-align: left; cursor: pointer; font: inherit; color: var(--ink); }
@@ -59,8 +58,10 @@
     .question button { border: 0; background: none; color: var(--blue); font: inherit; font-size: .82rem; font-weight: 650; text-decoration: underline; cursor: pointer; }
     .answer { flex-basis: 100%; margin: 6px 0 0 !important; color: var(--muted); font-size: .85rem !important; }
 
-    .main { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 16px; align-items: start; }
-    @media (max-width: 980px) { .main { grid-template-columns: 1fr; } }
+    .main { display: grid; grid-template-columns: minmax(280px, 330px) minmax(0, 1fr); gap: 16px; align-items: start; }
+    /* The control panel stays in view while the chart grid scrolls. */
+    .main > .controls { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto; }
+    @media (max-width: 980px) { .main { grid-template-columns: 1fr; } .main > .controls { position: static; max-height: none; } }
 
     .panel-head { padding: 16px 18px 0; }
     .panel-head h2 { margin: 0; color: var(--blue); font-size: .98rem; }
@@ -71,6 +72,7 @@
     .coord label { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: .72rem; margin-bottom: 3px; }
     .coord label output { color: var(--blue); font-weight: 700; font-variant-numeric: tabular-nums; }
     .coord input { width: 100%; accent-color: var(--blue); }
+    .coords[hidden] { display: none; }
     .coords.stacked { grid-template-columns: 1fr; gap: 12px; padding-top: 10px; }
     .coords.stacked .coord label { font-size: .85rem; }
     .coords.stacked .coord label span { color: var(--blue); font-weight: 700; }
@@ -82,14 +84,15 @@
     .presets button:hover { background: var(--blue-tint); }
     .presets button.on { border-color: var(--maize-dark); background: var(--maize-tint); font-weight: 650; }
 
-    .charts { display: grid; gap: 14px; }
+    .charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    @media (max-width: 1180px) { .charts { grid-template-columns: 1fr; } }
     .chart-card { overflow: hidden; }
     .chart-card[hidden] { display: none; }
     .chart-head { padding: 14px 18px 0; }
     .chart-head h2 { margin: 0; color: var(--blue); font-size: .95rem; }
     .chart-head p { margin: 4px 0 0; color: var(--muted); font-size: .72rem; }
     .chart-wrap { padding: 4px 8px 8px; overflow-x: auto; }
-    svg.chart { display: block; width: 100%; min-width: 440px; height: auto; font-family: inherit; }
+    svg.chart { display: block; width: 100%; min-width: 0; height: auto; font-family: inherit; }
     .grid { stroke: #EDF1F5; }
     .axis { stroke: #C6D0DA; }
     .tick { fill: var(--muted); font-size: 10px; }
@@ -99,12 +102,7 @@
     .legend i.bar { height: 10px; border: 1px solid var(--blue-mid); background: #C9D8EA; }
     .legend i.avg { border-top: 2px solid var(--blue-mid); }
     .legend i.post { height: 10px; border: 1px solid var(--maize-dark); background: rgba(255, 203, 5, .55); }
-    .legend i.obs { border-top: 0; height: 8px; width: 8px; border-radius: 50%; background: var(--red); }
 
-    .fitbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 18px 16px; }
-    .fitbar b { color: var(--blue); font-size: 1.15rem; font-variant-numeric: tabular-nums; }
-    .fitbar button { border: 1px solid var(--blue); border-radius: 9px; background: var(--blue); color: #fff; padding: 7px 13px; font: inherit; font-size: .8rem; font-weight: 650; cursor: pointer; }
-    .legend i.hold { border-top: 0; height: 8px; width: 8px; border-radius: 50%; background: #fff; border: 2px solid var(--red); }
     details.method { margin-top: 18px; }
     details.method summary { cursor: pointer; color: var(--muted); font-size: .82rem; }
     details.method p { color: var(--muted); font-size: .82rem; max-width: 95ch; }
@@ -117,7 +115,7 @@
     <div>
       <p class="eyebrow">MKT 626 | Customer heterogeneity | Tool 3</p>
       <h1>Subscriber-Base Value Explorer</h1>
-      <p class="lede">What do a and b actually do? They are not two arbitrary numbers. Together they are the <b>shape</b> of how churn risk is spread across a cohort, and that shape is the reason aggregate retention climbs while nobody changes. Move the point and all three curves follow.</p>
+      <p class="lede">What do a and b actually do? They are not two arbitrary numbers. Together they are the <b>shape</b> of how churn risk is spread across a cohort, and that shape is the reason aggregate retention climbs while nobody changes. Move the point and every chart follows.</p>
     </div>
     <div class="hero-note"><strong>Two numbers, one shape</strong>a pushes churn risk up and b pushes it down. Their ratio sets the average churn; their sum sets how tightly customers cluster around it.</div>
   </header>
@@ -125,10 +123,10 @@
   <section class="metrics card" aria-label="Current shape">
     <div class="metric"><b id="m-mean">…</b><span>Average churn, a / (a + b)</span></div>
     <div class="metric"><b id="m-pol">…</b><span>Polarization, 1 / (a + b + 1)</span></div>
-    <div class="metric locked" data-unlock="3"><b id="m-r1">Unlocks in step 3</b><span>Retention into month 2, r(1)</span></div>
-    <div class="metric locked" data-unlock="3"><b id="m-r12">Unlocks in step 3</b><span>Retention into month 13, r(12)</span></div>
-    <div class="metric locked" data-unlock="4"><b id="m-mape-fit">Unlocks in step 4</b><span>MAPE, months 1-6 (fit)</span></div>
-    <div class="metric locked" data-unlock="4"><b id="m-mape-hold">Unlocks in step 4</b><span>MAPE, months 7-12 (holdout)</span></div>
+    <div class="metric"><b id="m-r1">…</b><span>Retention into month 2, r(1)</span></div>
+    <div class="metric"><b id="m-r12">…</b><span>Retention into month 13, r(12)</span></div>
+    <div class="metric"><b id="m-mape-fit">…</b><span>MAPE, months 1-6 (fit)</span></div>
+    <div class="metric"><b id="m-mape-hold">…</b><span>MAPE, months 7-12 (holdout)</span></div>
   </section>
 
   <nav class="stepper" role="tablist" aria-label="Learning steps">
@@ -146,7 +144,7 @@
   </section>
 
   <div class="main">
-    <section class="card" aria-labelledby="params-title">
+    <section class="card controls" aria-labelledby="params-title">
       <div class="panel-head">
         <h2 id="params-title">Parameters</h2>
         <p>Drag a slider. Both run on a log scale from 0.1 to 10.</p>
@@ -169,31 +167,25 @@
       <section class="chart-card card" aria-labelledby="beta-title">
         <div class="chart-head"><h2 id="beta-title">How churn risk is spread across the cohort</h2><p>Each customer draws one churn probability from this distribution and keeps it for life.</p></div>
         <div class="legend"><span><i class="bar"></i>initial cohort</span><span data-min-step="3"><i class="post"></i>survivors after n renewals</span><span><i class="avg"></i>average churn</span></div>
-        <div class="chart-wrap"><svg id="beta-chart" class="chart" viewBox="0 0 560 210" role="img" aria-label="Distribution of churn probabilities across customers"></svg></div>
+        <div class="chart-wrap"><svg id="beta-chart" class="chart" viewBox="0 0 460 240" role="img" aria-label="Distribution of churn probabilities across customers"></svg></div>
       </section>
 
-      <section class="chart-card card" id="survival-card" hidden aria-labelledby="surv-title">
+      <section class="chart-card card" id="survival-card" aria-labelledby="surv-title">
         <div class="chart-head"><h2 id="surv-title">Survivor curve</h2><p>Share of the original cohort still active, S(t).</p></div>
-        <div class="chart-wrap"><svg id="survival-chart" class="chart" viewBox="0 0 560 210" role="img" aria-label="Survivor curve"></svg></div>
+        <div class="chart-wrap"><svg id="survival-chart" class="chart" viewBox="0 0 460 240" role="img" aria-label="Survivor curve"></svg></div>
       </section>
 
-      <section class="chart-card card" id="retention-card" hidden aria-labelledby="ret-title">
+      <section class="chart-card card" id="churn-card" aria-labelledby="churn-title">
+        <div class="chart-head"><h2 id="churn-title">P(Churn at t)</h2><p>The share of the original cohort whose lifetime is exactly t: P(churn at t) = S(t-1) - S(t). The last bar collects everyone who churns after t = 12, so the bars add to 100%.</p></div>
+        <div class="chart-wrap"><svg id="churn-chart" class="chart" viewBox="0 0 460 240" role="img" aria-label="Histogram of the probability of churning at each t"></svg></div>
+      </section>
+
+      <section class="chart-card card" id="retention-card" aria-labelledby="ret-title">
         <div class="chart-head"><h2 id="ret-title">Retention rate</h2><p>The share of last month's survivors who stay. It climbs, and no individual customer ever changes.</p></div>
-        <div class="chart-wrap"><svg id="retention-chart" class="chart" viewBox="0 0 560 210" role="img" aria-label="Aggregate retention rate curve"></svg></div>
+        <div class="chart-wrap"><svg id="retention-chart" class="chart" viewBox="0 0 460 240" role="img" aria-label="Aggregate retention rate curve"></svg></div>
         <div class="coords" id="renewal-row" hidden style="grid-template-columns:1fr">
           <div class="coord"><label for="renewals"><span>Look at the survivors after n renewals</span><output id="out-renewals"></output></label><input id="renewals" type="range" min="0" max="11" step="1" value="0"></div>
           <p class="coord-note" id="posterior-note"></p>
-        </div>
-      </section>
-
-      <section class="chart-card card" id="fit-card" hidden aria-labelledby="fit-title">
-        <div class="chart-head"><h2 id="fit-title">Fit to the Blue Apron cohort</h2><p>The red dots are the real observed retention rates from class. Months 1-6 are used to fit the model; months 7-12 are held out to test it. Move the point to fit by hand.</p></div>
-        <div class="legend"><span><i class="obs"></i>observed, months 1-6 (fit)</span><span><i class="hold"></i>observed, months 7-12 (holdout)</span><span><i></i>model</span></div>
-        <div class="chart-wrap"><svg id="fit-chart" class="chart" viewBox="0 0 560 210" role="img" aria-label="Model retention against observed Blue Apron retention"></svg></div>
-        <div class="fitbar">
-          <span>Mean absolute percent error (MAPE), months 1-6: <b id="fit-mape-fit">…</b></span>
-          <span>Months 7-12: <b id="fit-mape-hold">…</b></span>
-          <button id="reveal-fit" type="button">Show the fitted answer</button>
         </div>
       </section>
     </div>
@@ -324,6 +316,13 @@ const BGShape = (() => {
     }
     return total;
   }
+  // P(churn at t) = S(t-1) - S(t) for t = 1..T, then P(churn after T) = S(T) as the last entry.
+  function churnDistribution(a, b, T) {
+    const out = [];
+    for (let t = 1; t <= T; t++) out.push(survival(a, b, t - 1) - survival(a, b, t));
+    out.push(survival(a, b, T));
+    return out;
+  }
   // Mean absolute percent error on retention rates over months from..to (inclusive).
   function mape(a, b, from, to) {
     const obs = observedRetention();
@@ -343,7 +342,7 @@ const BGShape = (() => {
 
   return { clamp, lnGamma, lnBeta, betaPdf, betaCdf, binnedMass, survival, retention,
     meanChurn, polarization, fromMeanPolarization, homogeneousSurvival, posterior,
-    observedRetention, sse, mape, FIT_MONTHS, shapeName, BLUE_APRON_SURVIVAL, BLUE_APRON_FIT };
+    observedRetention, sse, mape, churnDistribution, FIT_MONTHS, shapeName, BLUE_APRON_SURVIVAL, BLUE_APRON_FIT };
 })();
 /*MATH-CORE-END*/
 
@@ -394,7 +393,7 @@ const BGShape = (() => {
       const tight = PRESETS.find(p => p.key === 'clustered');
       const F = M.BLUE_APRON_FIT;
       return {
-        q: 'Set the shape to Near-identical, which has almost no spread, and read the MAPE for months 1-6 and for months 7-12. Then press the reveal button. How much of the fit is heterogeneity actually buying?',
+        q: 'Set the shape to Near-identical, which has almost no spread, and read the MAPE for months 1-6 and for months 7-12. Then click the Blue Apron fit preset. How much of the fit is heterogeneity actually buying?',
         a: `A lot, and it shows up most in the months the model never saw. Near-identical carries almost the same average churn as the fitted shape, ${pct(M.meanChurn(tight.a, tight.b))} against ${pct(M.meanChurn(F.a, F.b))}, yet its MAPE is ${pct(M.mape(tight.a, tight.b, 1, 6))} on months 1-6 and ${pct(M.mape(tight.a, tight.b, 7, 12))} on months 7-12, against ${pct(M.mape(F.a, F.b, 1, 6))} and ${pct(M.mape(F.a, F.b, 7, 12))} for the fitted shape. Without heterogeneity the model cannot bend upward, so it keeps missing further out.`
       };
     }
@@ -413,7 +412,7 @@ const BGShape = (() => {
     }
     return out.length ? out : [min, max];
   }
-  function frame({ W = 560, H = 210, left = 46, right = 16, top = 14, bottom = 34,
+  function frame({ W = 460, H = 240, left = 46, right = 16, top = 14, bottom = 34,
     xMin, xMax, yMin, yMax, xLabel = '', yLabel = '', xFmt = v => v, yFmt = v => v,
     yGrid = true, xTicks = null }) {
     const x = v => left + (v - xMin) / (xMax - xMin) * (W - left - right);
@@ -508,7 +507,7 @@ const BGShape = (() => {
     const post = M.posterior(state.a, state.b, state.renewals);
     const bp = showPost ? M.binnedMass(post.a, post.b) : null;
     const peak = Math.max(...bm.mass, ...(bp ? bp.mass : [0]));
-    const f = frame({ H: 210, left: 50, xMin: 0, xMax: 1, yMin: 0, yMax: peak * 1.1,
+    const f = frame({ left: 50, xMin: 0, xMax: 1, yMin: 0, yMax: peak * 1.1,
       xLabel: 'churn probability of one customer', yLabel: 'proportion of customers',
       xFmt: v => pct(v, 0), yFmt: v => pct(v, peak * 1.1 < 0.05 ? 1 : 0) });
     f.yMax = peak * 1.1;
@@ -552,29 +551,24 @@ const BGShape = (() => {
     $('#retention-chart').innerHTML = f.parts.join('');
   }
 
-  function renderFit() {
-    const obs = M.observedRetention();
-    const T = obs.length;
-    const all = obs.concat(Array.from({ length: T }, (_, i) => M.retention(state.a, state.b, i + 1)));
-    const yMin = Math.max(0, Math.floor((Math.min(...all) - 0.05) * 10) / 10);
-    const f = frame({ xMin: 0.5, xMax: T + 0.5, yMin, yMax: 1, xTicks: monthTicks(1),
-      xLabel: 'time since acquisition, t', yLabel: 'r(t)', xFmt: v => Math.round(v), yFmt: v => pct(v, 0) });
-    // Divider between the months used to fit and the held-out months.
-    const xd = f.x(M.FIT_MONTHS + 0.5);
-    f.parts.push(`<line x1="${xd}" y1="${f.top}" x2="${xd}" y2="${f.H - f.bottom}" stroke="#9AA4AE" stroke-dasharray="4 3"/>` +
-      `<text class="tick" x="${xd - 6}" y="${f.H - f.bottom - 6}" text-anchor="end">fit</text>` +
-      `<text class="tick" x="${xd + 6}" y="${f.H - f.bottom - 6}">holdout</text>`);
-    const model = obs.map((_, i) => [i + 1, Math.max(yMin, M.retention(state.a, state.b, i + 1))]);
-    f.parts.push(`<path d="${path(model, f)}" fill="none" stroke="#00274C" stroke-width="2.6"/>`);
-    obs.forEach((r, i) => {
-      const x = f.x(i + 1), y = f.y(Math.max(yMin, r));
-      const held = i + 1 > M.FIT_MONTHS;
-      f.parts.push(`<line x1="${x}" y1="${y}" x2="${x}" y2="${f.y(Math.max(yMin, M.retention(state.a, state.b, i + 1)))}" stroke="#9A3324" stroke-width="1" opacity=".5"/>`);
-      f.parts.push(held
-        ? `<circle cx="${x}" cy="${y}" r="4" fill="#fff" stroke="#9A3324" stroke-width="2"/>`
-        : `<circle cx="${x}" cy="${y}" r="4.5" fill="#9A3324"/>`);
+  // Lifetime histogram, as in the Shiny app's pt_conv: P(churn at t) for t = 1..12 plus one
+  // closing bar for churn after t = 12, so the bars sum to 1.
+  function renderChurn() {
+    const T = T_CURVE, p = M.churnDistribution(state.a, state.b, T);
+    const peak = Math.max(...p);
+    const f = frame({ xMin: 0.4, xMax: T + 1.6, yMin: 0, yMax: peak * 1.15, xTicks: monthTicks(1).concat(T + 1),
+      xLabel: 'lifetime t (period in which the customer churns)', yLabel: 'proportion of customers',
+      xFmt: v => (v > T ? `after ${T}` : Math.round(v)), yFmt: v => pct(v, 0) });
+    const bw = (f.x(2) - f.x(1)) * 0.72;
+    p.forEach((v, i) => {
+      const t = i + 1, last = t > T, x = f.x(t) - bw / 2, y = f.y(v);
+      f.parts.push(`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${(f.y(0) - y).toFixed(1)}" ` +
+        (last ? 'fill="rgba(255, 203, 5, .55)" stroke="#D9A900"' : 'fill="rgba(201, 216, 234, .85)" stroke="#2F65A7"') + ' stroke-width=".8"/>');
+      f.parts.push(`<text class="tick" x="${f.x(t)}" y="${y - 4}" text-anchor="middle">${pct(v, 0)}</text>`);
     });
-    $('#fit-chart').innerHTML = f.parts.join('');
+    const xl = f.x(T + 1);
+    f.parts.push(`<text class="tick" x="${xl - bw / 2 - 4}" y="${f.y(p[T]) + 12}" text-anchor="end" fill="#8A6D00">churn after t = ${T}</text>`);
+    $('#churn-chart').innerHTML = f.parts.join('');
   }
 
   /* ---------- shell ---------- */
@@ -615,12 +609,11 @@ const BGShape = (() => {
     $('#out-b').textContent = num(b);
     $('#m-mean').textContent = pct(M.meanChurn(a, b));
     $('#m-pol').textContent = num(M.polarization(a, b));
-    $('#m-r1').textContent = state.step >= 3 ? pct(M.retention(a, b, 1)) : 'Unlocks in step 3';
-    $('#m-r12').textContent = state.step >= 3 ? pct(M.retention(a, b, 12)) : 'Unlocks in step 3';
+    $('#m-r1').textContent = pct(M.retention(a, b, 1));
+    $('#m-r12').textContent = pct(M.retention(a, b, 12));
     const mapeFit = M.mape(a, b, 1, M.FIT_MONTHS), mapeHold = M.mape(a, b, M.FIT_MONTHS + 1, 12);
-    $('#m-mape-fit').textContent = state.step >= 4 ? pct(mapeFit) : 'Unlocks in step 4';
-    $('#m-mape-hold').textContent = state.step >= 4 ? pct(mapeHold) : 'Unlocks in step 4';
-    $$('[data-unlock]').forEach(el => el.classList.toggle('locked', state.step < Number(el.dataset.unlock)));
+    $('#m-mape-fit').textContent = pct(mapeFit);
+    $('#m-mape-hold').textContent = pct(mapeHold);
     $('#coord-note').innerHTML = `Shape: <b>${M.shapeName(a, b)}</b>. Average churn and polarization are just another way of naming the same point: a + b = ${num(a + b, 2)} sets the spread, and how it splits sets the average.`;
 
     const q = questions[state.step]();
@@ -630,24 +623,17 @@ const BGShape = (() => {
     renderPlane();
     renderPresets();
     renderBeta();
-    $('#survival-card').hidden = state.step < 2;
-    $('#retention-card').hidden = state.step < 3;
     $('#renewal-row').hidden = state.step < 3;
-    $('#fit-card').hidden = state.step < 4;
     $$('[data-min-step]').forEach(el => { el.hidden = state.step < Number(el.dataset.minStep); });
-    if (state.step >= 2) renderSurvival();
+    renderSurvival();
+    renderChurn();
+    renderRetention();
     if (state.step >= 3) {
-      renderRetention();
       $('#out-renewals').textContent = state.renewals === 0 ? 'not yet' : `${state.renewals} renewal${state.renewals === 1 ? '' : 's'}`;
       const post = M.posterior(a, b, state.renewals);
       $('#posterior-note').innerHTML = state.renewals === 0
         ? 'Slide right to keep only the customers who survived that many renewals.'
         : `Survivors after ${state.renewals} follow Beta(${num(post.a, 2)}, ${num(post.b, 2)}): same a, b up by ${state.renewals}. Their average churn is <b>${pct(M.meanChurn(post.a, post.b))}</b>, down from ${pct(M.meanChurn(a, b))}. Nobody changed.`;
-    }
-    if (state.step >= 4) {
-      renderFit();
-      $('#fit-mape-fit').textContent = pct(mapeFit);
-      $('#fit-mape-hold').textContent = pct(mapeHold);
     }
   }
 
@@ -656,7 +642,6 @@ const BGShape = (() => {
   $('#param-a').addEventListener('input', e => { state.a = M.clamp(fromLog((Number(e.target.value) + 1) / 2), GMIN, GMAX); render(); });
   $('#param-b').addEventListener('input', e => { state.b = M.clamp(fromLog((Number(e.target.value) + 1) / 2), GMIN, GMAX); render(); });
   $('#renewals').addEventListener('input', e => { state.renewals = Number(e.target.value); render(); });
-  $('#reveal-fit').addEventListener('click', () => { state.a = M.BLUE_APRON_FIT.a; state.b = M.BLUE_APRON_FIT.b; render(); });
   $('#answer-toggle').addEventListener('click', () => {
     const el = $('#answer-text'), open = el.hidden;
     el.hidden = !open;
