@@ -101,11 +101,34 @@
     .legend i { display: inline-block; width: 16px; height: 0; margin-right: 5px; vertical-align: middle; border-top: 3px solid var(--blue); }
     .legend i.bar { height: 10px; border: 1px solid var(--blue-mid); background: #C9D8EA; }
     .legend i.avg { border-top: 2px solid var(--blue-mid); }
-    .legend i.post { height: 10px; border: 1px solid var(--maize-dark); background: rgba(255, 203, 5, .55); }
+    .legend i.post { height: 10px; border: 1px solid #2E7D4F; background: rgba(134, 201, 156, .6); }
 
     details.method { margin-top: 18px; }
     details.method summary { cursor: pointer; color: var(--muted); font-size: .82rem; }
     details.method p { color: var(--muted); font-size: .82rem; max-width: 95ch; }
+    /* Customer value section */
+    :root { --green: #2E7D4F; --green-light: rgba(134, 201, 156, .6); --blue-light: rgba(157, 185, 219, .9); --pink: #F4B6C2; }
+    .value-section { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 10px; }
+    .value-section > .span-2 { grid-column: 1 / -1; }
+    .value-inputs { position: sticky; top: 8px; z-index: 5; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px 16px; padding: 12px 18px; }
+    .value-inputs h2 { grid-column: 1 / -1; margin: 0; color: var(--blue); font-size: .95rem; }
+    .value-inputs .coord label { font-size: .74rem; }
+    .section-title { margin: 14px 0 0; padding-bottom: 6px; border-bottom: 3px solid var(--maize); }
+    .section-title h2 { margin: 0; color: var(--blue); font-size: 1.25rem; letter-spacing: -.01em; }
+    .section-title p { margin: 4px 0 0; color: var(--muted); font-size: .8rem; }
+    .section-title.rlv { border-bottom-color: var(--green); }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); overflow: hidden; }
+    .stats .metric b { font-size: 1.15rem; }
+    .stats.rlv .metric b { color: var(--green); }
+    .legend i.clvpt { border-top: 0; width: 8px; height: 8px; border-radius: 50%; background: var(--blue-light); }
+    .legend i.eclv { border-top: 3px solid var(--blue-mid); }
+    .legend i.ectv { border-top: 2px dashed var(--blue); }
+    .legend i.cac { border-top: 2px solid var(--red); }
+    .legend i.pay { border-top: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--pink); border: 1px solid var(--red); }
+    .legend i.half { border-top: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--maize); border: 1px solid var(--maize-edge); }
+    .legend i.grn { height: 10px; border: 1px solid var(--green); background: var(--green-light); }
+    @media (max-width: 1180px) { .value-section { grid-template-columns: 1fr; } .value-inputs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 980px) { .value-inputs { position: static; } }
     footer { margin-top: 22px; color: var(--muted); font-size: .74rem; }
   </style>
 </head>
@@ -133,7 +156,7 @@
     <button class="step" type="button" role="tab" aria-selected="true" data-step="1"><small>Step 1</small><span>The mix of customers</span></button>
     <button class="step" type="button" role="tab" aria-selected="false" data-step="2"><small>Step 2</small><span>What it does to survival</span></button>
     <button class="step" type="button" role="tab" aria-selected="false" data-step="3"><small>Step 3</small><span>Why retention climbs</span></button>
-    <button class="step" type="button" role="tab" aria-selected="false" data-step="4"><small>Step 4</small><span>Does it fit real data?</span></button>
+    <button class="step" type="button" role="tab" aria-selected="false" data-step="4"><small>Step 4</small><span>What is a customer worth?</span></button>
   </nav>
 
   <section class="question" aria-live="polite">
@@ -184,9 +207,63 @@
         <div class="chart-head"><h2 id="ret-title">Retention rate</h2><p>The share of last month's survivors who stay. It climbs, and no individual customer ever changes.</p></div>
         <div class="chart-wrap"><svg id="retention-chart" class="chart" viewBox="0 0 460 240" role="img" aria-label="Aggregate retention rate curve"></svg></div>
         <div class="coords" id="renewal-row" hidden style="grid-template-columns:1fr">
-          <div class="coord"><label for="renewals"><span>Look at the survivors after n renewals</span><output id="out-renewals"></output></label><input id="renewals" type="range" min="0" max="11" step="1" value="0"></div>
+          <div class="coord"><label for="renewals"><span>Look at the survivors after n renewals</span><output id="out-renewals"></output></label><input id="renewals" type="range" min="0" max="24" step="1" value="4"></div>
           <p class="coord-note" id="posterior-note"></p>
         </div>
+      </section>
+
+      <section class="value-section" id="value-section" aria-label="Customer value">
+        <div class="value-inputs card span-2">
+          <h2>Customer value inputs</h2>
+          <div class="coord"><label for="v-cf"><span>Margin per period, m</span><output id="out-cf"></output></label><input id="v-cf" type="range" min="5" max="100" step="0.01" value="26.8164"></div>
+          <div class="coord"><label for="v-disc"><span>Discount rate per period, d</span><output id="out-disc"></output></label><input id="v-disc" type="range" min="0.001" max="0.05" step="0.0001" value="0.0153"></div>
+          <div class="coord"><label for="v-cac"><span>Acquisition cost, CAC</span><output id="out-cac"></output></label><input id="v-cac" type="range" min="0" max="500" step="1" value="100"></div>
+          <div class="coord"><label for="v-n"><span>Renewals survived, n</span><output id="out-n"></output></label><input id="v-n" type="range" min="0" max="24" step="1" value="4"></div>
+          <div class="coord"><label for="v-N"><span>Cohort size, N</span><output id="out-N"></output></label><input id="v-N" type="range" min="100" max="5000" step="100" value="1000"></div>
+        </div>
+
+        <div class="section-title span-2"><h2>CLV of a new customer</h2><p>Valued at acquisition, before we know how long the customer will stay. PAV is the discounted margin a customer brings in; CLV = PAV - CAC.</p></div>
+        <section class="stats metrics card span-2" aria-label="New customer value">
+          <div class="metric"><b id="s-epav">…</b><span>E(PAV), expected post-acquisition value</span></div>
+          <div class="metric"><b id="s-eclv">…</b><span>E(CLV) = E(PAV) - CAC</span></div>
+          <div class="metric"><b id="s-pay">…</b><span>Payback: first t with PAV at least CAC</span></div>
+          <div class="metric"><b id="s-half">…</b><span>Half-life: first t with S(t) below 50%</span></div>
+          <div class="metric"><b id="s-neg">…</b><span>Share of new customers with CLV below $0</span></div>
+        </section>
+        <section class="chart-card card" aria-labelledby="ue-title">
+          <div class="chart-head"><h2 id="ue-title">Unit economics: cumulative discounted net cash flow</h2><p>Each dot is what one customer is worth if their lifetime ends at t. The dashed line is the expected value earned through t, E(CtV), which climbs from -CAC toward E(CLV).</p></div>
+          <div class="legend" id="ue-legend"></div>
+          <div class="chart-wrap"><svg id="ue-chart" class="chart" viewBox="0 0 460 260" role="img" aria-label="Cumulative discounted net cash flow against CAC"></svg></div>
+        </section>
+        <section class="chart-card card" aria-labelledby="clvd-title">
+          <div class="chart-head"><h2 id="clvd-title">Distribution of CLV</h2><p>Each spike is one possible lifetime, placed at its CLV, with height equal to the share of new customers who end up with it.</p></div>
+          <div class="legend"><span><i class="clvpt" style="border-radius:0;width:4px;height:12px"></i>P(CLV)</span><span><i class="eclv"></i>E(CLV), the average of CLVs</span><span><i class="cac"></i>CLV = $0 (PAV = CAC)</span></div>
+          <div class="chart-wrap"><svg id="clvd-chart" class="chart" viewBox="0 0 460 260" role="img" aria-label="Distribution of customer lifetime value"></svg></div>
+        </section>
+
+        <div class="section-title rlv span-2"><h2 id="rlv-heading">RLV of an existing customer after n renewals</h2><p>Valued today, for a customer who has already renewed n times: residual lifetime value counts only the margins still to come.</p></div>
+        <section class="stats rlv metrics card span-2" aria-label="Existing customer value">
+          <div class="metric"><b id="s-surv">…</b><span id="s-surv-k">Survivors after n renewals</span></div>
+          <div class="metric"><b id="s-pchurn">…</b><span>Average churn among survivors</span></div>
+          <div class="metric"><b id="s-erlv">…</b><span>E(RLV) per survivor</span></div>
+          <div class="metric"><b id="s-cv">…</b><span>Cohort value: total PAV of all N acquired</span></div>
+          <div class="metric"><b id="s-crv">…</b><span>Cohort value of survivors: total RLV</span></div>
+        </section>
+        <section class="chart-card card" aria-labelledby="post-title">
+          <div class="chart-head"><h2 id="post-title">Churn probabilities: survivors vs whole cohort</h2><p>After n renewals the survivors follow Beta(a, b + n). Same a, larger b: the mix has slid toward low churn.</p></div>
+          <div class="legend"><span><i class="bar"></i>whole cohort, Beta(a, b)</span><span><i class="grn"></i>survivors after n renewals</span></div>
+          <div class="chart-wrap"><svg id="post-chart" class="chart" viewBox="0 0 460 260" role="img" aria-label="Beta distribution of survivors against the whole cohort"></svg></div>
+        </section>
+        <section class="chart-card card" aria-labelledby="rlvd-title">
+          <div class="chart-head"><h2 id="rlvd-title">Distribution of RLV vs PAV</h2><p>Top: PAV of a new customer. Bottom: RLV of a customer who has survived n renewals. Survivors are worth more on average, even though their past margins no longer count.</p></div>
+          <div class="legend"><span><i class="eclv"></i>E(PAV)</span><span><i class="eclv" style="border-top-color:#2E7D4F"></i>E(RLV)</span></div>
+          <div class="chart-wrap"><svg id="rlvd-chart" class="chart" viewBox="0 0 460 260" role="img" aria-label="Distribution of residual lifetime value against post-acquisition value"></svg></div>
+        </section>
+        <section class="chart-card card span-2" aria-labelledby="cohort-title">
+          <div class="chart-head"><h2 id="cohort-title">Cohort value vs cohort value of survivors</h2><p id="cohort-blurb"></p></div>
+          <div class="legend" id="cohort-legend"></div>
+          <div class="chart-wrap"><svg id="cohort-chart" class="chart" viewBox="0 0 940 260" role="img" aria-label="Simulated distribution of total cohort value"></svg></div>
+        </section>
       </section>
     </div>
   </div>
@@ -195,6 +272,7 @@
     <summary>Model and source notes</summary>
     <p><strong>The model.</strong> Each customer has a churn probability that stays constant for life. Across the cohort those probabilities follow Beta(a, b). Aggregate retention is r(t) = (b + t - 1) / (a + b + t - 1) and survival is the running product, S(t) = S(t-1) x r(t). Equivalently S(t) = B(a, b + t) / B(a, b). Averages: mean churn is a / (a + b) and polarization is 1 / (a + b + 1). The bars show the share of customers whose churn probability falls in each 1-point-wide bin.</p>
     <p><strong>Why survivors look loyal.</strong> After n renewals the customers still present are not a random sample. Their churn probabilities follow Beta(a, b + n): same a, larger b, so the mix has shifted toward the loyal end. Nobody changed; the churn-prone left first.</p>
+    <p><strong>Customer value.</strong> Period t = 0 is acquisition, and the first margin m arrives then, undiscounted. A customer whose lifetime is t + 1 periods has PAV = m x [1 + 1/(1+d) + ... + 1/(1+d)^t] and CLV = PAV - CAC; the probability of that lifetime is S(t) - S(t+1). E(CtV) is the expected discounted net cash flow through t. A customer who has survived n renewals has RLV = 0 if they churn at the next renewal, otherwise the discounted margins still to come, weighted by S(n + i) / S(n). The value charts follow the Class 7 Shiny app (beta_geometric_clv) and the BG CLV tab of <code>Class 7 - BG and CLV.xlsx</code>: at the Blue Apron fit, m = $26.82 (1.8 orders x $57.30 x 26%), d = 1.53% and CAC = $100 give E(PAV) = $234 and E(CLV) = $134, as in the workbook. Cohort value is simulated: each simulated world draws N new customers' PAVs and the round(N x S(n)) survivors' RLVs, as the Shiny app did.</p>
     <p><strong>Source.</strong> Observed survival comes from <code>Class 7 Data - Blue Apron.xlsx</code> (the 12-month series), as carried into the <code>Beta Geometric (BG)</code> sheet of <code>Class 7 - BG and CLV.xlsx</code>. The fitted values a = 0.6746182701085135 and b = 1.2336012934958855 are the ones on that sheet, found there with Solver by minimising squared error on retention rates for months 1 to 6 only; months 7 to 12 are a holdout. MAPE is the average of |observed r(t) - model r(t)| / observed r(t), computed separately for months 1-6 and months 7-12. The observed survival is flat from month 10 to 11 in the source data, so observed retention at month 11 is 100%.</p>
   </details>
   <footer>Self-contained teaching prototype. No data leaves this file. Built for MKT 626 at Michigan Ross.</footer>
@@ -331,6 +409,107 @@ const BGShape = (() => {
     return total / (to - from + 1);
   }
 
+  // ---- Customer value, ported from bg_clv_explorer.html (itself a port of the Shiny app's
+  // clvBG / rlvBG / cohort simulation). Period p = 0, 1, 2, ...; the first margin arrives at
+  // p = 0 undiscounted, so a customer with lifetime p + 1 pays cf * sum_{k<=p} (1 + disc)^-k.
+  function buildModel({ a, b, cf, disc, cac, horizon = 2000 }) {
+    const st = [], discCf = [], pav = [], clv = [], ectv = [];
+    let cumDisc = 0, cumDiscSurv = 0;
+    for (let p = 0; p <= horizon; p++) {
+      st.push(survival(a, b, p));
+      const df = Math.pow(1 + disc, -p);
+      discCf.push(cf * df);
+      cumDisc += df; pav.push(cf * cumDisc); clv.push(cf * cumDisc - cac);
+      cumDiscSurv += df * st[p]; ectv.push(cf * cumDiscSurv - cac);
+    }
+    // ptConv[p] = P(lifetime is p + 1 payments); the leftover mass sits on the horizon.
+    const ptConv = [];
+    let acc = 0;
+    for (let p = 0; p < horizon; p++) { const q = st[p] - st[p + 1]; ptConv.push(q); acc += q; }
+    ptConv.push(1 - acc);
+    let eclv = 0, epav = 0, pNeg = 0;
+    for (let p = 0; p <= horizon; p++) {
+      eclv += clv[p] * ptConv[p]; epav += pav[p] * ptConv[p];
+      if (clv[p] < 0) pNeg += ptConv[p];
+    }
+    const firstIndex = (arr, pred) => { for (let i = 0; i < arr.length; i++) if (pred(arr[i])) return i; return null; };
+    const payback = firstIndex(pav, v => v >= cac);
+    const halflife = firstIndex(st, v => v < 0.5);
+    // Shiny's rule: show periods until one period's discounted margin falls below 20% of CAC.
+    let maxPeriodToShow = cac > 0 ? firstIndex(discCf, v => v < 0.2 * cac) : null;
+    if (maxPeriodToShow === null) maxPeriodToShow = 60;
+    maxPeriodToShow = Math.max(12, maxPeriodToShow);
+    return { st, discCf, pav, clv, ptConv, ectv, eclv, epav, pNeg, payback, halflife,
+      maxPeriodToShow, params: { a, b, cf, disc, cac, horizon } };
+  }
+
+  // Residual value after pastT renewals: the next renewal may already be a churn (RLV = 0),
+  // otherwise an annuity on cf starting one period out.
+  function buildRLV({ a, b, cf, disc, pastT, horizon = 2000 }) {
+    const sPast = survival(a, b, pastT);
+    const nRows = horizon - pastT;
+    const v = [1];
+    for (let i = 1; i < nRows; i++) v.push(survival(a, b, pastT + i) / sPast);
+    const rlv = [], ptCond = [];
+    let cum = 0;
+    for (let i = 0; i < nRows; i++) {
+      if (i >= 1) cum += cf * Math.pow(1 + disc, -(i - 1));
+      rlv.push(cum);
+      if (i < nRows - 1) ptCond.push(v[i] - v[i + 1]);
+    }
+    ptCond.push(1 - ptCond.reduce((x, y) => x + y, 0));
+    let erlv = 0;
+    for (let i = 0; i < nRows; i++) erlv += rlv[i] * ptCond[i];
+    return { rlv, ptCond, erlv, sPast, params: { a, b, cf, disc, pastT, horizon } };
+  }
+
+  function mulberry32(seed) {
+    let s = seed >>> 0;
+    return function () {
+      s = (s + 0x6D2B79F5) >>> 0;
+      let t = s;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function cumulative(probs) {
+    const c = new Float64Array(probs.length);
+    let acc = 0;
+    for (let i = 0; i < probs.length; i++) { acc += probs[i]; c[i] = acc; }
+    c[c.length - 1] = 1;
+    return c;
+  }
+  function sampleIndex(cumProbs, rng) {
+    const u = rng();
+    let lo = 0, hi = cumProbs.length - 1;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (cumProbs[mid] < u) lo = mid + 1; else hi = mid; }
+    return lo;
+  }
+  // Simulated worlds, as in the Shiny app: total PAV of all N acquired customers against
+  // total RLV of the round(N * S(n)) customers still active after n renewals.
+  function cohortSim({ model, rlvModel, N, nsims = 1000, seed = 42 }) {
+    const rng = mulberry32(seed);
+    const cumInit = cumulative(model.ptConv), cumRes = cumulative(rlvModel.ptCond);
+    const survivors = Math.round(N * rlvModel.sPast);
+    const initTotals = [], residTotals = [];
+    for (let k = 0; k < nsims; k++) {
+      let t = 0;
+      for (let i = 0; i < N; i++) t += model.pav[sampleIndex(cumInit, rng)];
+      initTotals.push(t);
+      let r = 0;
+      for (let i = 0; i < survivors; i++) r += rlvModel.rlv[sampleIndex(cumRes, rng)];
+      residTotals.push(r);
+    }
+    const stats = arr => {
+      const mean = arr.reduce((x, y) => x + y, 0) / arr.length;
+      const sd = Math.sqrt(arr.reduce((x, y) => x + (y - mean) ** 2, 0) / Math.max(1, arr.length - 1));
+      return { mean, sd };
+    };
+    const si = stats(initTotals), sr = stats(residTotals);
+    return { initTotals, residTotals, survivors, initMean: si.mean, initSd: si.sd, residMean: sr.mean, residSd: sr.sd };
+  }
+
   function shapeName(a, b) {
     const lo = 0.995, hi = 1.005;
     if (a > lo && a < hi && b > lo && b < hi) return 'flat: every risk equally likely';
@@ -342,7 +521,7 @@ const BGShape = (() => {
 
   return { clamp, lnGamma, lnBeta, betaPdf, betaCdf, binnedMass, survival, retention,
     meanChurn, polarization, fromMeanPolarization, homogeneousSurvival, posterior,
-    observedRetention, sse, mape, churnDistribution, FIT_MONTHS, shapeName, BLUE_APRON_SURVIVAL, BLUE_APRON_FIT };
+    observedRetention, sse, mape, churnDistribution, buildModel, buildRLV, cohortSim, FIT_MONTHS, shapeName, BLUE_APRON_SURVIVAL, BLUE_APRON_FIT };
 })();
 /*MATH-CORE-END*/
 
@@ -351,6 +530,7 @@ const BGShape = (() => {
   const $$ = s => [...document.querySelectorAll(s)];
   const pct = (v, d = 1) => `${(v * 100).toFixed(d)}%`;
   const num = (v, d = 3) => v.toFixed(d);
+  const money = (v, d = 0) => `${v < 0 ? '-' : ''}$${Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })}`;
   const M = BGShape;
 
   const GMIN = 0.1, GMAX = 10;
@@ -360,7 +540,9 @@ const BGShape = (() => {
 
   const initialStep = Math.min(4, Math.max(1, Number(location.hash.match(/step-(\d+)/)?.[1] || 1)));
   const state = { step: initialStep, a: M.BLUE_APRON_FIT.a, b: M.BLUE_APRON_FIT.b,
-    renewals: 0, dragging: false };
+    renewals: 4, dragging: false,
+    // Customer value inputs. Defaults are the Class 7 workbook: m = AOF x AOV x CM = 1.8 x 57.3 x 26%.
+    cf: 26.8164, disc: 0.0153, cac: 100, N: 1000 };
 
   const PRESETS = [
     { key: 'blueapron', label: 'Blue Apron fit', a: M.BLUE_APRON_FIT.a, b: M.BLUE_APRON_FIT.b },
@@ -387,14 +569,11 @@ const BGShape = (() => {
       q: 'Aggregate retention climbs month after month. Which customers changed their behaviour to make that happen?',
       a: 'None of them. Every customer keeps the churn probability they were born with. The mix changes, not the customers: after n renewals the survivors follow Beta(a, b + n), the same a with a larger b, which is shifted toward the loyal end. Drag the renewals slider and watch the distribution slide left.'
     }),
-    // The multiple is computed rather than written down, so the sentence can never
-    // drift away from what the tool actually shows.
     4: () => {
-      const tight = PRESETS.find(p => p.key === 'clustered');
-      const F = M.BLUE_APRON_FIT;
+      const model = M.buildModel({ a: state.a, b: state.b, cf: state.cf, disc: state.disc, cac: state.cac });
       return {
-        q: 'Set the shape to Near-identical, which has almost no spread, and read the MAPE for months 1-6 and for months 7-12. Then click the Blue Apron fit preset. How much of the fit is heterogeneity actually buying?',
-        a: `A lot, and it shows up most in the months the model never saw. Near-identical carries almost the same average churn as the fitted shape, ${pct(M.meanChurn(tight.a, tight.b))} against ${pct(M.meanChurn(F.a, F.b))}, yet its MAPE is ${pct(M.mape(tight.a, tight.b, 1, 6))} on months 1-6 and ${pct(M.mape(tight.a, tight.b, 7, 12))} on months 7-12, against ${pct(M.mape(F.a, F.b, 1, 6))} and ${pct(M.mape(F.a, F.b, 7, 12))} for the fitted shape. Without heterogeneity the model cannot bend upward, so it keeps missing further out.`
+        q: `It costs ${money(state.cac)} to acquire a customer. Before reading the value charts below: is the average new customer worth more than that, and what share of new customers never earn back what it cost to acquire them?`,
+        a: `On average a new customer brings in E(PAV) = ${money(model.epav)}, so E(CLV) = E(PAV) - CAC = ${money(model.eclv)}. But the average hides a very skewed distribution: ${pct(model.pNeg)} of new customers churn before their margins cover the acquisition cost (CLV below $0), while a long tail of loyal customers stays for years and carries the average. A customer who stays pays back CAC at t = ${model.payback ?? 'never'}; half the cohort is gone by t = ${model.halflife ?? 'beyond the horizon'}.`
       };
     }
   };
@@ -414,7 +593,7 @@ const BGShape = (() => {
   }
   function frame({ W = 460, H = 240, left = 46, right = 16, top = 14, bottom = 34,
     xMin, xMax, yMin, yMax, xLabel = '', yLabel = '', xFmt = v => v, yFmt = v => v,
-    yGrid = true, xTicks = null }) {
+    yGrid = true, xTicks = null, xText = true }) {
     const x = v => left + (v - xMin) / (xMax - xMin) * (W - left - right);
     const y = v => top + (yMax - v) / (yMax - yMin) * (H - top - bottom);
     const parts = [];
@@ -426,7 +605,7 @@ const BGShape = (() => {
     }
     for (const v of (xTicks || niceTicks(xMin, xMax, 6))) {
       parts.push(`<line class="grid" x1="${x(v)}" y1="${top}" x2="${x(v)}" y2="${H - bottom}"/>` +
-        `<text class="tick" x="${x(v)}" y="${H - 18}" text-anchor="middle">${xFmt(v)}</text>`);
+        (xText ? `<text class="tick" x="${x(v)}" y="${H - 18}" text-anchor="middle">${xFmt(v)}</text>` : ''));
     }
     parts.push(`<line class="axis" x1="${left}" y1="${H - bottom}" x2="${W - right}" y2="${H - bottom}"/>` +
       `<line class="axis" x1="${left}" y1="${top}" x2="${left}" y2="${H - bottom}"/>` +
@@ -513,9 +692,9 @@ const BGShape = (() => {
     f.yMax = peak * 1.1;
     f.parts.push(bars(bm, f, 'rgba(201, 216, 234, .85)', '#2F65A7'));
     if (showPost) {
-      f.parts.push(bars(bp, f, 'rgba(255, 203, 5, .55)', '#D9A900'));
+      f.parts.push(bars(bp, f, 'rgba(134, 201, 156, .6)', '#2E7D4F'));
       const mp = M.meanChurn(post.a, post.b);
-      f.parts.push(`<line x1="${f.x(mp)}" y1="${f.top}" x2="${f.x(mp)}" y2="${f.y(0)}" stroke="#D9A900" stroke-width="1.6"/>`);
+      f.parts.push(`<line x1="${f.x(mp)}" y1="${f.top}" x2="${f.x(mp)}" y2="${f.y(0)}" stroke="#2E7D4F" stroke-width="1.6"/>`);
     }
     const mean = M.meanChurn(state.a, state.b);
     f.parts.push(`<line x1="${f.x(mean)}" y1="${f.top}" x2="${f.x(mean)}" y2="${f.y(0)}" stroke="#2F65A7" stroke-width="1.6"/>`);
@@ -544,9 +723,9 @@ const BGShape = (() => {
     const f = frame({ xMin: 1, xMax: T_CURVE, yMin: 0, yMax: 1, xTicks: monthTicks(1),
       xLabel: 'time since acquisition, t', yLabel: 'r(t)', xFmt: v => Math.round(v), yFmt: v => pct(v, 0) });
     f.parts.push(`<path d="${path(rs.map((r, i) => [i + 1, r]), f)}" fill="none" stroke="#00274C" stroke-width="2.6"/>`);
-    if (state.step >= 3 && state.renewals > 0) {
-      const t = Math.min(T_CURVE, state.renewals + 1);
-      f.parts.push(`<circle cx="${f.x(t)}" cy="${f.y(M.retention(state.a, state.b, t))}" r="5.5" fill="#D9A900" stroke="#8A6D00" stroke-width="1.6"/>`);
+    if (state.step >= 3 && state.renewals > 0 && state.renewals + 1 <= T_CURVE) {
+      const t = state.renewals + 1;
+      f.parts.push(`<circle cx="${f.x(t)}" cy="${f.y(M.retention(state.a, state.b, t))}" r="5.5" fill="#86C99C" stroke="#2E7D4F" stroke-width="1.6"/>`);
     }
     $('#retention-chart').innerHTML = f.parts.join('');
   }
@@ -569,6 +748,161 @@ const BGShape = (() => {
     const xl = f.x(T + 1);
     f.parts.push(`<text class="tick" x="${xl - bw / 2 - 4}" y="${f.y(p[T]) + 12}" text-anchor="end" fill="#8A6D00">churn after t = ${T}</text>`);
     $('#churn-chart').innerHTML = f.parts.join('');
+  }
+
+  /* ---------- customer value charts ---------- */
+  const C = { blue: '#2F65A7', navy: '#00274C', blueFill: 'rgba(157, 185, 219, .9)', red: '#9A3324',
+    green: '#2E7D4F', greenFill: 'rgba(134, 201, 156, .6)', pink: '#F4B6C2' };
+  const vline = (f, x, color, label, { w = 1.6, dash = '', dy = 11, side = 'right' } = {}) =>
+    `<line x1="${f.x(x)}" y1="${f.top}" x2="${f.x(x)}" y2="${f.y(f.yMin0)}" stroke="${color}" stroke-width="${w}"${dash ? ` stroke-dasharray="${dash}"` : ''}/>` +
+    (label ? `<text class="tick" x="${f.x(x) + (side === 'right' ? 4 : -4)}" y="${f.top + dy}" text-anchor="${side === 'right' ? 'start' : 'end'}" fill="${color}">${label}</text>` : '');
+  const hline = (f, y, color, label, { w = 1.6, dash = '' } = {}) =>
+    `<line x1="${f.left}" y1="${f.y(y)}" x2="${f.W - f.right}" y2="${f.y(y)}" stroke="${color}" stroke-width="${w}"${dash ? ` stroke-dasharray="${dash}"` : ''}/>` +
+    (label ? `<text class="tick" x="${f.left + 4}" y="${f.y(y) - 4}" fill="${color}">${label}</text>` : '');
+  // Vertical spikes, the Shiny app's geom_linerange: one segment per value, height = probability.
+  const spikes = (f, xs, ps, color, w = 2) => {
+    let d = '';
+    for (let i = 0; i < xs.length; i++) {
+      if (!(ps[i] > 0) || xs[i] > f.xMax0) continue;
+      const x = f.x(xs[i]).toFixed(1);
+      d += `M${x} ${f.y(0).toFixed(1)}V${f.y(Math.min(ps[i], f.yMax0)).toFixed(1)}`;
+    }
+    return `<path d="${d}" stroke="${color}" stroke-width="${w}" fill="none"/>`;
+  };
+  const withDomain = (f, o) => Object.assign(f, { xMax0: o.xMax, yMax0: o.yMax, yMin0: o.yMin });
+
+  function renderUnitEconomics(model) {
+    const cac = state.cac, P = model.maxPeriodToShow;
+    const clv = model.clv.slice(0, P + 1), ectv = model.ectv.slice(0, P + 1);
+    const lo = Math.min(-cac, ...clv, ...ectv), hi = Math.max(...clv, model.eclv, 0);
+    const pad = (hi - lo) * 0.08 || 1;
+    const o = { xMin: 0, xMax: P, yMin: lo - pad, yMax: hi + pad };
+    const f = withDomain(frame({ ...o, H: 260, left: 56,
+      xTicks: P >= 24 ? Array.from({ length: Math.floor(P / 12) + 1 }, (_, i) => 12 * i) : null,
+      xLabel: 'time since acquisition, t', yLabel: 'discounted net cash flow',
+      xFmt: v => Math.round(v), yFmt: v => money(v) }), o);
+    f.parts.push(hline(f, 0, '#C6D0DA', '', { w: 1 }));
+    f.parts.push(hline(f, -cac, C.red, `-CAC = ${money(-cac)}`));
+    f.parts.push(hline(f, model.eclv, C.blue, `E(CLV) = ${money(model.eclv)}`, { w: 3 }));
+    f.parts.push(`<path d="${path(ectv.map((y, t) => [t, y]), f)}" fill="none" stroke="${C.navy}" stroke-width="1.6" stroke-dasharray="5 4"/>`);
+    clv.forEach((y, t) => f.parts.push(`<circle cx="${f.x(t).toFixed(1)}" cy="${f.y(y).toFixed(1)}" r="3" fill="${C.blueFill}" stroke="${C.blue}" stroke-width=".6"/>`));
+    if (model.halflife !== null && model.halflife <= P)
+      f.parts.push(`<circle cx="${f.x(model.halflife)}" cy="${f.y(clv[model.halflife])}" r="6" fill="#FFCB05" stroke="#8A6D00" stroke-width="1.4"/>`);
+    if (model.payback !== null && model.payback <= P)
+      f.parts.push(`<circle cx="${f.x(model.payback)}" cy="${f.y(clv[model.payback])}" r="5" fill="${C.pink}" stroke="${C.red}" stroke-width="1.4"/>`);
+    $('#ue-chart').innerHTML = f.parts.join('');
+    $('#ue-legend').innerHTML = `<span><i class="clvpt"></i>CLV if lifetime ends at t</span><span><i class="ectv"></i>E(CtV), expected value through t</span>` +
+      `<span><i class="eclv"></i>E(CLV)</span><span><i class="cac"></i>-CAC</span>` +
+      `<span><i class="pay"></i>payback: t = ${model.payback ?? 'never'}</span><span><i class="half"></i>half-life: t = ${model.halflife ?? '> horizon'}</span>`;
+  }
+
+  function renderClvDist(model, xmaxBoth, ymaxBoth) {
+    const o = { xMin: Math.min(0, model.clv[0]) - xmaxBoth * 0.03, xMax: xmaxBoth, yMin: 0, yMax: ymaxBoth * 1.1 };
+    const f = withDomain(frame({ ...o, H: 260, left: 50, xLabel: 'customer lifetime value, CLV', yLabel: 'proportion of customers',
+      xFmt: v => money(v), yFmt: v => pct(v, 0) }), o);
+    f.parts.push(spikes(f, model.clv, model.ptConv, C.blueFill, 2.2));
+    f.parts.push(vline(f, 0, C.red, 'PAV = CAC', { side: 'left' }));
+    f.parts.push(vline(f, model.eclv, C.blue, `average ${money(model.eclv)}`, { dy: 24 }));
+    f.parts.push(`<text class="tick" x="${f.W - f.right - 4}" y="${f.top + 11}" text-anchor="end">CLV below $0: ${pct(model.pNeg)}</text>`);
+    $('#clvd-chart').innerHTML = f.parts.join('');
+  }
+
+  function renderPosteriorValue() {
+    const n = state.renewals, post = M.posterior(state.a, state.b, n);
+    const b0 = M.binnedMass(state.a, state.b), b1 = M.binnedMass(post.a, post.b);
+    const peak = Math.max(...b0.mass, ...b1.mass) * 1.1;
+    const o = { xMin: 0, xMax: 1, yMin: 0, yMax: peak };
+    const f = withDomain(frame({ ...o, H: 260, left: 50, xLabel: 'churn probability of one customer', yLabel: 'proportion of customers',
+      xFmt: v => pct(v, 0), yFmt: v => pct(v, peak < 0.05 ? 1 : 0) }), o);
+    f.yMax = peak;
+    f.parts.push(bars(b0, f, 'rgba(201, 216, 234, .85)', C.blue));
+    f.parts.push(bars(b1, f, C.greenFill, C.green));
+    const m0 = M.meanChurn(state.a, state.b), m1 = M.meanChurn(post.a, post.b);
+    f.parts.push(vline(f, m0, C.blue, `average ${pct(m0)}`, { dy: 11 }));
+    f.parts.push(vline(f, m1, C.green, `after ${n}: ${pct(m1)}`, { dy: 24 }));
+    $('#post-chart').innerHTML = f.parts.join('');
+  }
+
+  // Two stacked panels on one x scale, like the Shiny app's facet_grid of P(PAV) over P(RLV).
+  function renderRlvDist(model, rlvModel, xmaxBoth, ymaxBoth) {
+    const n = state.renewals;
+    const o = { xMin: 0, xMax: xmaxBoth, yMin: 0, yMax: ymaxBoth * 1.1 };
+    const common = { ...o, left: 50, yFmt: v => pct(v, 0), xFmt: v => money(v) };
+    const top = withDomain(frame({ ...common, H: 118, bottom: 8, xText: false, yLabel: 'P(PAV)' }), o);
+    const bot = withDomain(frame({ ...common, H: 142, top: 8, xLabel: '(residual) lifetime value', yLabel: 'P(RLV)' }), o);
+    const panel = (f, xs, ps, fill, label) => {
+      f.parts.push(spikes(f, xs, ps, fill, 2.2));
+      f.parts.push(vline(f, model.epav, C.blue, '', {}));
+      f.parts.push(vline(f, rlvModel.erlv, C.green, '', {}));
+      f.parts.push(`<text class="tick" x="${f.W - f.right - 4}" y="${f.top + 11}" text-anchor="end" font-weight="700">${label}</text>`);
+    };
+    panel(top, model.pav, model.ptConv, C.blueFill, `PAV, initial cohort: E(PAV) = ${money(model.epav)}`);
+    panel(bot, rlvModel.rlv, rlvModel.ptCond, C.greenFill.replace('.6', '.9'), `RLV after ${n} renewals: E(RLV) = ${money(rlvModel.erlv)}`);
+    $('#rlvd-chart').innerHTML = top.parts.join('') + `<g transform="translate(0 118)">${bot.parts.join('')}</g>`;
+  }
+
+  function renderCohort(model, rlvModel) {
+    const N = state.N, n = state.renewals;
+    const nsims = Math.max(200, Math.min(1000, Math.round(1e6 / N)));
+    const sim = M.cohortSim({ model, rlvModel, N, nsims, seed: 42 });
+    const all = sim.initTotals.concat(sim.residTotals);
+    let lo = Math.min(...all), hi = Math.max(...all);
+    if (!(hi > lo)) { lo -= 1; hi += 1; }
+    const K = 25, w = (hi - lo) / K;
+    const hist = arr => { const c = new Array(K).fill(0); for (const v of arr) c[Math.min(K - 1, Math.max(0, Math.floor((v - lo) / w)))]++; return c.map(x => x / arr.length); };
+    const h0 = hist(sim.initTotals), h1 = hist(sim.residTotals);
+    const peak = Math.max(...h0, ...h1) * 1.12;
+    const o = { xMin: lo, xMax: hi, yMin: 0, yMax: peak };
+    const f = withDomain(frame({ ...o, W: 940, H: 260, left: 56, xLabel: 'post-acquisition or residual value of the cohort', yLabel: 'probability of occurrence',
+      xFmt: v => money(v), yFmt: v => pct(v, 0) }), o);
+    const bw = (f.x(lo + w) - f.x(lo)) * 0.42;
+    for (let k = 0; k < K; k++) {
+      const xc = f.x(lo + (k + 0.5) * w);
+      for (const [h, fill, stroke, off] of [[h0, C.blueFill, C.blue, -bw], [h1, C.greenFill, C.green, 0]]) {
+        if (!h[k]) continue;
+        const y = f.y(h[k]);
+        f.parts.push(`<rect x="${(xc + off).toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${(f.y(0) - y).toFixed(1)}" fill="${fill}" stroke="${stroke}" stroke-width=".6"/>`);
+      }
+    }
+    f.parts.push(vline(f, sim.initMean, C.blue, `mean ${money(sim.initMean)}`, { dy: 11 }));
+    f.parts.push(vline(f, sim.residMean, C.green, `mean ${money(sim.residMean)}`, { dy: 24 }));
+    $('#cohort-chart').innerHTML = f.parts.join('');
+    $('#cohort-legend').innerHTML = `<span><i class="bar" style="background:${C.blueFill}"></i>initial cohort: total PAV of all ${N.toLocaleString()} customers acquired</span>` +
+      `<span><i class="grn"></i>survivors: total RLV of the ${sim.survivors.toLocaleString()} customers still active after ${n} renewals</span>`;
+    $('#cohort-blurb').textContent = `Simulated total value of the cohort across ${nsims.toLocaleString()} possible worlds, as in the Shiny app. The survivors are only ${pct(rlvModel.sPast)} of the customers acquired, yet they are worth ${pct(sim.residMean / sim.initMean)} of the value the whole cohort was expected to bring in at acquisition.`;
+    return sim;
+  }
+
+  let valueFrame = 0;
+  function scheduleValue() { if (!valueFrame) valueFrame = requestAnimationFrame(() => { valueFrame = 0; renderValue(); }); }
+  function renderValue() {
+    const { a, b, cf, disc, cac, N } = state, n = state.renewals;
+    const model = M.buildModel({ a, b, cf, disc, cac });
+    const rlvModel = M.buildRLV({ a, b, cf, disc, pastT: n });
+    const xmaxBoth = Math.max(model.clv[model.clv.length - 1], model.pav[model.pav.length - 1], rlvModel.rlv[rlvModel.rlv.length - 1]);
+    const ymaxBoth = Math.max(...model.ptConv, ...rlvModel.ptCond);
+    $('#out-cf').textContent = money(cf, 2);
+    $('#out-disc').textContent = pct(disc, 2);
+    $('#out-cac').textContent = money(cac);
+    $('#out-n').textContent = String(n);
+    $('#out-N').textContent = N.toLocaleString();
+    $('#s-epav').textContent = money(model.epav);
+    $('#s-eclv').textContent = money(model.eclv);
+    $('#s-pay').textContent = model.payback === null ? 'never' : `t = ${model.payback}`;
+    $('#s-half').textContent = model.halflife === null ? '> horizon' : `t = ${model.halflife}`;
+    $('#s-neg').textContent = pct(model.pNeg);
+    $('#rlv-heading').textContent = `RLV of an existing customer after ${n} renewal${n === 1 ? '' : 's'}`;
+    $('#s-surv').textContent = pct(rlvModel.sPast);
+    $('#s-surv-k').textContent = `Still active after ${n} renewals, S(${n})`;
+    $('#s-pchurn').textContent = pct(M.meanChurn(a, b + n));
+    $('#s-erlv').textContent = money(rlvModel.erlv);
+    renderUnitEconomics(model);
+    renderClvDist(model, xmaxBoth, ymaxBoth);
+    renderPosteriorValue();
+    renderRlvDist(model, rlvModel, xmaxBoth, ymaxBoth);
+    const sim = renderCohort(model, rlvModel);
+    $('#s-cv').textContent = money(sim.initMean);
+    $('#s-crv').textContent = money(sim.residMean);
   }
 
   /* ---------- shell ---------- */
@@ -628,6 +962,9 @@ const BGShape = (() => {
     renderSurvival();
     renderChurn();
     renderRetention();
+    $('#renewals').value = state.renewals;
+    $('#v-n').value = state.renewals;
+    scheduleValue();
     if (state.step >= 3) {
       $('#out-renewals').textContent = state.renewals === 0 ? 'not yet' : `${state.renewals} renewal${state.renewals === 1 ? '' : 's'}`;
       const post = M.posterior(a, b, state.renewals);
@@ -638,10 +975,18 @@ const BGShape = (() => {
   }
 
   /* ---------- wiring ---------- */
-  $$('.step').forEach(b => b.addEventListener('click', () => setStep(b.dataset.step)));
+  $$('.step').forEach(b => b.addEventListener('click', () => {
+    setStep(b.dataset.step);
+    // Step 4 is about customer value, which lives below the four shape charts.
+    if (b.dataset.step === '4') $('#value-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }));
   $('#param-a').addEventListener('input', e => { state.a = M.clamp(fromLog((Number(e.target.value) + 1) / 2), GMIN, GMAX); render(); });
   $('#param-b').addEventListener('input', e => { state.b = M.clamp(fromLog((Number(e.target.value) + 1) / 2), GMIN, GMAX); render(); });
   $('#renewals').addEventListener('input', e => { state.renewals = Number(e.target.value); render(); });
+  $('#v-n').addEventListener('input', e => { state.renewals = Number(e.target.value); render(); });
+  for (const [id, key] of [['#v-cf', 'cf'], ['#v-disc', 'disc'], ['#v-cac', 'cac'], ['#v-N', 'N']]) {
+    $(id).addEventListener('input', e => { state[key] = Number(e.target.value); render(); });
+  }
   $('#answer-toggle').addEventListener('click', () => {
     const el = $('#answer-text'), open = el.hidden;
     el.hidden = !open;
