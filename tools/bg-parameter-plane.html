@@ -25,6 +25,7 @@
       --radius: 16px;
     }
     * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
     body {
       margin: 0; background: var(--paper); color: var(--ink);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -45,7 +46,7 @@
     .metric b { display: block; color: var(--blue); font-size: 1.4rem; font-weight: 750; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
     .metric span { display: block; margin-top: 2px; color: var(--muted); font-size: .72rem; }
 
-    .stepper { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+    .stepper { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 14px; }
     .step { min-height: 66px; border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 10px 12px; text-align: left; cursor: pointer; font: inherit; color: var(--ink); }
     .step small { display: block; color: var(--muted); font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
     .step span { display: block; margin-top: 3px; font-weight: 650; font-size: .92rem; }
@@ -110,7 +111,7 @@
     :root { --green: #2E7D4F; --green-light: rgba(134, 201, 156, .6); --blue-light: rgba(157, 185, 219, .9); --pink: #F4B6C2; }
     .value-section { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 10px; }
     .value-section > .span-2 { grid-column: 1 / -1; }
-    .value-inputs { position: sticky; top: 8px; z-index: 5; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px 16px; padding: 12px 18px; }
+    .value-inputs { position: sticky; top: 8px; z-index: 5; display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 10px 14px; padding: 12px 18px; }
     .value-inputs h2 { grid-column: 1 / -1; margin: 0; color: var(--blue); font-size: .95rem; }
     .value-inputs .coord label { font-size: .74rem; }
     .section-title { margin: 14px 0 0; padding-bottom: 6px; border-bottom: 3px solid var(--maize); }
@@ -127,7 +128,7 @@
     .legend i.pay { border-top: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--pink); border: 1px solid var(--red); }
     .legend i.half { border-top: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--maize); border: 1px solid var(--maize-edge); }
     .legend i.grn { height: 10px; border: 1px solid var(--green); background: var(--green-light); }
-    @media (max-width: 1180px) { .value-section { grid-template-columns: 1fr; } .value-inputs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 1180px) { .value-section { grid-template-columns: 1fr; }  }
     @media (max-width: 980px) { .value-inputs { position: static; } }
     footer { margin-top: 22px; color: var(--muted); font-size: .74rem; }
   </style>
@@ -156,7 +157,8 @@
     <button class="step" type="button" role="tab" aria-selected="true" data-step="1"><small>Step 1</small><span>The mix of customers</span></button>
     <button class="step" type="button" role="tab" aria-selected="false" data-step="2"><small>Step 2</small><span>What it does to survival</span></button>
     <button class="step" type="button" role="tab" aria-selected="false" data-step="3"><small>Step 3</small><span>Why retention climbs</span></button>
-    <button class="step" type="button" role="tab" aria-selected="false" data-step="4"><small>Step 4</small><span>What is a customer worth?</span></button>
+    <button class="step" type="button" role="tab" aria-selected="false" data-step="4"><small>Step 4</small><span>What is a new customer worth?</span></button>
+    <button class="step" type="button" role="tab" aria-selected="false" data-step="5"><small>Step 5</small><span>What is an existing customer worth?</span></button>
   </nav>
 
   <section class="question" aria-live="polite">
@@ -212,17 +214,17 @@
         </div>
       </section>
 
-      <section class="value-section" id="value-section" aria-label="Customer value">
+      <section class="value-section" id="value-section" aria-label="Customer value" data-min-step="4">
         <div class="value-inputs card span-2">
           <h2>Customer value inputs</h2>
           <div class="coord"><label for="v-cf"><span>Margin per period, m</span><output id="out-cf"></output></label><input id="v-cf" type="range" min="5" max="100" step="0.01" value="26.8164"></div>
           <div class="coord"><label for="v-disc"><span>Discount rate per period, d</span><output id="out-disc"></output></label><input id="v-disc" type="range" min="0.001" max="0.05" step="0.0001" value="0.0153"></div>
           <div class="coord"><label for="v-cac"><span>Acquisition cost, CAC</span><output id="out-cac"></output></label><input id="v-cac" type="range" min="0" max="500" step="1" value="100"></div>
-          <div class="coord"><label for="v-n"><span>Renewals survived, n</span><output id="out-n"></output></label><input id="v-n" type="range" min="0" max="24" step="1" value="4"></div>
-          <div class="coord"><label for="v-N"><span>Cohort size, N</span><output id="out-N"></output></label><input id="v-N" type="range" min="100" max="5000" step="100" value="1000"></div>
+          <div class="coord" data-min-step="5"><label for="v-n"><span>Renewals survived, n</span><output id="out-n"></output></label><input id="v-n" type="range" min="0" max="24" step="1" value="4"></div>
+          <div class="coord" data-min-step="5"><label for="v-N"><span>Cohort size, N</span><output id="out-N"></output></label><input id="v-N" type="range" min="100" max="5000" step="100" value="1000"></div>
         </div>
 
-        <div class="section-title span-2"><h2>CLV of a new customer</h2><p>Valued at acquisition, before we know how long the customer will stay. PAV is the discounted margin a customer brings in; CLV = PAV - CAC.</p></div>
+        <div class="section-title span-2" id="clv-block"><h2>CLV of a new customer</h2><p>Valued at acquisition, before we know how long the customer will stay. PAV is the discounted margin a customer brings in; CLV = PAV - CAC.</p></div>
         <section class="stats metrics card span-2" aria-label="New customer value">
           <div class="metric"><b id="s-epav">…</b><span>E(PAV), expected post-acquisition value</span></div>
           <div class="metric"><b id="s-eclv">…</b><span>E(CLV) = E(PAV) - CAC</span></div>
@@ -241,25 +243,25 @@
           <div class="chart-wrap"><svg id="clvd-chart" class="chart" viewBox="0 0 460 260" role="img" aria-label="Distribution of customer lifetime value"></svg></div>
         </section>
 
-        <div class="section-title rlv span-2"><h2 id="rlv-heading">RLV of an existing customer after n renewals</h2><p>Valued today, for a customer who has already renewed n times: residual lifetime value counts only the margins still to come.</p></div>
-        <section class="stats rlv metrics card span-2" aria-label="Existing customer value">
+        <div class="section-title rlv span-2" id="rlv-block" data-min-step="5"><h2 id="rlv-heading">RLV of an existing customer after n renewals</h2><p>Valued today, for a customer who has already renewed n times: residual lifetime value counts only the margins still to come.</p></div>
+        <section class="stats rlv metrics card span-2" aria-label="Existing customer value" data-min-step="5">
           <div class="metric"><b id="s-surv">…</b><span id="s-surv-k">Survivors after n renewals</span></div>
           <div class="metric"><b id="s-pchurn">…</b><span>Average churn among survivors</span></div>
           <div class="metric"><b id="s-erlv">…</b><span>E(RLV) per survivor</span></div>
           <div class="metric"><b id="s-cv">…</b><span>Cohort value: total PAV of all N acquired</span></div>
           <div class="metric"><b id="s-crv">…</b><span>Cohort value of survivors: total RLV</span></div>
         </section>
-        <section class="chart-card card" aria-labelledby="post-title">
+        <section class="chart-card card" aria-labelledby="post-title" data-min-step="5">
           <div class="chart-head"><h2 id="post-title">Churn probabilities: survivors vs whole cohort</h2><p>After n renewals the survivors follow Beta(a, b + n). Same a, larger b: the mix has slid toward low churn.</p></div>
           <div class="legend"><span><i class="bar"></i>whole cohort, Beta(a, b)</span><span><i class="grn"></i>survivors after n renewals</span></div>
           <div class="chart-wrap"><svg id="post-chart" class="chart" viewBox="0 0 460 260" role="img" aria-label="Beta distribution of survivors against the whole cohort"></svg></div>
         </section>
-        <section class="chart-card card" aria-labelledby="rlvd-title">
+        <section class="chart-card card" aria-labelledby="rlvd-title" data-min-step="5">
           <div class="chart-head"><h2 id="rlvd-title">Distribution of RLV vs PAV</h2><p>Top: PAV of a new customer. Bottom: RLV of a customer who has survived n renewals. Survivors are worth more on average, even though their past margins no longer count.</p></div>
           <div class="legend"><span><i class="eclv"></i>E(PAV)</span><span><i class="eclv" style="border-top-color:#2E7D4F"></i>E(RLV)</span></div>
           <div class="chart-wrap"><svg id="rlvd-chart" class="chart" viewBox="0 0 460 260" role="img" aria-label="Distribution of residual lifetime value against post-acquisition value"></svg></div>
         </section>
-        <section class="chart-card card span-2" aria-labelledby="cohort-title">
+        <section class="chart-card card span-2" aria-labelledby="cohort-title" data-min-step="5">
           <div class="chart-head"><h2 id="cohort-title">Cohort value vs cohort value of survivors</h2><p id="cohort-blurb"></p></div>
           <div class="legend" id="cohort-legend"></div>
           <div class="chart-wrap"><svg id="cohort-chart" class="chart" viewBox="0 0 940 260" role="img" aria-label="Simulated distribution of total cohort value"></svg></div>
@@ -538,7 +540,7 @@ const BGShape = (() => {
   const toLog = v => (Math.log10(v) - L) / (R - L);
   const fromLog = u => Math.pow(10, L + u * (R - L));
 
-  const initialStep = Math.min(4, Math.max(1, Number(location.hash.match(/step-(\d+)/)?.[1] || 1)));
+  const initialStep = Math.min(5, Math.max(1, Number(location.hash.match(/step-(\d+)/)?.[1] || 1)));
   const state = { step: initialStep, a: M.BLUE_APRON_FIT.a, b: M.BLUE_APRON_FIT.b,
     renewals: 4, dragging: false,
     // Customer value inputs. Defaults are the Class 7 workbook: m = AOF x AOV x CM = 1.8 x 57.3 x 26%.
@@ -574,6 +576,15 @@ const BGShape = (() => {
       return {
         q: `It costs ${money(state.cac)} to acquire a customer. Before reading the value charts below: is the average new customer worth more than that, and what share of new customers never earn back what it cost to acquire them?`,
         a: `On average a new customer brings in E(PAV) = ${money(model.epav)}, so E(CLV) = E(PAV) - CAC = ${money(model.eclv)}. But the average hides a very skewed distribution: ${pct(model.pNeg)} of new customers churn before their margins cover the acquisition cost (CLV below $0), while a long tail of loyal customers stays for years and carries the average. A customer who stays pays back CAC at t = ${model.payback ?? 'never'}; half the cohort is gone by t = ${model.halflife ?? 'beyond the horizon'}.`
+      };
+    },
+    5: () => {
+      const n = state.renewals, { a, b, cf, disc, cac } = state;
+      const model = M.buildModel({ a, b, cf, disc, cac });
+      const r = M.buildRLV({ a, b, cf, disc, pastT: n });
+      return {
+        q: `A customer has already renewed ${n} time${n === 1 ? '' : 's'}. Their past payments are sunk and no longer count. Are they worth more or less today than a brand-new customer was worth at acquisition?`,
+        a: `More. E(RLV) for a survivor is ${money(r.erlv)}, against E(PAV) = ${money(model.epav)} for a new customer. Nobody's churn probability changed; the survivors are simply the loyal ones. Their average churn is ${pct(M.meanChurn(a, b + n))}, against ${pct(M.meanChurn(a, b))} for the cohort at acquisition, so they are expected to stay much longer. That is why the ${pct(r.sPast)} of the cohort still active can hold most of the value the whole cohort was expected to bring in.`
       };
     }
   };
@@ -876,11 +887,14 @@ const BGShape = (() => {
   let valueFrame = 0;
   function scheduleValue() { if (!valueFrame) valueFrame = requestAnimationFrame(() => { valueFrame = 0; renderValue(); }); }
   function renderValue() {
+    if (state.step < 4) return;
     const { a, b, cf, disc, cac, N } = state, n = state.renewals;
     const model = M.buildModel({ a, b, cf, disc, cac });
     const rlvModel = M.buildRLV({ a, b, cf, disc, pastT: n });
-    const xmaxBoth = Math.max(model.clv[model.clv.length - 1], model.pav[model.pav.length - 1], rlvModel.rlv[rlvModel.rlv.length - 1]);
-    const ymaxBoth = Math.max(...model.ptConv, ...rlvModel.ptCond);
+    // The CLV and RLV spike charts share one scale once both are on screen, as in the Shiny app.
+    const rlvOn = state.step >= 5;
+    const xmaxBoth = Math.max(model.clv[model.clv.length - 1], model.pav[model.pav.length - 1], rlvOn ? rlvModel.rlv[rlvModel.rlv.length - 1] : 0);
+    const ymaxBoth = Math.max(...model.ptConv, ...(rlvOn ? rlvModel.ptCond : []));
     $('#out-cf').textContent = money(cf, 2);
     $('#out-disc').textContent = pct(disc, 2);
     $('#out-cac').textContent = money(cac);
@@ -898,6 +912,7 @@ const BGShape = (() => {
     $('#s-erlv').textContent = money(rlvModel.erlv);
     renderUnitEconomics(model);
     renderClvDist(model, xmaxBoth, ymaxBoth);
+    if (!rlvOn) return;
     renderPosteriorValue();
     renderRlvDist(model, rlvModel, xmaxBoth, ymaxBoth);
     const sim = renderCohort(model, rlvModel);
@@ -977,8 +992,9 @@ const BGShape = (() => {
   /* ---------- wiring ---------- */
   $$('.step').forEach(b => b.addEventListener('click', () => {
     setStep(b.dataset.step);
-    // Step 4 is about customer value, which lives below the four shape charts.
+    // Steps 4 and 5 reveal the customer value charts below the four shape charts.
     if (b.dataset.step === '4') $('#value-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (b.dataset.step === '5') $('#rlv-block').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }));
   $('#param-a').addEventListener('input', e => { state.a = M.clamp(fromLog((Number(e.target.value) + 1) / 2), GMIN, GMAX); render(); });
   $('#param-b').addEventListener('input', e => { state.b = M.clamp(fromLog((Number(e.target.value) + 1) / 2), GMIN, GMAX); render(); });
@@ -1001,7 +1017,7 @@ const BGShape = (() => {
   document.addEventListener('keydown', ev => {
     if (!ev.target.classList.contains('step') || !['ArrowLeft', 'ArrowRight'].includes(ev.key)) return;
     ev.preventDefault();
-    const next = Math.min(4, Math.max(1, state.step + (ev.key === 'ArrowRight' ? 1 : -1)));
+    const next = Math.min(5, Math.max(1, state.step + (ev.key === 'ArrowRight' ? 1 : -1)));
     setStep(next);
     $(`.step[data-step="${next}"]`).focus();
   });
