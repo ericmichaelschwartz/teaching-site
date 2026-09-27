@@ -46,6 +46,10 @@
   .card:hover{border-color:var(--blue)}
   .card h3{margin:0 0 6px;font-size:17px;color:var(--blue)}
   .card p{margin:0;color:var(--ink-2);font-size:14px}
+  .featured{border:2px solid var(--blue);background:var(--surface-2)}
+  .kicker{margin:0 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .badge{display:inline-block;margin-bottom:8px;padding:2px 10px;border-radius:999px;
+    background:var(--blue);color:#fff;font-size:12px;font-weight:600}
   footer{margin-top:48px;color:var(--muted);font-size:13px}
   footer a{color:var(--blue)}
 </style>
@@ -59,6 +63,16 @@
   <p class="sub">Interactive tools for my courses.</p>
 
   <h2>MKT 419/626 — Customer-Base Analysis</h2>
+
+  <a class="card featured" href="tools/clv-table-to-distribution.html">
+    <span class="badge">Use in Classes 07-08</span>
+    <p class="kicker">MKT 626 · Customer heterogeneity · Tool 2</p>
+    <h3>From Survivor Table to CLV Distribution</h3>
+    <p>The survivor curve and the CLV distribution look like separate
+    analyses. They are not: both come straight from the rows of one table.
+    Hover a row, or a point on either chart, and follow the same lifetime
+    everywhere. Then see how the average CLV hides the downside.</p>
+  </a>
 
   <a class="card" href="tools/clv-timeline.html">
     <h3>The Customer Lifetime Value Timeline</h3>
@@ -109,14 +123,6 @@
     pays a subscription on a regular schedule, the other buys whenever they
     feel like it. Build the picture one layer at a time and see what timing
     does to value.</p>
-  </a>
-
-  <a class="card" href="tools/clv-table-to-distribution.html">
-    <h3>One Table, Two Graphs</h3>
-    <p>The survivor curve and the CLV distribution look like separate
-    analyses. They are not: both come straight from the rows of one table.
-    Hover a row, or a point on either chart, and follow the same lifetime
-    everywhere.</p>
   </a>
 
   <a class="card" href="https://ericmichaelschwartz.shinyapps.io/beta_distribution_clv/">
