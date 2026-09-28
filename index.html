@@ -81,11 +81,12 @@
   <section class="series" aria-labelledby="series-title">
     <div class="series-head">
       <span class="badge">Use in Classes 07-08</span>
-      <p class="kicker">Forecasting churn and CLV: a four-part series</p>
+      <p class="kicker">Forecasting churn and CLV: a five-part series</p>
       <h3 id="series-title">From coin flips to CLV, in order</h3>
-      <p>Work through these four tools in sequence. Each one builds on the
+      <p>Work through these five tools in sequence. Each one builds on the
       last: why retention rises, what a cohort is worth, how the BG model's
-      a and b shape both, and two ways to compute E(CLV).</p>
+      a and b shape both, two ways to compute E(CLV), and where the
+      m / (1 + d - r) shortcut comes from.</p>
     </div>
     <ol>
       <li>
@@ -136,6 +137,18 @@
           <p class="q">Why do both roads give exactly the same E(CLV)?</p>
         </a>
       </li>
+      <li>
+        <span class="step" aria-hidden="true">5</span>
+        <a class="card" href="tools/first-dollar.html">
+          <p class="kicker">Forecasting churn and CLV: Tool 5</p>
+          <h3>The First Dollar</h3>
+          <p>One customer with a constant renewal coin. Start from the same cash-flow
+          timeline as Two Roads, watch the infinite sum collapse to m / (1 + d - r)
+          with the 1/(1 - x) rule, and see four contracts differ only in the first
+          payment. Then see why the formula does not work for a group.</p>
+          <p class="q">Where does m / (1 + d - r) come from, and when does it break?</p>
+        </a>
+      </li>
     </ol>
   </section>
 
@@ -162,13 +175,6 @@
     ROI. Then line up every cohort on one chart to see how the economics shift.</p>
   </a>
 
-  <a class="card" href="tools/first-dollar.html">
-    <h3>The First Dollar</h3>
-    <p>One customer, four contracts: how the timing and certainty of the very
-    first payment change customer value. Step through discounting, retention,
-    and the infinite sum, then compare all four cases in a 2x2 grid.</p>
-  </a>
-
   <a class="card" href="tools/clv-timeline-two-customers.html">
     <h3>When Does the Money Arrive?</h3>
     <p>Two customers bring in the same expected contribution each month: one
@@ -186,12 +192,12 @@
   </a>
 
   <a class="card" href="tools/bg-clv-explorer.html">
-    <p class="kicker">Reference: use after the four-part series</p>
+    <p class="kicker">Reference: use after the five-part series</p>
     <h3>BG/CLV Explorer</h3>
     <p>Every piece of the BG model on one page: the churn distribution,
     survival and retention, survivors after n renewals, and CLV, payback,
     and remaining lifetime value. Nothing is built step by step here, so it
-    works best once you have worked through Tools 1 to 4.</p>
+    works best once you have worked through Tools 1 to 5.</p>
   </a>
 
   <footer>
