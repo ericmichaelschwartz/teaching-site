@@ -117,6 +117,8 @@
     .section-title { margin: 14px 0 0; padding-bottom: 6px; border-bottom: 3px solid var(--maize); }
     .section-title h2 { margin: 0; color: var(--blue); font-size: 1.25rem; letter-spacing: -.01em; }
     .section-title p { margin: 4px 0 0; color: var(--muted); font-size: .8rem; }
+    .slower { display: block; margin-top: 10px; border: 1px solid #EAD98F; border-radius: 12px; background: #FFF6D6; padding: 10px 13px; color: #5B4A10; font-size: .8rem; }
+    .slower a { color: var(--blue); font-weight: 800; }
     .section-title.rlv { border-bottom-color: var(--green); }
     .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); overflow: hidden; }
     .stats .metric b { font-size: 1.15rem; }
@@ -233,7 +235,8 @@
           <div class="coord" data-min-step="5"><label for="v-N"><span>Cohort size, N</span><output id="out-N"></output></label><input id="v-N" type="range" min="100" max="5000" step="100" value="1000"></div>
         </div>
 
-        <div class="section-title span-2" id="clv-block"><h2>CLV of a new customer</h2><p>Valued at acquisition, before we know how long the customer will stay. PAV is the discounted margin a customer brings in; CLV = PAV - CAC.</p></div>
+        <div class="section-title span-2" id="clv-block"><h2>CLV of a new customer</h2><p>Valued at acquisition, before we know how long the customer will stay. PAV is the discounted margin a customer brings in; CLV = PAV - CAC.</p>
+          <p class="slower">Want to take this more slowly? <a href="https://public.websites.umich.edu/~ericmsch/teaching/tools/clv-table-to-distribution.html" target="_blank" rel="noopener">From Survivor Table to CLV Distribution</a> (Tool 2) builds this CLV distribution one step at a time, row by row from the survivor table.</p></div>
         <section class="stats metrics card span-2" aria-label="New customer value">
           <div class="metric"><b id="s-epav">…</b><span>E(PAV), expected post-acquisition value</span></div>
           <div class="metric"><b id="s-eclv">…</b><span>E(CLV) = E(PAV) - CAC</span></div>
