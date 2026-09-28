@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Key outputs of a CLV model for a subscription business: Applying the sBG retention model</title>
+<style>
+:root {
+  --blue:#2563eb; --grey:#6b7280; --green:#16a34a; --red:#dc2626;
+  --bg:#f8fafc; --card:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--ink);
+  font:16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+#app-header { padding:28px 24px 8px; max-width:1200px; margin:0 auto; }
+#app-header h1 { font-size:1.45rem; margin:0 0 4px; }
+#app-header p { color:var(--muted); margin:0; max-width:70ch; }
+#layout { display:grid; grid-template-columns:300px 1fr; gap:24px;
+  max-width:1200px; margin:0 auto; padding:16px 24px 64px; align-items:start; }
+#controls { position:sticky; top:16px; background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:16px; }
+#controls h2 { font-size:.8rem; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--muted); margin:14px 0 6px; }
+.ctl { margin-bottom:10px; }
+.ctl label { display:flex; justify-content:space-between; font-size:.9rem; margin-bottom:2px; }
+.ctl input[type=range] { width:100%; accent-color:var(--blue); }
+.ctl input[type=number] { width:86px; border:1px solid var(--line); border-radius:6px;
+  padding:2px 6px; font:inherit; font-size:.85rem; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:20px 22px; margin-bottom:22px; }
+.card h2 { margin:0 0 6px; font-size:1.15rem; }
+.card p.blurb { color:var(--muted); margin:0 0 14px; max-width:75ch; font-size:.95rem; }
+.chart-row { display:flex; flex-wrap:wrap; gap:18px; }
+.chart-box { flex:1 1 320px; min-width:0; }
+.chart-box.full { flex-basis:100%; }
+.chart-box svg { width:100%; height:auto; display:block; }
+#data-table { overflow-x:auto; }
+.legend { display:flex; flex-wrap:wrap; gap:14px; font-size:.82rem; color:var(--muted); margin-top:6px; }
+.legend .swatch { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:5px; }
+.tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin:0 0 16px; }
+.tile { background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:10px 14px; }
+.tile .v { font-size:1.35rem; font-weight:650; }
+.tile .k { font-size:.78rem; color:var(--muted); }
+.axis text { font-size:11px; fill:var(--muted); }
+.axis line, .axis path { stroke:var(--line); }
+.axis-label { font-size:12px; fill:var(--ink); }
+#tooltip { position:fixed; pointer-events:none; background:var(--ink); color:#fff;
+  font-size:.78rem; padding:5px 8px; border-radius:6px; opacity:0; z-index:10; white-space:pre; }
+table.data { border-collapse:collapse; font-size:.82rem; width:100%; }
+table.data th, table.data td { border-bottom:1px solid var(--line); padding:4px 8px; text-align:right; }
+table.data th { color:var(--muted); font-weight:600; }
+details summary { cursor:pointer; font-weight:600; }
+@media (max-width: 860px) {
+  #layout { grid-template-columns:1fr; }
+  #controls { position:static; }
+}
+</style>
+</head>
+<body>
+<header id="app-header">
+  <h1>Key outputs of a CLV model for a subscription business</h1>
+  <p>Applying the shifted Beta-Geometric (sBG) retention model. Drag the sliders — every chart updates live. Defaults are the Blue Apron-style numbers from class.</p>
+</header>
+<div id="layout">
+  <aside id="controls">
+  <h2>sBG model parameters</h2>
+  <div class="ctl" data-key="a"><label><span>a</span><output>0.68</output></label>
+    <input type="range" min="0.0001" max="10" step="0.01" value="0.68">
+    <input type="number" min="0.0001" max="10" step="0.01" value="0.68"></div>
+  <div class="ctl" data-key="b"><label><span>b</span><output>1.23</output></label>
+    <input type="range" min="0.0001" max="10" step="0.01" value="1.23">
+    <input type="number" min="0.0001" max="10" step="0.01" value="1.23"></div>
+  <h2>CLV inputs (CLV = PAV − CAC)</h2>
+  <div class="ctl" data-key="cac"><label><span>CAC ($)</span><output>50</output></label>
+    <input type="range" min="0" max="500" step="1" value="50">
+    <input type="number" min="0" max="500" step="1" value="50"></div>
+  <div class="ctl" data-key="cf"><label><span>Net cash flow / period ($)</span><output>26.82</output></label>
+    <input type="range" min="0" max="100" step="0.01" value="26.82">
+    <input type="number" min="0" max="100" step="0.01" value="26.82"></div>
+  <div class="ctl" data-key="disc"><label><span>Discount rate / period</span><output>0.0153</output></label>
+    <input type="range" min="0.0001" max="0.5" step="0.0001" value="0.0153">
+    <input type="number" min="0.0001" max="0.5" step="0.0001" value="0.0153"></div>
+  <div class="ctl" data-key="N"><label><span>Cohort size N</span><output>1000</output></label>
+    <input type="range" min="100" max="10000" step="100" value="1000">
+    <input type="number" min="100" max="10000" step="100" value="1000"></div>
+  <h2>RLV input</h2>
+  <div class="ctl" data-key="n"><label><span>Past renewals n</span><output>4</output></label>
+    <input type="range" min="1" max="12" step="1" value="4">
+    <input type="number" min="1" max="12" step="1" value="4"></div>
+  <p style="margin:12px 0 0"><a href="#" id="reset-link">Reset to defaults</a></p>
+</aside>
+  <main id="sections">
+  <section class="card"><h2>1 · Who churns?</h2>
+    <p class="blurb">Every customer renews each period with their own probability. The sBG model says those churn probabilities θ are spread across the cohort as a Beta(a, b) distribution — not one shared rate.</p>
+    <div class="chart-row" id="sec-beta"></div></section>
+  <section class="card"><h2>2 · Survival &amp; retention</h2>
+    <p class="blurb">The cohort's survivor curve S(t) and retention rate r(t). Aggregate retention rises over time even though no individual's churn probability changes — the high-churn customers leave first.</p>
+    <div class="chart-row" id="sec-survival"></div></section>
+  <section class="card"><h2>3 · After n renewals</h2>
+    <p class="blurb">Survivors are a selected group. After n renewals the churn-probability distribution among remaining customers is Beta(a, b+n): same a, more b — shifted toward loyal.</p>
+    <div class="chart-row" id="sec-posterior"></div></section>
+  <section class="card"><h2>4 · Value &amp; payback</h2>
+    <p class="blurb">Each possible lifetime T is worth PAV(T) − CAC. The expected cumulative discounted cash flow E(CtV) climbs toward E(CLV) as t grows; payback is where cumulative value covers CAC. Click any CLV(T) point to trace that same lifetime in the two distributions below; click again (or elsewhere) to clear.</p>
+    <div class="tiles" id="tiles-value"></div>
+    <div class="chart-row" id="sec-value"></div></section>
+  <section class="card"><h2>5 · Distribution of CLV</h2>
+    <p class="blurb">CLV is a random variable: each lifetime has a value and a probability. The average E(CLV) is just one summary of this whole distribution.</p>
+    <div class="chart-row" id="sec-clvdist"></div></section>
+  <section class="card"><h2>6 · Distribution of RLV vs. PAV</h2>
+    <p class="blurb">A customer who has survived n renewals has a residual value distribution shifted right relative to a brand-new customer's PAV — survival is informative.</p>
+    <div class="chart-row" id="sec-rlvdist"></div></section>
+  <section class="card"><h2>7 · Cohort value</h2>
+    <p class="blurb" id="cohort-blurb"></p>
+    <div class="tiles" id="tiles-cohort"></div>
+    <div class="chart-row" id="sec-cohort"></div></section>
+  <section class="card"><details id="data-table-wrap"><summary>Per-period data table (check against your spreadsheet)</summary>
+    <div id="data-table"></div></details></section>
+</main>
+</div>
+<script>
+/*MATH-CORE-START*/
+'use strict';
+// Pure math. No DOM access anywhere in this block — it also runs in Node for tests.
+
+// Lanczos approximation (g=7, n=9), |error| < 1e-13 for x > 0.
+function lnGamma(x) {
+  const c = [676.5203681218851, -1259.1392167224028, 771.32342877765313,
+    -176.61502916214059, 12.507343278686905, -0.13857109526572012,
+    9.9843695780195716e-6, 1.5056327351493116e-7];
+  if (x < 0.5) { // reflection
+    return Math.log(Math.PI / Math.sin(Math.PI * x)) - lnGamma(1 - x);
+  }
+  x -= 1;
+  let a = 0.99999999999980993;
+  const t = x + 7.5;
+  for (let i = 0; i < 8; i++) a += c[i] / (x + i + 1);
+  return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+}
+
+function lnBeta(a, b) { return lnGamma(a) + lnGamma(b) - lnGamma(a + b); }
+
+function betaPdf(x, a, b) {
+  if (x <= 0 || x >= 1) return 0;
+  return Math.exp((a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) - lnBeta(a, b));
+}
+
+// Regularized incomplete beta via continued fraction (Numerical Recipes betacf).
+function betacf(a, b, x) {
+  const MAXIT = 300, EPS = 3e-14, FPMIN = 1e-300;
+  const qab = a + b, qap = a + 1, qam = a - 1;
+  let c = 1, d = 1 - qab * x / qap;
+  if (Math.abs(d) < FPMIN) d = FPMIN;
+  d = 1 / d;
+  let h = d;
+  for (let m = 1; m <= MAXIT; m++) {
+    const m2 = 2 * m;
+    let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+    d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN;
+    c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN;
+    d = 1 / d; h *= d * c;
+    aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+    d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN;
+    c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN;
+    d = 1 / d;
+    const del = d * c; h *= del;
+    if (Math.abs(del - 1) < EPS) break;
+  }
+  return h;
+}
+
+function betaCdf(x, a, b) {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  const bt = Math.exp(lnGamma(a + b) - lnGamma(a) - lnGamma(b) +
+    a * Math.log(x) + b * Math.log(1 - x));
+  return x < (a + 1) / (a + b + 2)
+    ? bt * betacf(a, b, x) / a
+    : 1 - bt * betacf(b, a, 1 - x) / b;
+}
+
+function survival(a, b, t) {
+  if (t <= 0) return 1;
+  return Math.exp(lnBeta(a, b + t) - lnBeta(a, b));
+}
+function retention(a, b, t) { return survival(a, b, t) / survival(a, b, t - 1); }
+function pmf(a, b, t) { return survival(a, b, t - 1) - survival(a, b, t); }
+
+function binnedPropensity(a, b, nBins = 100) {
+  const centers = [], mass = [];
+  for (let k = 0; k < nBins; k++) {
+    const lo = k / nBins, hi = (k + 1) / nBins;
+    centers.push((lo + hi) / 2);
+    mass.push(betaCdf(hi, a, b) - betaCdf(lo, a, b));
+  }
+  return { centers, mass };
+}
+
+// Least-squares constant-retention fit to r(1..12). The Shiny app minimizes
+// Σ_{t=1..12} (1−θ−r(t))² with optim(); the exact minimizer is θ = 1 − mean(r).
+function fitGeomTheta(a, b) {
+  let sum = 0;
+  for (let t = 1; t <= 12; t++) sum += retention(a, b, t);
+  return 1 - sum / 12;
+}
+function geomSurvival(theta, t) { return Math.pow(1 - theta, t); }
+
+function buildModel({ a, b, cf, disc, cac, horizon = 2000 }) {
+  const st = [], discT = [], discCf = [], pav = [], clv = [], ectv = [];
+  let cumDisc = 0, cumDiscSurv = 0;
+  for (let p = 0; p <= horizon; p++) {
+    st.push(survival(a, b, p));
+    const df = Math.pow(1 + disc, -p);
+    discT.push(df); discCf.push(cf * df);
+    cumDisc += df; pav.push(cf * cumDisc); clv.push(cf * cumDisc - cac);
+    cumDiscSurv += df * st[p]; ectv.push(cf * cumDiscSurv - cac);
+  }
+  const ptConv = [];
+  let acc = 0;
+  for (let p = 0; p < horizon; p++) { const q = st[p] - st[p + 1]; ptConv.push(q); acc += q; }
+  ptConv.push(1 - acc); // terminal mass at the horizon
+  let eclv = 0, epav = 0;
+  for (let p = 0; p <= horizon; p++) { eclv += clv[p] * ptConv[p]; epav += pav[p] * ptConv[p]; }
+  const firstIndex = (arr, pred) => { for (let i = 0; i < arr.length; i++) if (pred(arr[i])) return i; return null; };
+  const payback = firstIndex(pav, v => v >= cac);
+  const halflife = firstIndex(st, v => v < 0.5);
+  let maxPeriodToShow = cac > 0 ? firstIndex(discCf, v => v < 0.2 * cac) : null;
+  if (maxPeriodToShow === null || maxPeriodToShow < 12) maxPeriodToShow = Math.max(maxPeriodToShow ?? 60, 60);
+  return { st, discT, discCf, pav, clv, ptConv, ectv, eclv, epav,
+    payback, halflife, clvToCac: cac > 0 ? eclv / cac : null, maxPeriodToShow,
+    params: { a, b, cf, disc, cac, horizon } };
+}
+
+function buildRLV({ a, b, cf, disc, pastT, horizon = 2000 }) {
+  const sPast = survival(a, b, pastT);
+  const nRows = horizon - pastT;           // residual lifetimes 0 .. nRows−1
+  const rl = [], rlv = [], ptCond = [];
+  // conditional survival sequence: v[0]=1, v[i]=S(pastT+i)/S(pastT)
+  const v = [1];
+  for (let i = 1; i < nRows; i++) v.push(survival(a, b, pastT + i) / sPast);
+  let cum = 0;
+  for (let i = 0; i < nRows; i++) {
+    rl.push(i);
+    // first residual cash flow is 0 (churn at next renewal); then annuity-due on cf
+    if (i >= 1) cum += cf * Math.pow(1 + disc, -(i - 1));
+    rlv.push(cum);
+    if (i < nRows - 1) ptCond.push(v[i] - v[i + 1]);
+  }
+  ptCond.push(1 - ptCond.reduce((a, b) => a + b, 0)); // terminal mass
+  let erlv = 0;
+  for (let i = 0; i < nRows; i++) erlv += rlv[i] * ptCond[i];
+  return { rl, rlv, ptCond, erlv, sPast, params: { a, b, cf, disc, pastT, horizon } };
+}
+
+function mulberry32(seed) {
+  let s = seed >>> 0;
+  return function () {
+    s = (s + 0x6D2B79F5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function cumulative(probs) {
+  const c = new Float64Array(probs.length);
+  let acc = 0;
+  for (let i = 0; i < probs.length; i++) { acc += probs[i]; c[i] = acc; }
+  c[c.length - 1] = 1; // guard against rounding
+  return c;
+}
+
+function sampleIndex(cumProbs, rng) {
+  const u = rng();
+  let lo = 0, hi = cumProbs.length - 1;
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (cumProbs[mid] < u) lo = mid + 1; else hi = mid; }
+  return lo;
+}
+
+function cohortSim({ model, rlvModel, N, nsims = 1000, seed = 42 }) {
+  const rng = mulberry32(seed);
+  const cumInit = cumulative(model.ptConv);
+  const cumRes = cumulative(rlvModel.ptCond);
+  const survivors = Math.round(N * rlvModel.sPast);
+  const initTotals = [], residTotals = [];
+  for (let k = 0; k < nsims; k++) {
+    let t = 0;
+    for (let i = 0; i < N; i++) t += model.pav[sampleIndex(cumInit, rng)];
+    initTotals.push(t);
+    let r = 0;
+    for (let i = 0; i < survivors; i++) r += rlvModel.rlv[sampleIndex(cumRes, rng)];
+    residTotals.push(r);
+  }
+  const stats = a => {
+    const mean = a.reduce((x, y) => x + y, 0) / a.length;
+    const sd = Math.sqrt(a.reduce((x, y) => x + (y - mean) ** 2, 0) / (a.length - 1));
+    return { mean, sd };
+  };
+  const si = stats(initTotals), sr = stats(residTotals);
+  return { initTotals, residTotals, survivors,
+    initMean: si.mean, initSd: si.sd, residMean: sr.mean, residSd: sr.sd };
+}
+
+const BGCLV = { lnGamma, lnBeta, betaPdf, betaCdf,
+  survival, retention, pmf, binnedPropensity, fitGeomTheta, geomSurvival, buildModel, buildRLV,
+  mulberry32, sampleIndex, cohortSim };
+/*MATH-CORE-END*/
+if (typeof window !== 'undefined') window.BGCLV = BGCLV;
+</script>
+<script>
+'use strict';
+const M = window.BGCLV;
+const COLORS = { blue:'#2563eb', grey:'#6b7280', green:'#16a34a', red:'#dc2626', select:'#d97706',
+  blueLight:'#93c5fd', greenLight:'#86efac' };
+const SVGNS = 'http://www.w3.org/2000/svg';
+const fmt$ = v => (v < 0 ? '−$' : '$') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 0 });
+const fmt2 = v => v.toLocaleString('en-US', { maximumFractionDigits: 2 });
+const fmtPct = v => (100 * v).toFixed(1) + '%';
+
+const tooltip = document.createElement('div');
+tooltip.id = 'tooltip';
+document.body.appendChild(tooltip);
+
+function el(ns, tag, attrs = {}, parent) {
+  const e = ns ? document.createElementNS(ns, tag) : document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+function makeChart({ parent, width = 640, height = 340,
+  margin = { top: 16, right: 16, bottom: 44, left: 60 },
+  xDomain, yDomain, xLabel = '', yLabel = '' }) {
+  if (!(xDomain[1] > xDomain[0])) xDomain = [xDomain[0] - 1, xDomain[0] + 1];
+  if (!(yDomain[1] > yDomain[0])) yDomain = [yDomain[0] - 1, yDomain[0] + 1];
+  const box = el(null, 'div', { class: 'chart-box' }, parent);
+  const svg = el(SVGNS, 'svg', { viewBox: `0 0 ${width} ${height}` }, box);
+  const iw = width - margin.left - margin.right, ih = height - margin.top - margin.bottom;
+  const g = el(SVGNS, 'g', { transform: `translate(${margin.left},${margin.top})` }, svg);
+  const x = v => (v - xDomain[0]) / (xDomain[1] - xDomain[0]) * iw;
+  const y = v => ih - (v - yDomain[0]) / (yDomain[1] - yDomain[0]) * ih;
+  const chart = { svg, g, x, y, iw, ih, box };
+
+  chart.axes = ({ xTicks = 6, yTicks = 5, xFormat = fmt2, yFormat = fmt2 } = {}) => {
+    const ax = el(SVGNS, 'g', { class: 'axis' }, g);
+    el(SVGNS, 'line', { x1: 0, y1: ih, x2: iw, y2: ih, stroke: '#e2e8f0' }, ax);
+    el(SVGNS, 'line', { x1: 0, y1: 0, x2: 0, y2: ih, stroke: '#e2e8f0' }, ax);
+    for (let i = 0; i <= xTicks; i++) {
+      const v = xDomain[0] + i / xTicks * (xDomain[1] - xDomain[0]);
+      el(SVGNS, 'text', { x: x(v), y: ih + 16, 'text-anchor': 'middle' }, ax)
+        .textContent = xFormat(v);
+    }
+    for (let i = 0; i <= yTicks; i++) {
+      const v = yDomain[0] + i / yTicks * (yDomain[1] - yDomain[0]);
+      el(SVGNS, 'line', { x1: 0, y1: y(v), x2: iw, y2: y(v), stroke: '#f1f5f9' }, ax);
+      el(SVGNS, 'text', { x: -8, y: y(v) + 4, 'text-anchor': 'end' }, ax).textContent = yFormat(v);
+    }
+    el(SVGNS, 'text', { class: 'axis-label', x: iw / 2, y: ih + 36, 'text-anchor': 'middle' }, g)
+      .textContent = xLabel;
+    el(SVGNS, 'text', { class: 'axis-label', transform: `rotate(-90)`,
+      x: -ih / 2, y: -44, 'text-anchor': 'middle' }, g).textContent = yLabel;
+    return chart;
+  };
+  chart.line = (pts, { stroke, width: w = 2, dash } = {}) => {
+    el(SVGNS, 'path', { d: pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.x)},${y(p.y)}`).join(''),
+      fill: 'none', stroke, 'stroke-width': w,
+      ...(dash ? { 'stroke-dasharray': dash } : {}) }, g);
+    return chart;
+  };
+  chart.bars = (pts, { fill, barWidth = 4, opacity = 1 } = {}) => {
+    for (const p of pts) el(SVGNS, 'rect', { x: x(p.x) - barWidth / 2, y: y(Math.max(0, p.y)),
+      width: barWidth, height: Math.abs(y(p.y) - y(0)), fill, opacity }, g);
+    return chart;
+  };
+  chart.points = (pts, { fill, r = 3 } = {}) => {
+    for (const p of pts) el(SVGNS, 'circle', { cx: x(p.x), cy: y(p.y), r, fill }, g);
+    return chart;
+  };
+  chart.vline = (xv, { stroke, label = '', dash = '4 3', labelY = 12 } = {}) => {
+    el(SVGNS, 'line', { x1: x(xv), y1: 0, x2: x(xv), y2: ih, stroke,
+      'stroke-dasharray': dash }, g);
+    if (label) el(SVGNS, 'text', { class: 'axis-label', x: x(xv) + 4, y: labelY, fill: stroke }, g)
+      .textContent = label;
+    return chart;
+  };
+  chart.hline = (yv, { stroke, label = '', dash = '4 3' } = {}) => {
+    el(SVGNS, 'line', { x1: 0, y1: y(yv), x2: iw, y2: y(yv), stroke,
+      'stroke-dasharray': dash }, g);
+    if (label) el(SVGNS, 'text', { class: 'axis-label', x: iw - 4, y: y(yv) - 5,
+      'text-anchor': 'end', fill: stroke }, g).textContent = label;
+    return chart;
+  };
+  chart.legend = items => {
+    const lg = el(null, 'div', { class: 'legend' }, box);
+    for (const it of items) {
+      const s = el(null, 'span', {}, lg);
+      el(null, 'span', { class: 'swatch',
+        style: `background:${it.color};${it.dash ? 'height:0;border-top:3px dashed ' + it.color + ';background:none;' : ''}` }, s);
+      s.appendChild(document.createTextNode(it.label));
+    }
+    return chart;
+  };
+  chart.hover = (fmtFn, onMove, onLeave) => {
+    svg.addEventListener('mousemove', ev => {
+      const r = svg.getBoundingClientRect();
+      const px = (ev.clientX - r.left) / r.width * width - margin.left;
+      const dataX = xDomain[0] + px / iw * (xDomain[1] - xDomain[0]);
+      if (onMove) onMove(dataX);
+      const text = fmtFn(dataX);
+      if (!text) { tooltip.style.opacity = 0; return; }
+      tooltip.textContent = text;
+      tooltip.style.opacity = 1;
+      tooltip.style.left = (ev.clientX + 12) + 'px';
+      tooltip.style.top = (ev.clientY + 12) + 'px';
+    });
+    svg.addEventListener('mouseleave', () => {
+      tooltip.style.opacity = 0;
+      if (onLeave) onLeave();
+    });
+    return chart;
+  };
+  // Transient highlight rings at data points (linked-hover crosshair).
+  chart.setMarkers = pts => {
+    chart.clearMarkers();
+    chart._hl = el(SVGNS, 'g', {}, g);
+    for (const p of pts) el(SVGNS, 'circle', { cx: x(p.x), cy: y(p.y), r: 5,
+      fill: 'none', stroke: p.color, 'stroke-width': 2 }, chart._hl);
+  };
+  chart.clearMarkers = () => { if (chart._hl) { chart._hl.remove(); chart._hl = null; } };
+  // Transient value labels anchored at bar tops (one per series).
+  chart.setBarLabels = items => {
+    chart.clearBarLabels();
+    chart._bl = el(SVGNS, 'g', {}, g);
+    for (const it of items) {
+      const tx = el(SVGNS, 'text', { x: x(it.x) + (it.dx || 0), y: y(it.y) - 5,
+        'text-anchor': it.anchor || 'middle', fill: it.color, 'font-size': 11,
+        'font-weight': 600, stroke: '#ffffff', 'stroke-width': 3,
+        'paint-order': 'stroke' }, chart._bl);
+      tx.textContent = it.text;
+    }
+  };
+  chart.clearBarLabels = () => { if (chart._bl) { chart._bl.remove(); chart._bl = null; } };
+  // Persistent selection overlay (click-linked highlighting across charts).
+  chart.setSelection = items => {
+    chart.clearSelection();
+    chart._selg = el(SVGNS, 'g', {}, g);
+    for (const it of items) {
+      if (it.type === 'bar') {
+        el(SVGNS, 'rect', { x: x(it.x) - it.barWidth / 2 - 1.5,
+          y: y(Math.max(0, it.y)) - 1.5, width: it.barWidth + 3,
+          height: Math.abs(y(it.y) - y(0)) + 3, fill: 'none', stroke: it.color,
+          'stroke-width': 2 }, chart._selg);
+      } else {
+        el(SVGNS, 'circle', { cx: x(it.x), cy: y(it.y), r: 7, fill: 'none',
+          stroke: it.color, 'stroke-width': 2.5 }, chart._selg);
+      }
+      if (it.text) {
+        const tx = el(SVGNS, 'text', { x: x(it.x), y: y(it.y) - 10,
+          'text-anchor': 'middle', fill: it.color, 'font-size': 11,
+          'font-weight': 700, stroke: '#ffffff', 'stroke-width': 3,
+          'paint-order': 'stroke' }, chart._selg);
+        tx.textContent = it.text;
+      }
+    }
+  };
+  chart.clearSelection = () => { if (chart._selg) { chart._selg.remove(); chart._selg = null; } };
+  chart.click = onClick => {
+    svg.style.cursor = 'pointer';
+    svg.addEventListener('click', ev => {
+      const r = svg.getBoundingClientRect();
+      const px = (ev.clientX - r.left) / r.width * width - margin.left;
+      const dataX = xDomain[0] + px / iw * (xDomain[1] - xDomain[0]);
+      ev.stopPropagation();
+      onClick(dataX);
+    });
+    return chart;
+  };
+  return chart;
+}
+
+// Lifetime selection linked across Sections 4–6: clicking a CLV(T) point or a
+// CLV/PAV distribution bar highlights the same lifetime in all three charts;
+// clicking it again — or anywhere else — clears it.
+let selectedT = null;
+let selectionPainters = [];
+function paintSelection() { for (const fn of selectionPainters) fn(selectedT); }
+function toggleSelectedT(p) { selectedT = (selectedT === p ? null : p); paintSelection(); }
+document.addEventListener('click', () => {
+  if (selectedT !== null) { selectedT = null; paintSelection(); }
+});
+
+function renderSurvivalSection(model) {
+  const host = document.getElementById('sec-survival');
+  host.innerHTML = '';
+  const { a, b } = model.params;
+  const ts = [...Array(13).keys()]; // 0..12
+  const sBG = ts.map(t => ({ x: t, y: M.survival(a, b, t) }));
+  const cs = makeChart({ parent: host, xDomain: [0, 12], yDomain: [0, 1],
+    xLabel: 'Time since acquisition: t', yLabel: 'Proportion surviving: S(t)' });
+  const rBG = ts.slice(1).map(t => ({ x: t, y: M.retention(a, b, t) }));
+  const cr = makeChart({ parent: host, xDomain: [0, 12], yDomain: [0, 1],
+    xLabel: 'Time since acquisition: t', yLabel: 'Retention rate: r(t)' });
+
+  // Linked hover: pointing at t on either chart rings the same t on both.
+  const highlightT = dx => {
+    const t = Math.round(dx);
+    if (t < 0 || t > 12) { clearHighlight(); return; }
+    cs.setMarkers([{ x: t, y: M.survival(a, b, t), color: COLORS.blue }]);
+    if (t >= 1) cr.setMarkers([{ x: t, y: M.retention(a, b, t), color: COLORS.blue }]);
+    else cr.clearMarkers();
+  };
+  const clearHighlight = () => { cs.clearMarkers(); cr.clearMarkers(); };
+
+  cs.axes({ xTicks: 12, xFormat: v => String(Math.round(v)) })
+    .line(sBG, { stroke: COLORS.blue })
+    .points(sBG, { fill: COLORS.blue })
+    .hover(dx => { const t = Math.round(dx); if (t < 0 || t > 12) return '';
+      return `t=${t}\nS(t): ${fmtPct(M.survival(a, b, t))}`; },
+      highlightT, clearHighlight);
+
+  cr.axes({ xTicks: 12, xFormat: v => String(Math.round(v)) })
+    .line(rBG, { stroke: COLORS.blue })
+    .points(rBG, { fill: COLORS.blue })
+    .hover(dx => { const t = Math.round(dx); if (t < 1 || t > 12) return '';
+      return `t=${t}\nr(t): ${fmtPct(M.retention(a, b, t))}`; },
+      highlightT, clearHighlight);
+}
+
+const DEFAULTS = { a: 0.68, b: 1.23, cac: 50, cf: 26.82, disc: 0.0153, N: 1000, n: 4 };
+const state = { ...DEFAULTS };
+let raf = 0;
+function scheduleRender() { if (!raf) raf = requestAnimationFrame(() => { raf = 0; renderAll(); }); }
+
+for (const ctl of document.querySelectorAll('.ctl')) {
+  const key = ctl.dataset.key;
+  const range = ctl.querySelector('input[type=range]');
+  const num = ctl.querySelector('input[type=number]');
+  const out = ctl.querySelector('output');
+  const clamp = v => Math.min(+range.max, Math.max(+range.min, v));
+  const apply = v => {
+    if (!Number.isFinite(v)) v = state[key];      // revert on garbage input
+    v = clamp(v);
+    state[key] = v; range.value = v; num.value = v; out.textContent = fmt2(v);
+    scheduleRender();
+  };
+  range.addEventListener('input', () => apply(+range.value));
+  num.addEventListener('change', () => { const t = num.value.trim(); apply(t === '' ? NaN : +t); });
+}
+document.getElementById('reset-link').addEventListener('click', ev => {
+  ev.preventDefault();
+  for (const ctl of document.querySelectorAll('.ctl')) {
+    const key = ctl.dataset.key;
+    ctl.querySelector('input[type=range]').value = DEFAULTS[key];
+    ctl.querySelector('input[type=number]').value = DEFAULTS[key];
+    ctl.querySelector('output').textContent = fmt2(DEFAULTS[key]);
+    state[key] = DEFAULTS[key];
+  }
+  scheduleRender();
+});
+
+function renderBetaSection(st) {
+  const host = document.getElementById('sec-beta');
+  host.innerHTML = '';
+  const { centers, mass } = M.binnedPropensity(st.a, st.b);
+  const yMax = Math.max(...mass) * 1.1;
+  const mean = st.a / (st.a + st.b);
+  const c = makeChart({ parent: host, xDomain: [0, 1], yDomain: [0, yMax],
+    xLabel: 'Churn probability θ', yLabel: 'Proportion of customers' });
+  c.axes({ yFormat: fmtPct })
+    .bars(centers.map((x, i) => ({ x, y: mass[i] })), { fill: COLORS.blueLight, barWidth: 5 })
+    .vline(mean, { stroke: COLORS.blue, label: `avg churn ${fmtPct(mean)}` })
+    .hover(dx => { const i = Math.min(99, Math.max(0, Math.floor(dx * 100)));
+      return `θ ∈ [${(i / 100).toFixed(2)}, ${((i + 1) / 100).toFixed(2)})\nshare: ${fmtPct(mass[i])}`; });
+}
+
+function renderPosteriorSection(st) {
+  const host = document.getElementById('sec-posterior');
+  host.innerHTML = '';
+  const init = M.binnedPropensity(st.a, st.b);
+  const post = M.binnedPropensity(st.a, st.b + st.n);
+  const yMax = Math.max(...init.mass, ...post.mass) * 1.1;
+  const mInit = st.a / (st.a + st.b);
+  const mPost = st.a / (st.a + st.b + st.n);
+  const c = makeChart({ parent: host, xDomain: [0, 1], yDomain: [0, yMax],
+    xLabel: 'Churn probability θ', yLabel: 'Proportion of customers' });
+  c.axes({ yFormat: fmtPct })
+    .bars(init.centers.map((x, i) => ({ x, y: init.mass[i] })), { fill: COLORS.blueLight, barWidth: 5, opacity: .6 })
+    .bars(post.centers.map((x, i) => ({ x, y: post.mass[i] })), { fill: COLORS.greenLight, barWidth: 5, opacity: .75 })
+    .vline(mInit, { stroke: COLORS.blue, label: `initial avg ${fmtPct(mInit)}` })
+    .vline(mPost, { stroke: COLORS.green, label: `after ${st.n} renewals ${fmtPct(mPost)}` })
+    .legend([{ label: 'Initial cohort Beta(a, b)', color: COLORS.blueLight },
+             { label: `Survivors after ${st.n} renewals Beta(a, b+${st.n})`, color: COLORS.greenLight }])
+    .hover(dx => { const i = Math.min(99, Math.max(0, Math.floor(dx * 100)));
+      return `θ ∈ [${(i / 100).toFixed(2)}, ${((i + 1) / 100).toFixed(2)})`; },
+      // One value label per series, each anchored at its own bar height —
+      // blue flush left of the bin, green flush right, so they never collide.
+      dx => { const i = Math.min(99, Math.max(0, Math.floor(dx * 100)));
+        c.setBarLabels([
+          { x: init.centers[i], y: init.mass[i], text: fmtPct(init.mass[i]),
+            color: COLORS.blue, anchor: 'end', dx: -5 },
+          { x: post.centers[i], y: post.mass[i], text: fmtPct(post.mass[i]),
+            color: COLORS.green, anchor: 'start', dx: 5 }]); },
+      () => c.clearBarLabels());
+}
+
+function tile(parent, value, label) {
+  const t = el(null, 'div', { class: 'tile' }, parent);
+  el(null, 'div', { class: 'v' }, t).textContent = value;
+  el(null, 'div', { class: 'k' }, t).textContent = label;
+}
+
+function renderValueSection(model) {
+  const tiles = document.getElementById('tiles-value');
+  tiles.innerHTML = '';
+  tile(tiles, fmt$(model.eclv), 'E(CLV) per customer');
+  tile(tiles, model.clvToCac === null ? '—' : fmt2(model.clvToCac) + '×', 'CLV : CAC');
+  tile(tiles, model.payback === null ? 'never' : model.payback + (model.payback === 1 ? ' period' : ' periods'), 'Payback (PAV ≥ CAC)');
+  tile(tiles, model.halflife === null ? '> horizon' : model.halflife + (model.halflife === 1 ? ' period' : ' periods'), 'Customer half-life (S(t) < ½)');
+
+  const host = document.getElementById('sec-value');
+  host.innerHTML = '';
+  const P = model.maxPeriodToShow;
+  const cac = model.params.cac;
+  const yMin = Math.min(-cac * 1.2, 0);
+  const yMax = Math.max(Math.max(model.clv[P], model.eclv) * 1.15, 1); // keep $0 in view
+  const c = makeChart({ parent: host, width: 860, height: 400,
+    xDomain: [0, P], yDomain: [yMin, yMax],
+    xLabel: 'Time since acquisition: t', yLabel: 'Discounted net cash flow ($)' });
+  const clvPts = model.clv.slice(0, P + 1).map((y, x) => ({ x, y }));
+  const ectvPts = model.ectv.slice(0, P + 1).map((y, x) => ({ x, y }));
+  c.axes({ xTicks: Math.min(10, P), xFormat: v => String(Math.round(v)), yFormat: fmt$ })
+    .hline(0, { stroke: '#475569', dash: 'none', label: '$0' })
+    .hline(-cac, { stroke: COLORS.red, label: `−CAC ${fmt$(-cac)}` })
+    .hline(model.eclv, { stroke: COLORS.blue, label: `E(CLV) ${fmt$(model.eclv)}` })
+    .line(ectvPts, { stroke: '#1e3a8a', dash: '6 4' })
+    .points(clvPts, { fill: COLORS.blueLight, r: 3 });
+  if (model.payback !== null && model.payback <= P)
+    c.vline(model.payback, { stroke: COLORS.red, label: `payback t=${model.payback}` });
+  if (model.halflife !== null && model.halflife <= P)
+    c.vline(model.halflife, { stroke: COLORS.grey, label: `half-life t=${model.halflife}`, labelY: 26 });
+  c.legend([
+    { label: 'CLV(T): value if lifetime were exactly T', color: COLORS.blueLight },
+    { label: 'E(CtV): expected value through t (dashed)', color: '#1e3a8a', dash: true },
+    { label: 'E(CLV): expected value over all lifetimes', color: COLORS.blue },
+    { label: '−CAC', color: COLORS.red }])
+   .hover(dx => { const t = Math.round(dx); if (t < 0 || t > P) return '';
+     return `t=${t}\nCLV if T=${t + 1} payments: ${fmt$(model.clv[t])}\nE(CtV): ${fmt$(model.ectv[t])}\nS(t): ${fmtPct(model.st[t])}`; })
+   .click(dx => { const p = Math.round(dx); if (p >= 0 && p <= P) toggleSelectedT(p); });
+  selectionPainters.push(sel => {
+    if (sel === null || sel > P) c.clearSelection();
+    else c.setSelection([{ x: sel, y: model.clv[sel], color: COLORS.select,
+      text: `T=${sel + 1}: ${fmt$(model.clv[sel])}` }]);
+  });
+}
+
+function renderClvDistSection(model) {
+  const host = document.getElementById('sec-clvdist');
+  host.innerHTML = '';
+  const P = model.maxPeriodToShow;
+  const xs = model.clv.slice(0, P + 1);
+  const ps = model.ptConv.slice(0, P + 1);
+  // fold the tail probability beyond P into the last shown bar so mass still sums to 1 on screen
+  ps[P] = model.ptConv.slice(P).reduce((a, b) => a + b, 0);
+  const yMax = Math.max(...ps) * 1.15;
+  const nearest = dx => { let best = 0; for (let i = 1; i < xs.length; i++)
+    if (Math.abs(xs[i] - dx) < Math.abs(xs[best] - dx)) best = i; return best; };
+  const c = makeChart({ parent: host, width: 860, height: 360,
+    xDomain: [Math.min(0, Math.min(...xs)), Math.max(0, Math.max(...xs))], // $0 always in view
+    yDomain: [0, yMax],
+    xLabel: 'Customer lifetime value ($)', yLabel: 'Proportion of customers' });
+  c.axes({ xFormat: fmt$, yFormat: fmtPct })
+    .bars(xs.map((x, i) => ({ x, y: ps[i] })), { fill: COLORS.blueLight, barWidth: 4 })
+    .vline(model.eclv, { stroke: COLORS.blue, label: `E(CLV) ${fmt$(model.eclv)}` })
+    .vline(0, { stroke: COLORS.red, dash: 'none', label: 'CLV = $0 (PAV = CAC)' })
+    .hover(dx => { const best = nearest(dx);
+      return `lifetime T=${best + 1} payments\nCLV: ${fmt$(xs[best])}\nP(T): ${fmtPct(ps[best])}`;
+    })
+    .click(dx => toggleSelectedT(nearest(dx)));
+  selectionPainters.push(sel => {
+    if (sel === null || sel >= xs.length) c.clearSelection();
+    else c.setSelection([{ type: 'bar', x: xs[sel], y: ps[sel], barWidth: 4,
+      color: COLORS.select, text: fmtPct(ps[sel]) }]);
+  });
+}
+
+function renderRlvDistSection(model, rlvModel) {
+  const host = document.getElementById('sec-rlvdist');
+  host.innerHTML = '';
+  const P = model.maxPeriodToShow;
+  const pav = model.pav.slice(0, P + 1);
+  const pPav = model.ptConv.slice(0, P + 1);
+  pPav[P] = model.ptConv.slice(P).reduce((a, b) => a + b, 0);
+  const rlv = rlvModel.rlv.slice(0, P + 1);
+  const pRlv = rlvModel.ptCond.slice(0, P + 1);
+  pRlv[P] = rlvModel.ptCond.slice(P).reduce((a, b) => a + b, 0);
+  const xMax = Math.max(pav[P], rlv[P]);
+  const yMax = Math.max(...pPav, ...pRlv) * 1.15;
+  const n = rlvModel.params.pastT;
+
+  const c1 = makeChart({ parent: host, width: 860, height: 250,
+    xDomain: [0, xMax], yDomain: [0, yMax],
+    xLabel: '', yLabel: 'P(PAV) — initial cohort' });
+  c1.box.classList.add('full');
+  const nearestPav = dx => { let best = 0; for (let i = 1; i < pav.length; i++)
+    if (Math.abs(pav[i] - dx) < Math.abs(pav[best] - dx)) best = i; return best; };
+  c1.axes({ xFormat: fmt$, yFormat: fmtPct })
+    .bars(pav.map((x, i) => ({ x, y: pPav[i] })), { fill: COLORS.blueLight, barWidth: 4 })
+    .vline(model.epav, { stroke: COLORS.blue, label: `E(PAV) ${fmt$(model.epav)}` })
+    .hover(dx => { const best = nearestPav(dx);
+      return `PAV ${fmt$(pav[best])}\nP: ${fmtPct(pPav[best])}`;
+    })
+    .click(dx => toggleSelectedT(nearestPav(dx)));
+  selectionPainters.push(sel => {
+    if (sel === null || sel >= pav.length) c1.clearSelection();
+    else c1.setSelection([{ type: 'bar', x: pav[sel], y: pPav[sel], barWidth: 4,
+      color: COLORS.select, text: fmtPct(pPav[sel]) }]);
+  });
+
+  const c2 = makeChart({ parent: host, width: 860, height: 250,
+    xDomain: [0, xMax], yDomain: [0, yMax],
+    xLabel: '(Residual) lifetime value ($)', yLabel: `P(RLV) — after ${n} renewals` });
+  c2.box.classList.add('full');
+  c2.axes({ xFormat: fmt$, yFormat: fmtPct })
+    .bars(rlv.map((x, i) => ({ x, y: pRlv[i] })), { fill: COLORS.greenLight, barWidth: 4 })
+    .vline(rlvModel.erlv, { stroke: COLORS.green, label: `E(RLV) ${fmt$(rlvModel.erlv)}` })
+    .hover(dx => {
+      let best = 0; for (let i = 1; i < rlv.length; i++)
+        if (Math.abs(rlv[i] - dx) < Math.abs(rlv[best] - dx)) best = i;
+      return `RLV ${fmt$(rlv[best])}\nP: ${fmtPct(pRlv[best])}`;
+    });
+}
+
+function histogram(values, nBins, lo, hi) {
+  if (!(hi > lo)) { lo -= 1; hi += 1; }
+  const w = (hi - lo) / nBins;
+  const counts = new Array(nBins).fill(0);
+  for (const v of values) {
+    let k = Math.floor((v - lo) / w);
+    if (k < 0) k = 0; if (k >= nBins) k = nBins - 1;
+    counts[k]++;
+  }
+  return counts.map((c, k) => ({ x: lo + (k + 0.5) * w, y: c / values.length }));
+}
+
+function renderCohortSection(model, rlvModel, st) {
+  const nsims = Math.max(200, Math.min(1000, Math.round(1e6 / st.N)));
+  const sim = M.cohortSim({ model, rlvModel, N: st.N, nsims, seed: 42 });
+  document.getElementById('cohort-blurb').textContent =
+    `Simulated total value of the whole cohort (${nsims.toLocaleString()} simulated worlds, fixed seed). ` +
+    `Blue: total PAV of all ${st.N.toLocaleString()} initially acquired customers (PAV = CLV + CAC — acquisition cost not yet subtracted). ` +
+    `Green: total residual value of the ${sim.survivors.toLocaleString()} customers (${fmtPct(rlvModel.sPast)} of the cohort) still active after ${st.n} renewals. ` +
+    `A much smaller group of survivors can hold a comparable share of remaining value — survivors are the low-churn customers.`;
+
+  const tiles = document.getElementById('tiles-cohort');
+  tiles.innerHTML = '';
+  tile(tiles, fmt$(sim.initMean), `mean total PAV, initial cohort (±${fmt$(sim.initSd)} sd)`);
+  tile(tiles, fmt$(sim.residMean), `mean total RLV, survivors (±${fmt$(sim.residSd)} sd)`);
+  tile(tiles, sim.survivors.toLocaleString(), `survivors after ${st.n} renewals of ${st.N.toLocaleString()}`);
+
+  const host = document.getElementById('sec-cohort');
+  host.innerHTML = '';
+  const all = sim.initTotals.concat(sim.residTotals);
+  const lo = Math.min(...all), hi = Math.max(...all);
+  const hInit = histogram(sim.initTotals, 25, lo, hi);
+  const hRes = histogram(sim.residTotals, 25, lo, hi);
+  const yMax = Math.max(...hInit.map(p => p.y), ...hRes.map(p => p.y)) * 1.15;
+  const c = makeChart({ parent: host, width: 860, height: 360,
+    xDomain: [lo, hi], yDomain: [0, yMax],
+    xLabel: 'Total cohort value ($)', yLabel: 'Share of simulated worlds' });
+  const bw = c.iw / 25 / 2.4;
+  c.axes({ xFormat: fmt$, yFormat: fmtPct })
+    .bars(hInit.map(p => ({ x: p.x - (hi - lo) / 25 / 5, y: p.y })), { fill: COLORS.blueLight, barWidth: bw, opacity: .85 })
+    .bars(hRes.map(p => ({ x: p.x + (hi - lo) / 25 / 5, y: p.y })), { fill: COLORS.greenLight, barWidth: bw, opacity: .85 })
+    .vline(sim.initMean, { stroke: COLORS.blue, label: 'mean initial PAV' })
+    .vline(sim.residMean, { stroke: COLORS.green, label: 'mean survivors RLV' })
+    .legend([{ label: `Initial cohort total PAV (${st.N.toLocaleString()} customers)`, color: COLORS.blueLight },
+             { label: `Survivors' total RLV (${sim.survivors.toLocaleString()} customers)`, color: COLORS.greenLight }])
+    .hover(dx => {
+      const w = (hi - lo) / 25;
+      const k = Math.min(24, Math.max(0, Math.floor((dx - lo) / w)));
+      const inB = hInit[k].y, resB = hRes[k].y;
+      return `bin ${fmt$(lo + k * w)}–${fmt$(lo + (k + 1) * w)}\ninitial PAV: ${fmtPct(inB)}\nsurvivors RLV: ${fmtPct(resB)}`;
+    });
+}
+
+function renderDataTable(model) {
+  const host = document.getElementById('data-table');
+  host.innerHTML = '';
+  const rows = [];
+  const H = model.params.horizon;
+  for (let p = 0; p <= 24; p++) rows.push(p);
+  const head = ['period t', 'S(t)', 'r(t)', 'P(T=t+1)', 'discount (1+d)⁻ᵗ',
+    'disc. CF', 'PAV(t+1)', 'CLV(t+1)', 'E(CtV)'];
+  const tb = el(null, 'table', { class: 'data' }, host);
+  const tr0 = el(null, 'tr', {}, tb);
+  head.forEach(h => el(null, 'th', {}, tr0).textContent = h);
+  const addRow = (p, label) => {
+    const tr = el(null, 'tr', {}, tb);
+    const cells = [label ?? String(p),
+      model.st[p].toFixed(4),
+      p >= 1 ? (model.st[p] / model.st[p - 1]).toFixed(4) : '—',
+      model.ptConv[p].toFixed(4),
+      model.discT[p].toFixed(4),
+      model.discCf[p].toFixed(2),
+      model.pav[p].toFixed(2),
+      model.clv[p].toFixed(2),
+      model.ectv[p].toFixed(2)];
+    cells.forEach(c => el(null, 'td', {}, tr).textContent = c);
+  };
+  rows.forEach(p => addRow(p));
+  addRow(H, `${H} (horizon, terminal mass ${model.ptConv[H].toFixed(4)})`);
+}
+
+function renderAll() {
+  selectionPainters = []; // renderers re-register their selection overlays below
+  const model = M.buildModel(state);
+  const rlvModel = M.buildRLV({ ...state, pastT: state.n });
+  renderBetaSection(state);
+  renderSurvivalSection(model);
+  renderPosteriorSection(state);
+  renderValueSection(model); renderClvDistSection(model);
+  renderRlvDistSection(model, rlvModel);
+  renderCohortSection(model, rlvModel, state);
+  renderDataTable(model);
+  paintSelection(); // selection survives slider changes
+}
+renderAll();
+</script>
+</body>
+</html>

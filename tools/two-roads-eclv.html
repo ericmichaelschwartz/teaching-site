@@ -1,0 +1,1169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Two roads to E(CLV) | MKT 626</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --blue: #00274C;
+      --blue-mid: #2F65A7;
+      --blue-tint: #E7EDF4;
+      --maize: #FFCB05;
+      --maize-dark: #D9A900;
+      --maize-tint: #FFF6D6;
+      --red: #9A3324;
+      --red-soft: #F6E3DF;
+      --green: #2E7D4F;
+      --green-tint: #E3F2E8;
+      --magenta: #C2188B;
+      --ink: #1F2A37;
+      --muted: #5B6B7C;
+      --paper: #FAFBFC;
+      --line: #D9E0E7;
+      --shadow: 0 14px 40px rgba(0, 39, 76, .08);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.5; }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    :focus-visible { outline: 3px solid rgba(47, 101, 167, .45); outline-offset: 3px; }
+    .shell { width: min(1380px, calc(100% - 30px)); margin: 0 auto; padding: 26px 0 64px; }
+
+    .hero { display: grid; grid-template-columns: 1.45fr .75fr; gap: 28px; align-items: end; margin-bottom: 18px; padding-bottom: 20px; border-bottom: 4px solid var(--maize); }
+    .eyebrow { margin: 0 0 8px; color: var(--blue-mid); font-size: .74rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+    h1 { margin: 0; color: var(--blue); font-size: clamp(2rem, 4.3vw, 3.5rem); font-weight: 800; line-height: 1.06; letter-spacing: -.035em; }
+    .lede { max-width: 780px; margin: 16px 0 0; color: var(--muted); font-size: 1.02rem; }
+    .hero-aside { border-left: 3px solid var(--maize); padding: 4px 0 4px 18px; color: var(--muted); font-size: .86rem; }
+    .hero-aside strong { display: block; margin-bottom: 4px; color: var(--blue); }
+    .card { border: 1px solid rgba(0, 39, 76, .12); border-radius: var(--radius); background: #fff; box-shadow: var(--shadow); }
+
+    .control-bar { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; align-items: end; padding: 16px 18px; }
+    .ctl label { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 6px; color: var(--muted); font-size: .72rem; font-weight: 800; }
+    output { color: var(--ink); font-variant-numeric: tabular-nums; }
+    input[type="range"] { width: 100%; accent-color: var(--blue-mid); }
+    input[type="number"] { width: 100%; border: 1px solid var(--line); border-radius: 9px; background: #fff; padding: 7px 9px; color: var(--ink); font-variant-numeric: tabular-nums; }
+    .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--blue-tint); padding: 3px; }
+    .seg button { border: 0; border-radius: 999px; background: transparent; padding: 6px 12px; color: var(--blue); font-size: .74rem; font-weight: 800; cursor: pointer; white-space: nowrap; }
+    .seg button[aria-pressed="true"] { background: var(--blue); color: #fff; }
+    .toggles { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: flex-end; border-top: 1px solid var(--line); padding-top: 12px; }
+    .ctl.is-off { opacity: .45; }
+    .ctl.is-off input { cursor: not-allowed; }
+    .reset { border: 0; border-bottom: 1px solid currentColor; background: transparent; padding: 2px; color: var(--blue-mid); font-size: .72rem; font-weight: 800; cursor: pointer; }
+    [hidden] { display: none !important; }
+
+    .results { position: sticky; top: 0; z-index: 20; display: grid; grid-template-columns: 1.5fr 1fr auto 1fr 1.2fr; gap: 0; margin: 14px 0 16px; overflow: hidden; }
+    .res { border-right: 1px solid var(--line); padding: 12px 16px; min-width: 0; }
+    .res:last-child { border-right: 0; }
+    .res small { display: block; color: var(--muted); font-size: .66rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    .res b { display: block; color: var(--blue); font-size: 1.45rem; font-weight: 750; letter-spacing: -.02em; line-height: 1.2; font-variant-numeric: tabular-nums; }
+    .res b.locked { color: #9AA6AF; font-size: .82rem; font-weight: 700; padding-top: 6px; }
+    .res span { display: block; color: var(--muted); font-size: .7rem; }
+    .res.road1 b { color: var(--blue-mid); }
+    .res.road2 b { color: var(--green); }
+    .res.eq { display: grid; place-items: center; padding: 12px 10px; }
+    .eqdot, .res .eqdot { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 50%; background: var(--maize); color: var(--blue); font-weight: 900; font-size: 1.1rem; }
+    .horizon-row { display: grid; grid-template-columns: 1fr 76px; gap: 10px; align-items: center; margin-top: 4px; }
+
+    .stepper { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 14px; }
+    .step { min-height: 66px; border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 9px 11px; text-align: left; cursor: pointer; }
+    .step small { display: block; color: var(--muted); font-size: .62rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .step span { display: block; margin-top: 3px; font-size: .78rem; font-weight: 700; line-height: 1.3; }
+    .step[aria-selected="true"] { border-color: var(--blue); background: var(--blue); color: #fff; box-shadow: 0 8px 22px rgba(0, 39, 76, .25); }
+    .step[aria-selected="true"] small { color: var(--maize); }
+    .walk-nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: -4px 0 14px; color: var(--muted); font-size: .74rem; }
+    .walk-nav button { border: 1px solid var(--line); border-radius: 999px; background: #fff; padding: 7px 14px; color: var(--blue); font-weight: 800; cursor: pointer; }
+    .walk-nav button:disabled { opacity: .35; cursor: default; }
+
+    .question { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; margin-bottom: 14px; border: 1px solid #EAD98F; border-radius: 14px; background: var(--maize-tint); padding: 13px 15px; }
+    .qmark { display: grid; width: 33px; height: 33px; place-items: center; border-radius: 50%; background: var(--maize); color: var(--blue); font-weight: 900; }
+    .question p { margin: 0; font-size: .9rem; }
+    .question button { border: 0; border-bottom: 1px solid currentColor; background: transparent; padding: 2px; color: #6E5600; font-size: .74rem; font-weight: 800; cursor: pointer; }
+    .answer { grid-column: 2 / -1; border-top: 1px solid #EAD98F; padding-top: 9px; color: #5B4A10; font-size: .84rem !important; }
+
+    .panel { margin-bottom: 16px; padding: 18px 20px 20px; }
+    .panel-head { display: flex; justify-content: space-between; gap: 18px; align-items: start; margin-bottom: 12px; }
+    .panel-head h2 { margin: 0; color: var(--blue); font-size: 1.15rem; }
+    .panel-head .tag { flex: none; border-radius: 999px; padding: 3px 11px; font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    .tag.r1 { background: var(--blue-tint); color: var(--blue-mid); }
+    .tag.r2 { background: var(--green-tint); color: var(--green); }
+    .tag.base { background: var(--maize-tint); color: #6E5600; }
+    .caption { margin: 4px 0 0; max-width: 900px; color: var(--muted); font-size: .9rem; }
+    .caption b { color: var(--ink); }
+    .formula { margin: 10px 0 0; border-radius: 10px; background: var(--blue-tint); padding: 9px 12px; color: var(--blue); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .82rem; overflow-x: auto; white-space: nowrap; }
+    .formula.r2 { background: var(--green-tint); color: var(--green); }
+    .two-col { display: grid; grid-template-columns: minmax(330px, .8fr) minmax(480px, 1.2fr); gap: 16px; align-items: start; }
+    .scroll { max-height: 440px; overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: .74rem; font-variant-numeric: tabular-nums; }
+    th { position: sticky; top: 0; z-index: 2; background: var(--blue-tint); color: var(--blue); font-size: .66rem; text-align: right; }
+    th, td { border-bottom: 1px solid #E9EDF1; padding: 7px 9px; text-align: right; white-space: nowrap; }
+    th:first-child, td:first-child { text-align: left; }
+    tr.spike td { background: #FBE7F3; border-top: 2px solid var(--magenta); font-weight: 700; }
+    tr.total td { position: sticky; bottom: 0; background: var(--blue-tint); color: var(--blue); font-weight: 800; }
+    tr.hl td { background: var(--maize-tint) !important; }
+    tr.gap td { background: #F4F6F8; color: var(--muted); text-align: center !important; font-style: italic; }
+    tr.inspike td { color: #B0357F; background: #FDF3F9; }
+    tbody tr { cursor: default; }
+
+    svg { display: block; width: 100%; height: auto; font-family: inherit; }
+    .axis { stroke: #A7B3BC; stroke-width: 1; }
+    .grid { stroke: #E9EDF1; stroke-width: 1; }
+    .tick { fill: #718190; font-size: 10.5px; }
+    .chart-label { fill: var(--blue); font-size: 11px; font-weight: 750; }
+    .hl-mark { stroke: var(--maize-dark) !important; }
+    rect.hl-mark { stroke-width: 3px; fill: var(--maize) !important; fill-opacity: .95 !important; stroke-opacity: 1 !important; }
+    svg [data-l] { cursor: pointer; }
+    .r1-top { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 16px; align-items: start; margin-bottom: 14px; }
+    @media (max-width: 1100px) { .r1-top { grid-template-columns: 1fr; } }
+    #r1-body tr[data-l] { cursor: pointer; }
+    .calc { padding: 14px 16px; box-shadow: none; }
+    .calc-head { display: flex; gap: 10px; align-items: baseline; margin-bottom: 8px; }
+    .calc-head b { color: var(--blue); font-size: 1rem; }
+    .calc-head span { color: var(--muted); font-size: .78rem; }
+    table.tri { width: auto; border-collapse: separate; border-spacing: 2px; font-size: .72rem; font-variant-numeric: tabular-nums; }
+    table.tri th { position: static; background: none; color: var(--muted); font-size: .64rem; text-align: center; padding: 0 3px; white-space: nowrap; }
+    table.tri td { text-align: center; padding: 5px 4px; border: 0; border-radius: 5px; white-space: nowrap; }
+    table.tri td.on { background: #CFE0F4; color: var(--blue); font-weight: 800; }
+    table.tri td.off { background: #F1F3F5; color: #AEB8C2; }
+    table.tri td.cac { background: var(--red-soft); color: var(--red); font-weight: 800; }
+    table.tri td.gap { background: none; color: var(--muted); font-weight: 800; }
+    table.tri td.lab { text-align: left; color: var(--ink); font-weight: 800; }
+    table.tri td.pl { color: var(--blue-mid); font-weight: 900; font-size: .8rem; }
+    table.tri td.val { text-align: right; color: var(--blue); font-weight: 800; }
+    table.tri tr.vgap td { background: none; color: var(--muted); font-weight: 900; font-size: 1rem; padding: 0; line-height: 1; }
+    table.tri tr.vgap td.lab { font-size: .7rem; font-weight: 600; font-style: italic; }
+    table.tri tr.spk td.on { background: #F7DCEC; color: var(--magenta); }
+    table.tri tr.spk td.lab, table.tri tr.spk td.pl, table.tri tr.spk td.val { color: var(--magenta); }
+    table.tri tr.tot td { border-top: 2px solid var(--blue); border-radius: 0; font-weight: 900; color: var(--blue); }
+    table.tri tr.hl td.lab { background: var(--maize-tint); }
+    #tri tr[data-l] { cursor: pointer; }
+    #tri tr.hl td:not(.gap):not(.lab) { background: var(--maize) !important; color: var(--blue) !important; box-shadow: inset 0 2px var(--maize-dark), inset 0 -2px var(--maize-dark); }
+    .r1-notes { margin-top: 12px; max-width: 1000px; color: var(--ink); font-size: .92rem; }
+    .r1-notes .pk { color: var(--magenta); font-weight: 800; }
+    .r2-notes .gk { color: var(--green); font-weight: 800; }
+    table.tri2 tr.foot td { background: #E4F3E9; color: var(--green); font-weight: 800; }
+    table.tri2 tr.foot td.lab { background: none; }
+    table.tri2 tr.foot2 td { background: #BCE3C8; color: #1E5A37; font-weight: 900; }
+    table.tri2 tr.foot2 td.lab { background: none; color: var(--green); }
+    table.tri2 td.on { background: #D6EEDD; color: #1E5A37; }
+    table.tri2 [data-t] { cursor: pointer; }
+    table.tri2 td.colsel, table.tri2 th.colsel { background: var(--maize) !important; color: var(--blue) !important; box-shadow: inset 2px 0 var(--maize-dark), inset -2px 0 var(--maize-dark); }
+    table.tri2 th.colsel { border-radius: 5px 5px 0 0; }
+    #r2-chart [data-t] { cursor: pointer; }
+    table.tri2 tr.spk td.on { background: #D6EEDD; color: #1E5A37; }
+    table.tri2 tr.spk td.lab, table.tri2 tr.spk td.pl { color: var(--green); }
+    .chart-title { margin: 4px 0 2px; color: var(--blue); font-size: .84rem; font-weight: 800; }
+
+    /* Timing strip */
+    .lpick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0; color: var(--muted); font-size: .76rem; font-weight: 800; }
+    .lpick button { min-width: 38px; border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 5px 8px; color: var(--blue); font-weight: 800; cursor: pointer; }
+    .lpick button[aria-pressed="true"] { border-color: var(--blue); background: var(--blue); color: #fff; }
+
+    /* The 0/1 matrix */
+    .matrix-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0; }
+    .mbtn { border: 2px solid var(--blue-mid); border-radius: 12px; background: #fff; padding: 9px 14px; color: var(--blue-mid); font-weight: 800; cursor: pointer; text-align: left; }
+    .mbtn small { display: block; font-size: .66rem; font-weight: 700; opacity: .8; }
+    .mbtn.r2 { border-color: var(--green); color: var(--green); }
+    .mbtn[aria-pressed="true"] { background: var(--blue-mid); color: #fff; }
+    .mbtn.r2[aria-pressed="true"] { background: var(--green); color: #fff; }
+    .mbtn.plain { border-color: var(--line); color: var(--muted); }
+    .matrix-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
+    table.matrix { width: auto; min-width: 100%; font-size: .78rem; }
+    table.matrix th, table.matrix td { padding: 7px 8px; text-align: center; border: 1px solid #EEF1F4; }
+    table.matrix thead th { background: #fff; color: var(--muted); font-size: .7rem; position: static; }
+    table.matrix th.rowhead { text-align: left; background: #fff; color: var(--ink); font-size: .74rem; min-width: 150px; }
+    .rowhead .w { display: block; height: 5px; margin-top: 4px; border-radius: 3px; background: var(--blue-mid); }
+    .rowhead small { color: var(--muted); font-weight: 600; }
+    table.matrix th.pcol, table.matrix td.pcell { background: #F4F7FB; color: var(--blue-mid); border-right: 2px solid var(--blue-mid); }
+    table.matrix td.pcell { font-size: 1.05rem; font-weight: 850; font-variant-numeric: tabular-nums; }
+    tr.spike-row td.pcell { background: #FBE7F3; color: var(--magenta); }
+    td.on { background: #EEF3FA; color: var(--blue); font-weight: 700; }
+    td.off { background: #fff; color: #C2CAD2; }
+    td.cac { background: var(--red-soft); color: var(--red); font-weight: 700; }
+    tr.spike-row th.rowhead { background: #FBE7F3; }
+    tr.spike-row td.on { background: #F7DCEC; color: var(--magenta); }
+    td.rsum, td.rw, th.rsum { background: #F4F7FB; color: var(--blue-mid); font-weight: 800; }
+    tr.cfoot th, tr.cfoot td { background: #F1F8F3; color: var(--green); font-weight: 800; }
+    .sweep td.on, .sweep td.cac { transition: background-color .35s ease, box-shadow .35s ease; transition-delay: calc(var(--i) * 70ms); }
+    /* Summing mode: each ROW (or each COLUMN) reads as one continuous band, not boxed cells.
+       Cell borders vanish inside a band; thick white gaps separate the bands. */
+    .sum-rows tbody td.on, .sum-rows tbody td.off, .sum-rows tbody td.cac { border-left-color: transparent; border-right-color: transparent; border-top: 6px solid #fff; border-bottom: 6px solid #fff; }
+    .sum-rows tbody td.on, .sum-rows tbody td.cac { background: #BFD5EF; color: var(--blue); }
+    .sum-rows tbody td.off { background: #E3ECF7; color: #9DB3CC; }
+    .sum-rows tbody th.rowhead { box-shadow: inset 6px 0 var(--blue-mid); }
+    .sum-cols tbody td.on, .sum-cols tbody td.off, .sum-cols tbody td.cac,
+    .sum-cols tfoot td[data-t] { border-top-color: transparent; border-bottom-color: transparent; border-left: 6px solid #fff; border-right: 6px solid #fff; }
+    .sum-cols tbody td.on, .sum-cols tbody td.cac { background: #BCE3C8; color: #1E5A37; }
+    .sum-cols tbody td.off { background: #E4F3E9; color: #9CC2AA; }
+    .sum-cols thead th[data-t] { box-shadow: inset 0 -6px var(--green); color: var(--green); }
+    .sum-rows tbody tr.spike-row td.on { background: #F2C6E0; color: var(--magenta); }
+    .sum-cols tbody tr.spike-row td.on { background: #BCE3C8; color: #1E5A37; }
+    .reveal { opacity: 0; transition: opacity .4s ease; }
+    .sum-rows .reveal.for-rows, .sum-cols .reveal.for-cols { opacity: 1; transition-delay: calc(var(--i) * 70ms + 450ms); }
+    table.matrix tr.hl th.rowhead, table.matrix tr.hl td { outline: 2px solid var(--maize-dark); outline-offset: -2px; }
+    table.matrix td.colhl, table.matrix th.colhl { outline: 2px solid var(--maize-dark); outline-offset: -2px; }
+    .matrix-totals { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: center; margin-top: 14px; }
+    .mt { border-radius: 12px; padding: 12px 14px; }
+    .mt.r1 { background: var(--blue-tint); }
+    .mt.r2 { background: var(--green-tint); }
+    .mt small { display: block; color: var(--muted); font-size: .68rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+    .mt b { display: block; font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+    .mt.r1 b { color: var(--blue-mid); }
+    .mt.r2 b { color: var(--green); }
+    .note { margin: 10px 0 0; color: var(--muted); font-size: .76rem; }
+
+    .match { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; margin-top: 14px; border: 1px dashed var(--blue-mid); border-radius: 12px; padding: 14px; }
+    .match h3 { grid-column: 1 / -1; margin: 0; color: var(--blue); font-size: .92rem; }
+    .match button { border: 0; border-radius: 10px; background: var(--blue); padding: 9px 14px; color: #fff; font-weight: 800; cursor: pointer; }
+    .match-out { grid-column: 1 / -1; margin: 0; font-size: .86rem; }
+    .match-out.ok { color: var(--green); font-weight: 700; }
+    .match-out.off { color: var(--red); font-weight: 700; }
+
+    .method { margin-top: 14px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+    .method summary { padding: 13px 16px; color: var(--blue); font-size: .79rem; font-weight: 800; cursor: pointer; }
+    .method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 0 16px 16px; color: var(--muted); font-size: .76rem; }
+    .method-grid p { margin: 0 0 8px; }
+    .method code { border-radius: 4px; background: var(--blue-tint); padding: 1px 4px; color: var(--blue); }
+    footer { margin-top: 20px; color: var(--muted); font-size: .7rem; text-align: center; }
+    footer a { color: var(--blue-mid); }
+
+    @media (max-width: 1100px) {
+      .control-bar { grid-template-columns: repeat(3, 1fr); }
+      .toggles { grid-column: 1 / -1; justify-content: flex-start; }
+      .two-col { grid-template-columns: 1fr; }
+      .results { grid-template-columns: 1fr 1fr; position: static; }
+      .res.eq { display: none; }
+      .res.horizon { grid-column: 1 / -1; border-right: 0; border-bottom: 1px solid var(--line); }
+    }
+    @media (max-width: 780px) {
+      .hero { grid-template-columns: 1fr; }
+      .stepper { grid-template-columns: 1fr 1fr; }
+      .control-bar { grid-template-columns: 1fr 1fr; }
+      .matrix-totals, .match { grid-template-columns: 1fr; }
+      .method-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">MKT 626 · Customer heterogeneity · E(CLV) two ways</p>
+        <h1>Two roads to E(CLV)</h1>
+        <p class="lede">Start from one survivor curve, S(t). Road 1 weights each lifetime value by how many customers have that lifetime. Road 2 weights the cash so far by how many customers survive. Same inputs, same answer, and the 0/1 matrix shows why: one road adds up rows, the other adds up columns.</p>
+      </div>
+      <div class="hero-aside"><strong>Two ways to think about E(CLV)</strong>Road 1: sum over time, then customers. Road 2: sum over customers, then time. Road 1 runs lifetimes out to n* = 1000 months, where CLV has reached its maximum to the cent. Run Road 2 that long and both land on the same number.</div>
+    </header>
+
+    <section class="control-bar card" aria-label="Model inputs">
+      <div class="ctl" id="cac-ctl"><label for="cac"><span id="cac-label">CAC</span><output data-out="cac"></output></label><input id="cac" data-key="cac" type="range" min="0" max="400" step="1" value="100"></div>
+      <div class="ctl"><label for="m"><span>Margin per month, m</span></label><input id="m" data-key="m" type="number" min="1" max="500" step="0.01" value="26.8164"></div>
+      <div class="ctl"><label for="d"><span>Monthly discount rate, d</span></label><input id="d" data-key="d" type="number" min="0.001" max="0.2" step="0.0001" value="0.0153"></div>
+      <div class="ctl bg-only"><label for="a"><span>BG a</span></label><input id="a" data-key="a" type="number" min="0.01" max="50" step="0.0001" value="0.6746182701085135"></div>
+      <div class="ctl bg-only"><label for="b"><span>BG b</span></label><input id="b" data-key="b" type="number" min="0.01" max="50" step="0.0001" value="1.2336012934958855"></div>
+      <div class="ctl r-only" hidden><label for="r"><span>Retention rate, r</span></label><input id="r" data-key="r" type="number" min="0.01" max="0.999" step="0.001" value="0.815"></div>
+      <div class="ctl"><label><span>Churn model</span></label><div class="seg" role="group" aria-label="Churn model"><button type="button" data-churn="bg" aria-pressed="true">BG (a, b)</button><button type="button" data-churn="constant" aria-pressed="false">Constant r</button></div></div>
+      <div class="toggles">
+        <div class="seg" role="group" aria-label="Measure"><button type="button" data-measure="clv" aria-pressed="true">E(CLV)</button><button type="button" data-measure="pav" aria-pressed="false">E(PAV)</button></div>
+        <div class="seg" role="group" aria-label="Mode"><button type="button" data-mode="walk" aria-pressed="true">Walkthrough</button><button type="button" data-mode="explore" aria-pressed="false">Explore</button></div>
+        <button class="reset" id="reset" type="button">Reset to Class 7 workbook</button>
+      </div>
+    </section>
+
+    <section class="results card" aria-label="Results" aria-live="polite">
+      <div class="res horizon">
+        <small>Road 2 horizon: n months <button type="button" id="n-reset" class="reset" style="font-size:.64rem">set n = n*</button></small>
+        <div class="horizon-row"><input id="n-range" type="range" min="1" max="1000" step="1" value="1000" aria-label="Horizon n"><input id="n-num" type="number" min="1" max="1000" step="1" value="1000" aria-label="Horizon n, typed"></div>
+      </div>
+      <div class="res road1"><small>Road 1: weights each lifetime value by how many have that lifetime</small><b id="res-r1"></b><span id="res-r1-note"></span></div>
+      <div class="res eq"><span class="eqdot" id="res-eq" title="Road 1 equals Road 2">=</span></div>
+      <div class="res road2"><small>Road 2: weights cash so far by how many survive</small><b id="res-r2"></b><span id="res-r2-note"></span></div>
+      <div class="res"><small id="res-true-label">True E(CLV), n to infinity</small><b id="res-true"></b><span id="res-gap"></span></div>
+    </section>
+
+    <nav class="stepper" role="tablist" aria-label="Walkthrough steps" id="stepper">
+      <button class="step" type="button" role="tab" data-step="1"><small>Step 1</small><span>Timing of cash and churn</span></button>
+      <button class="step" type="button" role="tab" data-step="2"><small>Step 2</small><span>How many people have each lifetime?</span></button>
+      <button class="step" type="button" role="tab" data-step="3"><small>Step 3</small><span>Road 1: weight each lifetime value by how many have it</span></button>
+      <button class="step" type="button" role="tab" data-step="4"><small>Step 4</small><span>Road 2: weight cash so far by how many survive</span></button>
+      <button class="step" type="button" role="tab" data-step="5"><small>Step 5</small><span>Why the roads are equal</span></button>
+      <button class="step" type="button" role="tab" data-step="6"><small>Step 6</small><span>Where they meet: pick n</span></button>
+    </nav>
+    <div class="walk-nav" id="walk-nav"><button type="button" id="prev">Back</button><span>Arrow keys also step through</span><button type="button" id="next">Next</button></div>
+
+    <section class="question" id="question" aria-live="polite">
+      <span class="qmark" aria-hidden="true">?</span>
+      <p id="question-text"></p>
+      <button id="answer-toggle" type="button" aria-expanded="false">Check your thinking</button>
+      <p class="answer" id="answer-text" hidden></p>
+    </section>
+
+    <!-- Step 1: timing -->
+    <section class="panel card" data-panel="1" aria-labelledby="p1-title">
+      <div class="panel-head"><div><h2 id="p1-title">Timing of cash flows and churn</h2>
+        <p class="caption">Cash flow arrives at the <b>start</b> of the month. The churn decision happens at the <b>end</b> of the month. A customer who churns at the end of month t has lifetime <b>L = t</b> and pays t times, at t = 0, 1, ..., t-1. Every payment is the same cash amount, <b>m</b>, but a dollar later is worth less today, so month t's payment is worth <b>m / (1+d)<sup>t</sup></b> today. CAC is paid once, at t = 0.</p></div><span class="tag base">The setup</span></div>
+      <div class="lpick" id="lpick"><span>Show a customer with lifetime L =</span></div>
+      <svg id="timing-chart" viewBox="0 0 1000 402" role="img" aria-label="Timeline of cash flows and churn opportunities"></svg>
+    </section>
+
+    <!-- Step 2: S(t) -->
+    <section class="panel card" data-panel="2" aria-labelledby="p2-title">
+      <div class="panel-head"><div><h2 id="p2-title">How many people have each lifetime?</h2>
+        <p class="caption"><b>S(t)</b> is the share of the acquired cohort still alive through t, so it is still paying at the start of month t. S(0) = 1: everyone makes the first payment. Both roads are built from this one curve.</p></div><span class="tag base">Both roads start here</span></div>
+      <div class="two-col">
+        <div class="scroll"><table><thead><tr><th>t</th><th>S(t)</th><th>r(t) = S(t) / S(t-1)</th><th>P(L = t) = S(t-1) - S(t)</th></tr></thead><tbody id="s-body"></tbody></table></div>
+        <div><p class="chart-title">Survivor curve: % still here, S(t)</p><svg id="s-chart" viewBox="0 0 720 300" role="img" aria-label="Survivor curve"></svg>
+          <p class="chart-title">How many will have each lifetime? P(L = t) = S(t-1) - S(t)</p><svg id="lt-chart" viewBox="0 0 720 300" role="img" aria-label="How many will have each lifetime"></svg><p class="note" id="lt-note"></p></div>
+      </div>
+    </section>
+
+    <!-- Step 3: Road 1 -->
+    <section class="panel card" data-panel="3" aria-labelledby="p3-title">
+      <div class="panel-head"><div><h2 id="p3-title">Road 1: weight each lifetime value by how many have that lifetime</h2>
+        <p class="caption">Every possible lifetime has its own <span class="mname">CLV</span>. How many customers get it? <b>P(L = t) = S(t-1) - S(t)</b>. E(<span class="mname">CLV</span>) is the probability-weighted average. Everyone still alive at n* sits in the <b style="color:var(--magenta)">spike</b> at max(<span class="mname">CLV</span>), with height P(L &ge; n*) = S(n*-1). n* is set far enough out that every longer lifetime has the same <span class="mname">CLV</span> to the cent. <span id="ceiling-note"></span> <b>The bar heights are exactly the "how many have each lifetime" bars from step 2</b>; only the x-axis changes, from lifetime L to <span class="mname">CLV</span>(L).</p>
+        </div><span class="tag r1">Road 1</span></div>
+      <div class="r1-top">
+      <div class="scroll" style="max-height:520px"><table><thead><tr><th>Lifetime L</th><th>P(L)</th><th>month L adds<br>m / (1+d)^(L-1)</th><th id="r1-vhead">CLV(L)</th><th>P(L) x value</th></tr></thead><tbody id="r1-body"></tbody></table></div>
+        <div class="calc card">
+          <div class="calc-head"><b>Each row is one lifetime</b><span>the rows Road 1 adds up, weighted by P(L)</span></div>
+          <div style="overflow-x:auto"><table class="tri" id="tri"></table></div>
+          <p class="note" id="tri-note"></p>
+        </div>
+      </div>
+      <svg id="r1-chart" viewBox="0 0 1320 400" role="img" aria-label="Lifetime histogram beside the distribution of CLV"></svg>
+      <div class="r1-notes">
+        <p class="formula" id="nstar-same" style="white-space:normal"></p>
+        <p id="nstar-rule"></p>
+        <p class="formula" id="r1-formula" style="white-space:normal"></p>
+      </div>
+      </div>
+    </section>
+
+    <!-- Step 4: Road 2 -->
+    <section class="panel card" data-panel="4" aria-labelledby="p4-title">
+      <div class="panel-head"><div><h2 id="p4-title">Road 2: weight the cash so far by how many survive</h2>
+        <p class="caption">Road 2 never asks how long any one customer lasts. It goes <b>month by month</b>. Month t's cash, m / (1+d)<sup>t</sup>, only comes from customers who are still here, and on average that is a share <b>S(t)</b> of the cohort. So the expected cash in month t is <b>m S(t) / (1+d)<sup>t</sup></b>. Add those up, month after month, and the cash so far climbs to E(<span class="mname">CLV</span>). The survivor bars on the left are the same S(t) from step 2; on the right, each one is multiplied by that month's discounted cash.</p>
+        </div><span class="tag r2">Road 2</span></div>
+      <div class="r1-top">
+        <div class="scroll" style="max-height:520px"><table><thead><tr><th>Month t</th><th>S(t)</th><th>1 / (1+d)^t</th><th>m S(t) / (1+d)^t</th><th>Cash so far</th></tr></thead><tbody id="r2-body"></tbody></table></div>
+        <div class="calc card">
+          <div class="calc-head"><b>Each column is one month</b><span>Road 2 adds down each column first</span></div>
+          <div style="overflow-x:auto"><table class="tri tri2" id="tri2"></table></div>
+          <p class="note" id="tri2-note"></p>
+        </div>
+      </div>
+      <svg id="r2-chart" viewBox="0 0 1320 400" role="img" aria-label="Survivors by month beside expected cash by month"></svg>
+      <div class="r1-notes r2-notes">
+        <p class="formula r2" id="r2-formula" style="white-space:normal"></p>
+        <p id="r2-why"></p>
+      </div>
+    </section>
+
+    <!-- Step 5: the 0/1 matrix -->
+    <section class="panel card" data-panel="5" aria-labelledby="p5-title">
+      <div class="panel-head"><div><h2 id="p5-title">Why the roads are equal: one grid, two ways to add it up</h2>
+        <p class="caption">Each row is a type of customer: the ones who churn at the end of month 1, month 2, and so on, plus everyone still here at the horizon. Each column is a month. A cell is <b>m x 1</b> if that customer is still paying that month and <b>m x 0</b> if they are gone. <b style="color:var(--blue-mid)">Road 1 adds across each row first</b> (sum over time: that row's <span class="mname">CLV</span>), then averages the rows using P(L). <b style="color:var(--green)">Road 2 adds down each column first</b> (sum over customers: the shares still paying add up to % surviving, S(t)), then adds across months.</p></div><span class="tag base">The key</span></div>
+      <div class="matrix-actions">
+        <button type="button" class="mbtn" data-msum="rows" aria-pressed="false">Sum by rows first<small>Road 1: time, then customers</small></button>
+        <button type="button" class="mbtn r2" data-msum="cols" aria-pressed="false">Sum by columns first<small>Road 2: customers, then time</small></button>
+        <button type="button" class="mbtn plain" data-msum="none">Clear</button>
+        <span style="flex:1"></span>
+        <span style="color:var(--muted);font-size:.74rem;font-weight:800">Cells show</span>
+        <div class="seg" role="group" aria-label="Cells show"><button type="button" data-mcell="cash" aria-pressed="true">Discounted cash</button><button type="button" data-mcell="alive" aria-pressed="false">Survival: 1 here / 0 churned</button></div>
+      </div>
+      <div class="matrix-wrap"><table class="matrix sweep" id="matrix"></table></div>
+      <div class="matrix-totals">
+        <div class="mt r1"><small id="mt-r1-label">Rows first: sum of P(L) x row value</small><b id="mt-r1"></b></div>
+        <span class="eqdot">=</span>
+        <div class="mt r2"><small id="mt-r2-label">Columns first: sum of the bottom row</small><b id="mt-r2"></b></div>
+      </div>
+      <p class="note" id="matrix-note"></p>
+    </section>
+
+    <!-- Step 6: where they meet -->
+    <section class="panel card" data-panel="6" aria-labelledby="p6-title">
+      <div class="panel-head"><div><h2 id="p6-title">Where the roads meet: pick a horizon big enough</h2>
+        <p class="caption">Adding up to infinity is possible, but the formula is inconvenient. Road 1 already runs out to n* = 1000 months, where every longer lifetime is worth max(<span class="mname">CLV</span>) to the cent. Road 2 needs you to pick how many months to add: that is E(C<i>n</i>V), the value of the first n months. Drag n down in the bar above and watch Road 2 fall short; at <b>n = n*</b> the two roads agree. (Stop Road 1 at the same n and they would agree at every n: the solid and dashed lines are the same curve.)</p></div><span class="tag base">Can do in Excel</span></div>
+      <svg id="conv-chart" viewBox="0 0 1000 340" role="img" aria-label="Expected value as the horizon grows"></svg>
+      <div class="match" id="match">
+        <h3>Match your Excel</h3>
+        <div class="ctl"><label for="excel-val"><span id="excel-label">Your E(CLV) from Excel ($)</span></label><input id="excel-val" type="number" step="0.01" placeholder="e.g. 134.16"></div>
+        <div class="ctl"><label for="excel-n"><span>Months in your sheet (n)</span></label><input id="excel-n" type="number" min="1" max="5000" step="1" value="586"></div>
+        <button type="button" id="excel-check">Check</button>
+        <p class="match-out" id="match-out">Uses the same m, d, CAC and churn inputs as above. The Class 7 workbook's BG CLV tab runs 586 months (rows 9 to 594).</p>
+      </div>
+    </section>
+
+    <details class="method">
+      <summary>Formulas, conventions, and sources</summary>
+      <div class="method-grid">
+        <div>
+          <p><strong>Timing.</strong> Cash at the start of month t, churn at the end. The first payment is at t = 0, undiscounted, and everyone makes it: S(0) = 1. Lifetime L = t means payments at t = 0, ..., t-1.</p>
+          <p><strong>Road 1.</strong> E(CLV) = sum over L = 1..n-1 of P(L) CLV(L) + S(n-1) CLV(n), where CLV(L) = -CAC + sum over tau = 0..L-1 of m / (1+d)^tau and P(L) = S(L-1) - S(L). The last term is the spike: everyone alive at n* = n gets the value of an n-month lifetime.</p>
+        </div>
+        <div>
+          <p><strong>Road 2.</strong> E(CLV) = -CAC + sum over t = 0..n-1 of m S(t) / (1+d)^t. This is E(C<i>n</i>V); it approaches E(CLV) as n grows.</p>
+          <p><strong>Churn.</strong> BG: S(t) = S(t-1) (b + t - 1) / (a + b + t - 1). Constant: S(t) = r^t. Defaults are the Class 7 workbook (Blue Apron): a = 0.6746, b = 1.2336, m = $26.82 (AOF 1.8 x AOV $57.30 x 26% margin), d = 1.53% monthly, CAC = $100. The constant-r default 0.815 is 1 minus the one-segment geometric fit (0.185).</p>
+          <p><strong>Source.</strong> Built from Eric's handwritten notes, "CLV Distribution Plots and Two Approaches to E(CLV)".</p>
+        </div>
+      </div>
+    </details>
+    <footer>PAV is value before CAC; CLV = PAV - CAC. Companion to Tool 2, <a href="clv-table-to-distribution.html">From survivor table to CLV distribution</a>. Built for MKT 626 at Michigan Ross.</footer>
+  </main>
+
+  <script>
+  /*MATH-CORE-START*/
+  'use strict';
+  const TwoRoadsMath = (() => {
+    function normalize(raw) {
+      const clamp = (v, lo, hi, dflt) => { const x = Number(v); return Number.isFinite(x) ? Math.min(hi, Math.max(lo, x)) : dflt; };
+      return {
+        churn: raw.churn === 'constant' ? 'constant' : 'bg',
+        a: clamp(raw.a, 0.001, 1000, 0.6746182701085135),
+        b: clamp(raw.b, 0.001, 1000, 1.2336012934958855),
+        r: clamp(raw.r, 0, 0.9999, 0.815),
+        m: clamp(raw.m, 0, 1e7, 26.8164),
+        d: clamp(raw.d, 1e-6, 10, 0.0153),
+        cac: clamp(raw.cac, 0, 1e9, 100)
+      };
+    }
+    // S[0..N]; S(t) = share still alive (still paying) at the start of month t.
+    function survivalCurve(p, N) {
+      const S = [1];
+      for (let t = 1; t <= N; t++) {
+        S.push(p.churn === 'constant' ? S[t - 1] * p.r : S[t - 1] * (p.b + t - 1) / (p.a + p.b + t - 1));
+      }
+      return S;
+    }
+    const discount = (p, t) => 1 / Math.pow(1 + p.d, t);
+    // PAV of a customer with lifetime L: payments at tau = 0..L-1.
+    function pavAtLifetime(p, L) {
+      let s = 0;
+      for (let tau = 0; tau < L; tau++) s += p.m * discount(p, tau);
+      return s;
+    }
+    // First lifetime L where one more month adds less than `threshold`: m / (1+d)^L < threshold.
+    function nIncrement(raw, threshold = 0.005) {
+      const p = normalize(raw);
+      let L = 1;
+      while (L < 1e6 && p.m * discount(p, L) >= threshold) L++;
+      return L;
+    }
+    // First horizon n where cumulative PAV is within `threshold` of its limit m(1+d)/d,
+    // i.e. the remaining tail m(1+d)/d x (1+d)^-n is below it.
+    function nConverge(raw, threshold = 0.005) {
+      const p = normalize(raw), limit = p.m * (1 + p.d) / p.d;
+      let n = 1;
+      while (n < 1e6 && limit * discount(p, n) >= threshold) n++;
+      return n;
+    }
+    // Road 1's spike sits at n* = 1000 (Eric's choice), pushed further out only if the
+    // inputs make the cumulative total converge to the cent later than that.
+    const N_STAR = 1000;
+    function nStar(raw) { return Math.max(N_STAR, nConverge(raw, 0.005)); }
+    // Road 1: distribution of possible values, spike at n* = n.
+    function road1(raw, n) {
+      const p = normalize(raw); n = Math.max(1, Math.round(n));
+      const S = survivalCurve(p, n);
+      const rows = [];
+      let pav = 0, ePav = 0, dropSpikeClv = 0;
+      for (let L = 1; L <= n; L++) {
+        pav += p.m * discount(p, L - 1);
+        if (L < n) {
+          const prob = S[L - 1] - S[L];
+          rows.push({ L, prob, pav, clv: pav - p.cac });
+          ePav += prob * pav;
+          dropSpikeClv += prob * (pav - p.cac);
+        }
+      }
+      const spike = { L: n, prob: S[n - 1], pav, clv: pav - p.cac };
+      ePav += spike.prob * spike.pav;
+      return { rows, spike, ePav, eClv: ePav - p.cac, dropSpikeClv, S };
+    }
+    // Road 2: S(t) weights each month's discounted cash flow.
+    function road2(raw, n) {
+      const p = normalize(raw); n = Math.max(1, Math.round(n));
+      const S = survivalCurve(p, n);
+      const rows = [];
+      let cum = 0;
+      for (let t = 0; t < n; t++) {
+        const df = discount(p, t), cash = p.m * S[t] * df;
+        cum += cash;
+        rows.push({ t, S: S[t], df, cash, cumPav: cum, cumClv: cum - p.cac });
+      }
+      return { rows, ePav: cum, eClv: cum - p.cac, S };
+    }
+    // The 0/1 matrix at horizon N: rows are lifetimes 1..N-1 plus "still here at N".
+    function matrix(raw, N) {
+      const p = normalize(raw); N = Math.max(1, Math.round(N));
+      const S = survivalCurve(p, N);
+      const rows = [];
+      for (let L = 1; L <= N; L++) {
+        const isSpike = L === N;
+        const weight = isSpike ? S[N - 1] : S[L - 1] - S[L];
+        const cells = [];
+        let pav = 0;
+        for (let t = 0; t < N; t++) {
+          const on = isSpike || t < L;
+          const value = on ? p.m * discount(p, t) : 0;
+          cells.push({ t, on, value });
+          pav += value;
+        }
+        rows.push({ L, isSpike, weight, cells, pav, clv: pav - p.cac, weightedPav: weight * pav });
+      }
+      const cols = [];
+      for (let t = 0; t < N; t++) {
+        let share = 0, cash = 0;
+        for (const row of rows) if (row.cells[t].on) { share += row.weight; cash += row.weight * row.cells[t].value; }
+        cols.push({ t, share, cash });
+      }
+      const byRows = rows.reduce((s, r) => s + r.weightedPav, 0);
+      const byCols = cols.reduce((s, c) => s + c.cash, 0);
+      const weightSum = rows.reduce((s, r) => s + r.weight, 0);
+      return { N, rows, cols, byRowsPav: byRows, byColsPav: byCols, weightSum, cac: p.cac, S };
+    }
+    // Road 2 summed until the remaining terms are negligible.
+    function converged(raw) {
+      const p = normalize(raw);
+      if (p.churn === 'constant') {
+        const ePav = p.m * (1 + p.d) / (1 + p.d - p.r);
+        return { ePav, eClv: ePav - p.cac };
+      }
+      let S = 1, sum = 0;
+      for (let t = 0; t < 2000000; t++) {
+        if (t > 0) S *= (p.b + t - 1) / (p.a + p.b + t - 1);
+        const term = p.m * S * discount(p, t);
+        sum += term;
+        if (t > 100 && term < 1e-13 * Math.max(1, sum)) break;
+      }
+      return { ePav: sum, eClv: sum - p.cac };
+    }
+    // E(value) at every horizon 1..nMax (both roads agree), plus the "dropped the spike" mistake.
+    function horizonCurve(raw, nMax) {
+      const p = normalize(raw);
+      const S = survivalCurve(p, nMax);
+      const out = [];
+      let cum = 0, pav = 0, dropPav = 0, dropClv = 0;
+      for (let n = 1; n <= nMax; n++) {
+        cum += p.m * S[n - 1] * discount(p, n - 1);
+        if (n > 1) { const prob = S[n - 2] - S[n - 1]; dropPav += prob * pav; dropClv += prob * (pav - p.cac); }
+        pav += p.m * discount(p, n - 1);
+        out.push({ n, ePav: cum, eClv: cum - p.cac, dropSpikePav: dropPav, dropSpikeClv: dropClv });
+      }
+      return out;
+    }
+    return { normalize, survivalCurve, pavAtLifetime, nIncrement, nConverge, nStar, road1, road2, matrix, converged, horizonCurve };
+  })();
+  /*MATH-CORE-END*/
+
+  (() => {
+    const $ = s => document.querySelector(s);
+    const $$ = s => [...document.querySelectorAll(s)];
+    const money = (v, digits = 2) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: digits, maximumFractionDigits: digits }).format(v);
+    const num = (v, digits = 2) => v.toFixed(digits);
+    const pct = (v, digits = 1) => `${(v * 100).toFixed(digits)}%`;
+    const MUTED = '#5B6B7C', MAIZE_TINT = '#FFF6D6', BLUE = '#00274C', BLUE_MID = '#2F65A7', MAIZE = '#FFCB05', MAIZE_DARK = '#D9A900', RED = '#9A3324', GREEN = '#2E7D4F', MAGENTA = '#C2188B', GREY = '#9AA6AF';
+    const MATRIX_MAX = 12, TABLE_MAX = 120, LT_SHOW = 24;
+    // One color for every lifetime bar (only the max(CLV) spike differs). The first few lifetimes
+    // get percent labels and connectors to their twins in the CLV distribution.
+    const LT_COLORS = Array(6).fill('#2F65A7');
+    const ltColor = () => '#2F65A7';
+    function lifetimeBars(f, S, Lmax, extra) {
+      const w = Math.max(3, (f.x(1) - f.x(0)) * 0.72);
+      for (let L = 1; L <= Lmax; L++) {
+        const prob = S[L - 1] - S[L], y = f.y(prob);
+        f.parts.push(`<rect data-l="${L}" x="${f.x(L) - w / 2}" y="${y}" width="${w}" height="${Math.max(0, f.y(0) - y)}" fill="${ltColor(L)}" stroke="none"><title>L = ${L}: P(L) = ${pct(prob, 2)}</title></rect>`);
+      }
+      if (extra) {
+        const y = f.y(extra.prob);
+        f.parts.push(`<rect data-l="${extra.L}" x="${f.x(extra.x) - w / 2}" y="${y}" width="${w}" height="${Math.max(0, f.y(0) - y)}" fill="${MAGENTA}"><title>L &ge; ${extra.L}: P = ${pct(extra.prob, 2)}</title></rect>`);
+      }
+      // The first few bar heights are written on the y-axis itself. Close values are nudged apart
+      // (at least GAP px), and a short leader line points from each label to its exact height.
+      const GAP = 14, n = Math.min(LT_COLORS.length, Lmax), yBottom = f.y(0) - 4;
+      const items = [];
+      for (let L = 1; L <= n; L++) { const prob = S[L - 1] - S[L]; items.push({ L, prob, y: f.y(prob), ly: f.y(prob) }); }
+      if (extra) items.push({ L: extra.L, prob: extra.prob, y: f.y(extra.prob), ly: f.y(extra.prob), color: MAGENTA });
+      for (let k = 1; k < items.length; k++) items[k].ly = Math.max(items[k].ly, items[k - 1].ly + GAP);
+      if (items.length && items[items.length - 1].ly > yBottom) {
+        items[items.length - 1].ly = yBottom;
+        for (let k = items.length - 2; k >= 0; k--) items[k].ly = Math.min(items[k].ly, items[k + 1].ly - GAP);
+      }
+      const xLab = f.left - 22;
+      for (const it of items) {
+        const c = it.color || ltColor(it.L);
+        f.parts.push(`<line x1="${xLab + 3}" y1="${it.ly - 4}" x2="${f.left}" y2="${it.y}" stroke="${c}" stroke-width="1.2"/><circle cx="${f.left}" cy="${it.y}" r="2.5" fill="${c}"/>`);
+        f.parts.push(`<text x="${xLab}" y="${it.ly}" text-anchor="end" font-size="11" font-weight="800" fill="${c}">${pct(it.prob, 1)}</text>`);
+      }
+    }
+    const defaults = { cac: 100, m: 26.8164, d: 0.0153, a: 0.6746182701085135, b: 1.2336012934958855, r: 0.815 };
+
+    const hash = location.hash;
+    const state = {
+      mode: /explore/.test(hash) ? 'explore' : 'walk',
+      step: Math.min(6, Math.max(1, Number(hash.match(/step-(\d)/)?.[1] || 1))),
+      n: 600, nFollows: true, cacSaved: 100, mcell: 'cash', lockL: null, lockT: null, measure: 'clv', churn: 'bg', msum: null, timingL: 3, hoverL: null, hoverT: null
+    };
+    const params = () => ({ ...Object.fromEntries($$('[data-key]').map(el => [el.dataset.key, Number(el.value)])), churn: state.churn });
+    const isClv = () => state.measure === 'clv';
+    const V = pav => isClv() ? pav - params().cac : pav;   // pav -> displayed measure
+    const mName = () => isClv() ? 'CLV' : 'PAV';
+    const nStar = () => TwoRoadsMath.nStar(params());
+
+    // ---------- chart helpers (same approach as Tool 2) ----------
+    function niceTicks(min, max, target) {
+      const span = max - min;
+      if (!(span > 0) || !Number.isFinite(span)) return [min];
+      const rough = span / target, mag = Math.pow(10, Math.floor(Math.log10(rough)));
+      const step = ([1, 2, 2.5, 5, 10].find(m => m * mag >= rough * 0.9) || 10) * mag;
+      const ticks = [];
+      for (let v = Math.ceil(min / step) * step; v <= max + step * 1e-9; v += step) ticks.push(Math.abs(v) < step * 1e-9 ? 0 : v);
+      return ticks.length ? ticks : [min, max];
+    }
+    function frame({ W = 720, H = 320, left = 66, right = 22, top = 22, bottom = 46, xMin = 0, xMax = 1, yMin = 0, yMax = 1, xLabel = '', yLabel = '', xFmt = v => Math.round(v), yFmt = v => v.toFixed(2), tickUnderAxis = false }) {
+      if (xMax === xMin) xMax = xMin + 1;
+      if (yMax === yMin) yMax = yMin + 1;
+      const x = v => left + (v - xMin) / (xMax - xMin) * (W - left - right);
+      const y = v => top + (yMax - v) / (yMax - yMin) * (H - top - bottom);
+      const parts = [];
+      for (const v of niceTicks(yMin, yMax, 5)) parts.push(`<line class="grid" x1="${left}" y1="${y(v)}" x2="${W - right}" y2="${y(v)}"/><text class="tick" x="${left - 8}" y="${y(v) + 4}" text-anchor="end">${yFmt(v)}</text>`);
+      for (const v of niceTicks(xMin, xMax, 7)) parts.push(`<line class="grid" x1="${x(v)}" y1="${top}" x2="${x(v)}" y2="${H - bottom}"/><text class="tick" x="${x(v)}" y="${tickUnderAxis ? H - bottom + 18 : H - 24}" text-anchor="middle"${tickUnderAxis ? ' font-weight="800" font-size="12"' : ''}>${xFmt(v)}</text>`);
+      parts.push(`<line class="axis" x1="${left}" y1="${H - bottom}" x2="${W - right}" y2="${H - bottom}"/><line class="axis" x1="${left}" y1="${top}" x2="${left}" y2="${H - bottom}"/><text class="chart-label" x="${(left + W - right) / 2}" y="${H - 5}" text-anchor="middle">${xLabel}</text><text class="chart-label" transform="translate(14 ${(top + H - bottom) / 2}) rotate(-90)" text-anchor="middle">${yLabel}</text>`);
+      return { x, y, parts, W, H, left, right, top, bottom };
+    }
+    const path = (pts, f) => pts.map((p, i) => `${i ? 'L' : 'M'} ${f.x(p[0]).toFixed(1)} ${f.y(p[1]).toFixed(1)}`).join(' ');
+
+    // ---------- walkthrough text ----------
+    const questions = {
+      1: () => ({ q: 'A customer churns at the end of month 2. What is their lifetime L, and how many payments did they make?', a: 'L = 2, and they paid twice: once at t = 0 (undiscounted) and once at t = 1. Churning at the end of month t means t payments.' }),
+      2: () => { const S = TwoRoadsMath.survivalCurve(TwoRoadsMath.normalize(params()), 12); return { q: `S(1) is ${pct(S[1])}. What share of the cohort churns at the end of month 1, and what share makes the payment at t = 1?`, a: `${pct(1 - S[1])} churn after one payment: that is P(L = 1) = S(0) - S(1). The other ${pct(S[1])} are still alive and pay at t = 1. The same subtraction gives P(L = t) for every lifetime.` }; },
+      3: () => { const ns = nStar(), r = TwoRoadsMath.road1(params(), ns), inc = TwoRoadsMath.nIncrement(params(), 0.005), conv = TwoRoadsMath.nConverge(params(), 0.005), np = TwoRoadsMath.normalize(params()), lim = np.m * (1 + np.d) / np.d; return { q: `After month ${inc}, one more month adds less than half a cent. So why not put the spike at n* = ${inc}?`, a: `Because hundreds of sub-cent months still add up. At ${inc}, max(PAV) is still ${money(lim - TwoRoadsMath.pavAtLifetime(params(), inc))} short of its limit ${money(lim)}; it only rounds to the limit at month ${conv}. By n* = ${ns}, every longer lifetime is worth ${money(V(r.spike.pav))} to the cent, so giving the ${pct(r.spike.prob)} in the spike that one value loses nothing.` }; },
+      4: () => ({ q: 'Road 2 never asks how long any one customer lasts. How can it still get the average right?', a: 'Because S(t) already is an average: the average of "still paying? 1 or 0" across all customers in month t. Weighting each month\'s cash by that average is the same as averaging over customers first.' }),
+      5: () => ({ q: 'Sum the S(t) row at the bottom of any column. Why does it always equal the share of rows that still have an m x 1 in that column?', a: 'A customer pays in month t only if their lifetime is longer than t. Adding P(L) over those rows gives P(L > t) = S(t). So the column sum IS the survivor curve, and Road 2 is just Road 1 added up in the other direction.' }),
+      6: () => { const h = TwoRoadsMath.horizonCurve(params(), 600), c = TwoRoadsMath.converged(params()); const at12 = V(h[11].ePav), full = V(c.ePav); const n99 = h.findIndex(x => Math.abs(full - V(x.ePav)) <= Math.abs(full) * 0.01) + 1; return { q: `With n = 12 months, E(${mName()}) is ${money(at12)}. How many months until you are within 1% of the true ${money(full)}?`, a: n99 > 0 ? `About ${n99} months. The BG tail is heavy: a few very loyal customers keep paying for years, so a one-year horizon misses a lot of value. In Excel, extend the sheet far enough (the Class 7 workbook runs 586 months).` : 'More than 600 months with these inputs. The BG tail is heavy: a few very loyal customers keep paying for a very long time.' }; }
+    };
+
+    // ---------- renderers ----------
+    function renderResults() {
+      const p = params(), n = state.n, ns = nStar();
+      const r1 = TwoRoadsMath.road1(p, ns), r2 = TwoRoadsMath.road2(p, n), c = TwoRoadsMath.converged(p);
+      const show1 = state.mode === 'explore' || state.step >= 3, show2 = state.mode === 'explore' || state.step >= 4;
+      const set = (id, txt, locked) => { const el = $(id); el.textContent = txt; el.classList.toggle('locked', !!locked); };
+      set('#res-r1', show1 ? money(V(r1.ePav)) : 'Unlocks in step 3', !show1);
+      set('#res-r2', show2 ? money(V(r2.ePav)) : 'Unlocks in step 4', !show2);
+      $('#res-r1-note').textContent = show1 ? `lifetimes out to n* = ${ns}, where max(${mName()}) is reached to the cent` : '';
+      $('#res-r2-note').textContent = show2 ? `${n} months of m S(t) / (1+d)^t` : '';
+      $('#res-eq').style.visibility = show1 && show2 ? 'visible' : 'hidden';
+      { const diff = Math.abs(r1.ePav - r2.ePav); $('#res-eq').textContent = diff < 0.005 ? '=' : diff < 0.5 ? '\u2248' : '\u2260'; $('#res-eq').title = diff < 0.005 ? 'Road 1 equals Road 2' : `Road 2 is ${money(r1.ePav - r2.ePav)} ${r2.ePav < r1.ePav ? 'below' : 'above'} Road 1`; }
+      $('#res-true-label').textContent = `True E(${mName()}), n to infinity`;
+      $('#res-true').textContent = money(V(c.ePav));
+      const gap = c.ePav - r2.ePav;
+      $('#res-gap').textContent = gap < 0.005 ? `Horizon n = ${n} captures it all` : `n = ${n} is ${money(gap)} short (${pct(r2.ePav / c.ePav)} of E(PAV))`;
+    }
+
+    function renderTiming() {
+      const p = TwoRoadsMath.normalize(params()), L = state.timingL, T = 9, clv = isClv();
+      // Left column holds row labels; each tick t gets a little ledger: CAC, cash m, discount factor, value today.
+      const x0 = 236, x1 = 950, step = (x1 - x0) / T, yAxis = 158;
+      const rows = { cac: 22, cash: 50, df: 76, pv: 102 };
+      const parts = [];
+      const lab = (y, txt, col = BLUE, w = 800) => parts.push(`<text x="8" y="${y}" font-size="12" font-weight="${w}" fill="${col}">${txt}</text>`);
+      lab(rows.cac, 'acquisition cost, CAC', RED);
+      lab(rows.cash, 'cash in, m', BLUE);
+      lab(rows.df, 'x discount 1 / (1+d)^t', BLUE_MID, 700);
+      lab(rows.pv, '= worth today', GREEN);
+      parts.push(`<line x1="8" y1="${rows.df + 8}" x2="${x1 + 20}" y2="${rows.df + 8}" stroke="#D9E0E7"/>`);
+      parts.push(`<line x1="${x0}" y1="${yAxis}" x2="${x1 + 30}" y2="${yAxis}" stroke="${BLUE}" stroke-width="2.5"/><path d="M ${x1 + 30} ${yAxis - 6} L ${x1 + 42} ${yAxis} L ${x1 + 30} ${yAxis + 6} Z" fill="${BLUE}"/>`);
+      for (let t = 0; t <= T; t++) {
+        const x = x0 + t * step;
+        parts.push(`<line x1="${x}" y1="${yAxis - 8}" x2="${x}" y2="${yAxis + 8}" stroke="${BLUE}" stroke-width="2"/><text x="${x}" y="${yAxis + 26}" text-anchor="middle" font-size="15" font-weight="800" fill="${BLUE}">${t}</text>`);
+        if (t === 0) parts.push(`<text x="${x}" y="${rows.cac}" text-anchor="middle" font-size="13" font-weight="800" fill="${clv ? RED : GREY}">${clv ? `-${money(p.cac, 0)}` : 'not in PAV'}</text>`);
+        if (t < T) {
+          const paid = t < L, cx = x + step / 2, df = Math.pow(1 + p.d, -t), c = paid ? BLUE : '#C2CAD2';
+          parts.push(`<circle cx="${cx}" cy="${yAxis}" r="20" fill="${paid ? MAIZE : '#E9EDF1'}" stroke="${paid ? MAIZE_DARK : '#D9E0E7'}" stroke-width="2"/>`);
+          parts.push(`<text x="${x}" y="${rows.cash}" text-anchor="middle" font-size="13" font-weight="800" fill="${c}">${paid ? money(p.m) : '0'}</text>`);
+          parts.push(`<text x="${x}" y="${rows.df}" text-anchor="middle" font-size="11.5" fill="${paid ? BLUE_MID : '#C2CAD2'}">${df.toFixed(4)}</text>`);
+          parts.push(`<text x="${x}" y="${rows.pv}" text-anchor="middle" font-size="13" font-weight="800" fill="${paid ? GREEN : '#C2CAD2'}">${paid ? money(p.m * df) : '0'}</text>`);
+          parts.push(`<line x1="${x}" y1="${rows.pv + 8}" x2="${x}" y2="${yAxis - 18}" stroke="${paid ? BLUE : '#C2CAD2'}" stroke-width="1.5"/><path d="M ${x - 5} ${yAxis - 19} L ${x + 5} ${yAxis - 19} L ${x} ${yAxis - 11} Z" fill="${paid ? BLUE : '#C2CAD2'}"/>`);
+        }
+        if (t >= 1) {
+          const churnHere = t === L;
+          parts.push(`<text x="${x}" y="${yAxis + 50}" text-anchor="middle" font-size="11" fill="${churnHere ? RED : GREY}" font-weight="${churnHere ? 800 : 500}">${churnHere ? 'churns here' : `T = ${t}?`}</text>`);
+          if (churnHere) parts.push(`<rect x="${x - step / 2 - 34}" y="${yAxis + 58}" width="68" height="28" rx="14" fill="${MAIZE}" stroke="${MAIZE_DARK}" stroke-width="1.5"/><text x="${x - step / 2}" y="${yAxis + 78}" text-anchor="middle" font-size="16" font-weight="900" fill="${BLUE}">L = ${t}</text>`);
+          else parts.push(`<text x="${x - step / 2}" y="${yAxis + 78}" text-anchor="middle" font-size="12" fill="${GREY}">L = ${t}</text>`);
+        }
+      }
+      lab(yAxis + 26, 'month, t:');
+      lab(yAxis + 50, 'churn decision?', GREY, 500);
+      lab(yAxis + 78, 'lifetime', GREY, 500);
+      // The sum, written as stacked fractions, each term sitting under its own month.
+      // After the customer churns, the terms keep going as grey 0s: they are still in the sum.
+      const yNum = yAxis + 128, yBar = yNum + 7, yDen = yNum + 26, yVal = yNum + 60, yTot = yVal + 44;
+      const OFF = '#AEB8C2', xEq = x0 - 106;  // one column for all three = signs
+      parts.push(`<line x1="8" y1="${yAxis + 96}" x2="${x1 + 20}" y2="${yAxis + 96}" stroke="#D9E0E7"/>`);
+      const eq = y => parts.push(`<text x="${xEq}" y="${y}" text-anchor="middle" font-size="17" font-weight="800" fill="${BLUE}">=</text>`);
+      parts.push(`<text x="${xEq - 12}" y="${yBar + 5}" text-anchor="end" font-size="16" font-weight="800" fill="${BLUE}">${mName()}(L = ${L})</text>`);
+      eq(yBar + 5); eq(yVal); eq(yTot);
+      if (clv) parts.push(`<text x="${xEq + 12}" y="${yBar + 5}" font-size="16" font-weight="800" fill="${RED}">-CAC</text><text x="${xEq + 12}" y="${yVal}" font-size="16" font-weight="800" fill="${RED}">-${money(p.cac, 0)}</text>`);
+      let pv = 0;
+      for (let t = 0; t < T; t++) {
+        const x = x0 + t * step, paid = t < L, v = p.m * Math.pow(1 + p.d, -t);
+        if (paid) pv += v;
+        if (t > 0 || clv) {
+          const px = t === 0 ? x0 - 34 : x - step / 2, pc = paid ? BLUE : OFF, vc = paid ? GREEN : OFF;
+          parts.push(`<text x="${px}" y="${yBar + 6}" text-anchor="middle" font-size="18" font-weight="700" fill="${pc}">+</text><text x="${px}" y="${yVal}" text-anchor="middle" font-size="15" fill="${vc}">+</text>`);
+        }
+        if (paid) {
+          parts.push(`<text x="${x}" y="${yNum}" text-anchor="middle" font-size="16" font-weight="700" fill="${BLUE}">m</text><line x1="${x - 24}" y1="${yBar}" x2="${x + 24}" y2="${yBar}" stroke="${BLUE}" stroke-width="1.5"/><text x="${x}" y="${yDen}" text-anchor="middle" font-size="14" fill="${BLUE}">(1+d)<tspan dy="-7" font-size="10">${t}</tspan></text>`);
+          parts.push(`<text x="${x}" y="${yVal}" text-anchor="middle" font-size="14" font-weight="800" fill="${GREEN}">${money(v)}</text>`);
+        } else {
+          parts.push(`<text x="${x}" y="${yBar + 6}" text-anchor="middle" font-size="17" font-weight="700" fill="${OFF}">0</text><text x="${x}" y="${yVal}" text-anchor="middle" font-size="15" font-weight="700" fill="${OFF}">0</text>`);
+        }
+      }
+      const xMore = x0 + (T - 1) * step + step / 2;
+      parts.push(`<text x="${xMore}" y="${yBar + 6}" text-anchor="middle" font-size="17" font-weight="700" fill="${OFF}">+ ...</text><text x="${xMore}" y="${yVal}" text-anchor="middle" font-size="15" font-weight="700" fill="${OFF}">+ ...</text>`);
+      parts.push(`<rect x="${xEq + 12}" y="${yTot - 21}" width="112" height="30" rx="8" fill="${MAIZE_TINT}" stroke="${MAIZE_DARK}"/><text x="${xEq + 68}" y="${yTot}" text-anchor="middle" font-size="17" font-weight="900" fill="${BLUE}">${money(V(pv))}</text>`);
+      $('#timing-chart').innerHTML = `<title>Customer with lifetime ${L}</title>${parts.join('')}`;
+      $$('#lpick button').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.l) === L)));
+    }
+
+    function renderSurvival() {
+      const p = params(), ns = nStar(), N = LT_SHOW, S = TwoRoadsMath.survivalCurve(TwoRoadsMath.normalize(p), Math.max(N, TABLE_MAX));
+      const tMax = TABLE_MAX;
+      let html = '';
+      for (let t = 0; t <= tMax; t++) html += `<tr data-t="${t}"><td>${t}</td><td>${pct(S[t], 2)}</td><td>${t ? pct(S[t] / S[t - 1], 1) : ''}</td><td>${t ? pct(S[t - 1] - S[t], 2) : ''}</td></tr>`;
+      $('#s-body').innerHTML = html;
+      const f = frame({ W: 720, H: 300, left: 92, xMin: 0, xMax: N + 0.7, yMin: 0, yMax: 1, xLabel: 'Months since acquisition, t', yLabel: 'S(t)', yFmt: v => pct(v, 0) });
+      const pts = S.slice(0, N + 1).map((s, t) => [t, s]);
+      // Each drop in the curve, S(t-1) - S(t), drawn as a translucent bar at x = t: the same bar as
+      // "how many have lifetime L = t" in the histogram directly below (same x-scale).
+      const bw = (f.x(1) - f.x(0)) * 0.72;
+      for (let t = 1; t <= N; t++) {
+        const yTop = f.y(S[t - 1]), yBot = f.y(S[t]);
+        f.parts.push(`<line x1="${f.x(t - 1)}" y1="${yTop}" x2="${f.x(t) + bw / 2}" y2="${yTop}" stroke="${BLUE_MID}" stroke-width="1" stroke-dasharray="2 3" opacity=".55"/>`);
+        f.parts.push(`<rect data-l="${t}" x="${f.x(t) - bw / 2}" y="${yTop}" width="${bw}" height="${Math.max(0, yBot - yTop)}" fill="${BLUE_MID}" fill-opacity=".28" stroke="${BLUE_MID}" stroke-opacity=".6"><title>Drop from S(${t - 1}) to S(${t}) = P(L = ${t}) = ${pct(S[t - 1] - S[t], 2)}</title></rect>`);
+      }
+      f.parts.push(`<text x="${f.x(1) + bw / 2 + 6}" y="${(f.y(S[0]) + f.y(S[1])) / 2 + 4}" font-size="11" font-weight="800" fill="${BLUE_MID}" stroke="#fff" stroke-width="3" paint-order="stroke">${pct(S[0] - S[1], 1)} = S(0) - S(1) = P(L = 1)</text>`);
+      f.parts.push(`<text x="${f.x(2) + bw / 2 + 6}" y="${(f.y(S[1]) + f.y(S[2])) / 2 + 4}" font-size="11" font-weight="800" fill="${BLUE_MID}" stroke="#fff" stroke-width="3" paint-order="stroke">${pct(S[1] - S[2], 1)} = S(1) - S(2) = P(L = 2)</text>`);
+      f.parts.push(`<path d="${path(pts, f)}" fill="none" stroke="${BLUE}" stroke-width="3"/>`);
+      if (N <= 60) for (let t = 0; t <= N; t++) f.parts.push(`<circle data-t="${t}" cx="${f.x(t)}" cy="${f.y(S[t])}" r="3.5" fill="${BLUE}" stroke="#fff" stroke-width="1.5"><title>S(${t}) = ${pct(S[t], 2)}</title></circle>`);
+      $('#s-chart').innerHTML = `<title>Survivor curve</title>${f.parts.join('')}`;
+      {
+        const S2 = TwoRoadsMath.survivalCurve(TwoRoadsMath.normalize(p), LT_SHOW);
+        const yMax = (S2[0] - S2[1]) * 1.18;
+        const g = frame({ W: 720, H: 300, left: 92, xMin: 0, xMax: LT_SHOW + 0.7, yMin: 0, yMax, xLabel: 'Lifetime L (months)', yLabel: 'Share of customers, P(L)', yFmt: () => '' });
+        lifetimeBars(g, S2, LT_SHOW);
+        $('#lt-chart').innerHTML = `<title>How many will have each lifetime</title>${g.parts.join('')}`;
+        $('#lt-note').textContent = `Lifetimes longer than ${LT_SHOW} months are not drawn: ${pct(S2[LT_SHOW], 1)} of customers, S(${LT_SHOW}), are still here after ${LT_SHOW} months. Each bar is the drop in the survivor curve above it.`;
+      }
+    }
+
+    function renderRoad1() {
+      const p = params(), ns = nStar(), r = TwoRoadsMath.road1(p, ns), m = mName();
+      $$('.mname').forEach(el => el.textContent = m);
+      $('#r1-vhead').textContent = `${m}(L)`;
+      $('#r1-formula').textContent = `E(${m}) = sum over L < ${ns} of P(L) x ${m}(L)  +  S(${ns - 1}) x max(${m})  =  ${money(V(r.ePav))}`;
+      { const np = TwoRoadsMath.normalize(p), inc = TwoRoadsMath.nIncrement(p, 0.005), conv = TwoRoadsMath.nConverge(p, 0.005), lim = np.m * (1 + np.d) / np.d;
+        $('#ceiling-note').innerHTML = `Why is there a maximum at all? Discounting: each extra month adds m / (1+d)<sup>t</sup>, which keeps shrinking toward $0, so the cumulative money in levels off and can never exceed <b>m(1+d) / d = ${money(lim)}</b> of PAV${isClv() ? `, or <b>${money(lim - np.cac)}</b> of CLV after CAC` : ''}, no matter how long a customer stays.`;
+        $('#nstar-same').innerHTML = `For every lifetime L &ge; n* = ${ns}:  ${mName()}(L) = ${mName()}(${ns}) = <span class="pk">max(${mName()}) = ${money(V(lim))}</span>  (the same to the cent)`;
+        // Plain-language answer: the whole rest-of-forever after n* is worth less than a cent today.
+        const tail = n => lim * Math.pow(1 + np.d, -n);   // value today of every payment from month n on
+        $('#nstar-rule').innerHTML = `<b>Why stop at n* = ${ns}?</b> Because after month ${ns}, staying longer adds nothing you can see. Every payment a customer makes from month ${ns} on, added up forever, is worth only <span class="pk">${money(tail(ns), 4)}</span> today. So a customer who stays ${ns} months and a customer who never leaves have the same ${mName()}, <span class="pk">${money(V(lim))}</span>. That is why all of them can share <span class="pk">one bar</span> without changing E(${mName()}).<br><br><b>Why not stop earlier, say at month ${inc}?</b> By then each single month is already worth less than half a cent (${money(np.m / Math.pow(1 + np.d, inc), 5)}). But there are hundreds of those months left, and together they still add <span class="pk">${money(tail(inc))}</span>. The whole remaining tail only drops below half a cent at <span class="pk">month ${conv}</span>. ${ns} is a round number safely past that.`; }
+      // Table: lifetimes 1..TABLE_MAX, a break, then n*-49..n*+50 so students can watch CLV(L)
+      // stop changing (to the cent) around the cutoff. Lifetimes at or past n* are inside the spike.
+      const np1 = TwoRoadsMath.normalize(p), W1 = 50, Sx = TwoRoadsMath.survivalCurve(np1, ns + W1);
+      const inc1 = L => np1.m * Math.pow(1 + np1.d, -(L - 1));        // what month L adds
+      const pS = v => v >= 0.001 ? pct(v, 2) : pct(v, 5);
+      const rowHtml = row => `<tr data-l="${row.L}"><td>${row.L}</td><td>${pS(row.prob)}</td><td>${money(inc1(row.L), row.L > 100 ? 5 : 2)}</td><td>${money(V(row.pav))}</td><td>${money(row.prob * V(row.pav))}</td></tr>`;
+      const lo = Math.max(TABLE_MAX + 1, ns - W1 + 1);
+      let html = r.rows.slice(0, Math.min(TABLE_MAX, r.rows.length)).map(rowHtml).join('');
+      if (lo > TABLE_MAX + 1) html += `<tr class="gap"><td colspan="5">&#8942; lifetimes ${TABLE_MAX + 1} to ${lo - 1} not shown &#8942;</td></tr>`;
+      html += r.rows.slice(lo - 1).map(rowHtml).join('');
+      html += `<tr class="spike" data-l="${r.spike.L}"><td>&ge; ${r.spike.L} (spike: all worth max)</td><td>${pS(r.spike.prob)}</td><td></td><td>${money(V(r.spike.pav))}</td><td>${money(r.spike.prob * V(r.spike.pav))}</td></tr>`;
+      html += `<tr class="gap"><td colspan="5">Inside the spike, lifetime by lifetime: ${m}(L) no longer changes to the cent</td></tr>`;
+      for (let L = ns; L <= ns + W1; L++) {
+        const prob = Sx[L - 1] - Sx[L], pv = TwoRoadsMath.pavAtLifetime(np1, L);
+        html += `<tr class="inspike"><td>${L}</td><td>${pS(prob)}</td><td>${money(inc1(L), 5)}</td><td>${money(V(pv))}</td><td>in spike</td></tr>`;
+      }
+      html += `<tr class="total"><td>E(${m})</td><td>${pct(r.rows.reduce((s, x) => s + x.prob, 0) + r.spike.prob, 0)}</td><td></td><td></td><td>${money(V(r.ePav))}</td></tr>`;
+      $('#r1-body').innerHTML = html;
+      state.r1 = { r, ns };
+      renderCalc();
+
+      const all = [...r.rows, { ...r.spike, spike: true }];
+      const vals = all.map(x => V(x.pav)), zeroAt = isClv() ? 0 : state.cacSaved;
+      // The CLV axis always runs the full range, out to max(CLV) and the spike.
+      const e = V(r.ePav), xMin = Math.min(...vals, zeroAt), xMax = Math.max(...vals, zeroAt);
+      const pad = (xMax - xMin) * 0.05 || 10;
+      const yMax = Math.max(...all.map(x => x.prob)) * 1.18;   // same y-scale for both panels
+      // Left panel: how many have each lifetime (x = lifetime L). Same y-scale as the right panel,
+      // so each bar and its twin sit at exactly the same height.
+      // x runs 1..24, then a break, then a single slot for every lifetime L >= n* (the spike).
+      const XS = LT_SHOW + 3, XB = LT_SHOW + 1.4;
+      const top = frame({ W: 500, H: 400, left: 92, top: 34, bottom: 70, tickUnderAxis: true, xMin: 0.3, xMax: XS + 1.2, yMin: 0, yMax, xLabel: '', yLabel: 'P(L)', yFmt: () => '', xFmt: v => v <= LT_SHOW ? Math.round(v) : '' });
+      top.parts.push(`<text x="${top.left}" y="18" font-size="13.5" font-weight="800" fill="${BLUE}">How many will have each lifetime? (x = lifetime L)</text>`);
+      lifetimeBars(top, r.S, Math.min(LT_SHOW, ns - 1), { L: ns, x: XS, prob: r.spike.prob });
+      // Right panel: the SAME heights, placed at x = CLV(L).
+      const OFFX = 520;
+      const f = frame({ W: 800, H: 400, top: 34, bottom: 70, tickUnderAxis: true, xMin: xMin - pad, xMax: xMax + pad, yMin: 0, yMax, xLabel: '', yLabel: 'P(L)', xFmt: v => money(v, 0), yFmt: v => pct(v, 0) });
+      f.parts.push(`<text x="${f.left}" y="18" font-size="13.5" font-weight="800" fill="${BLUE}">Distribution of ${m}: the same bar heights, moved to x = ${m}(L)</text>`);
+      f.parts.push(`<line x1="${f.x(zeroAt)}" y1="${f.top}" x2="${f.x(zeroAt)}" y2="${f.H - f.bottom}" stroke="${RED}" stroke-width="1.5" stroke-dasharray="5 4"/><text x="${f.x(zeroAt) + 5}" y="${f.top + 11}" font-size="10" font-weight="800" fill="${RED}">${isClv() ? 'CLV = 0' : `PAV = CAC (${money(state.cacSaved, 0)})`}</text>`);
+      for (const row of all) {
+        const xx = f.x(V(row.pav)), yy = f.y(row.prob), col = row.spike ? MAGENTA : BLUE_MID;
+        f.parts.push(`<line data-l="${row.L}" x1="${xx}" y1="${f.y(0)}" x2="${xx}" y2="${yy}" stroke="${col}" stroke-width="${row.spike ? 4 : 3}"><title>${row.spike ? `Spike, L at least ${row.L}` : `L = ${row.L}`}: ${m} ${money(V(row.pav))}, P = ${pct(row.prob, 2)}</title></line>`);
+      }
+      const sp = r.spike, mx = f.x(V(sp.pav));
+      // max(value) is a reference line too (dashed, like CLV = 0 and E(CLV)); the spike bar under it is the real mass.
+      f.parts.push(`<line x1="${mx}" y1="${f.top}" x2="${mx}" y2="${f.H - f.bottom}" stroke="${MAGENTA}" stroke-width="2" stroke-dasharray="5 4"/><text x="${mx - 5}" y="${f.top + 11}" text-anchor="end" font-size="11" font-weight="800" fill="${MAGENTA}">max(${m}) = ${money(V(sp.pav))}</text><text x="${mx - 5}" y="${f.top + 25}" text-anchor="end" font-size="10" font-weight="700" fill="${MAGENTA}">spike: ${pct(sp.prob, 1)} still here at n* = ${ns}</text>`);
+      // E(value) is a reference line, not a possible value: dashed, like the CLV = 0 line.
+      f.parts.push(`<line x1="${f.x(e)}" y1="${f.top}" x2="${f.x(e)}" y2="${f.H - f.bottom}" stroke="${GREEN}" stroke-width="2" stroke-dasharray="5 4"/><text x="${f.x(e) + 5}" y="${f.top + 26}" font-size="11" font-weight="800" fill="${GREEN}">E(${m}) = ${money(e)}</text>`);
+      // Make the two different x-axes impossible to miss: thick colored axis, tinted tick band, big label pill.
+      const axisMark = (g, col, tint, label, pillW) => {
+        const yA = g.H - g.bottom, cx = (g.left + g.W - g.right) / 2;
+        g.parts.unshift(`<rect x="${g.left}" y="${yA}" width="${g.W - g.left - g.right}" height="26" fill="${tint}"/>`);  // tick numbers sit inside this band
+        g.parts.push(`<line x1="${g.left}" y1="${yA}" x2="${g.W - g.right}" y2="${yA}" stroke="${col}" stroke-width="4"/>`);
+        g.parts.push(`<rect x="${cx - pillW / 2}" y="${g.H - 34}" width="${pillW}" height="28" rx="14" fill="${col}"/><text x="${cx}" y="${g.H - 15}" text-anchor="middle" font-size="14" font-weight="900" fill="#fff">${label}</text>`);
+      };
+      axisMark(top, BLUE_MID, '#E7EDF4', 'x-axis: LIFETIME L (months)', 250);
+      { // axis break, the L >= n* tick, and what the spike bar means
+        const yA = top.H - top.bottom, xb = top.x(XB), xs = top.x(XS), omitted = r.S[LT_SHOW] - r.spike.prob;
+        top.parts.push(`<rect x="${xb - 7}" y="${yA - 6}" width="14" height="36" fill="#fff"/><line x1="${xb - 9}" y1="${yA + 8}" x2="${xb - 1}" y2="${yA - 8}" stroke="${BLUE_MID}" stroke-width="2.5"/><line x1="${xb + 1}" y1="${yA + 8}" x2="${xb + 9}" y2="${yA - 8}" stroke="${BLUE_MID}" stroke-width="2.5"/>`);
+        top.parts.push(`<text x="${xs}" y="${yA + 18}" text-anchor="middle" font-size="12" font-weight="900" fill="${MAGENTA}">\u2265 ${ns}</text>`);
+        // Spike label sits in open space (between the 15% and 35% connectors) with a pointer down to its bar.
+        const yl = top.y(yMax * 0.5);
+        top.parts.push(`<text x="${xs + 8}" y="${yl}" text-anchor="end" font-size="11.5" font-weight="800" fill="${MAGENTA}">P(L \u2265 ${ns}) = S(${ns - 1})</text><text x="${xs + 8}" y="${yl + 15}" text-anchor="end" font-size="11.5" font-weight="800" fill="${MAGENTA}">= ${pct(r.spike.prob, 1)}: the max(${m}) spike</text><line x1="${xs}" y1="${yl + 21}" x2="${xs}" y2="${top.y(r.spike.prob) - 3}" stroke="${MAGENTA}" stroke-width="1.3"/><path d="M ${xs - 4} ${top.y(r.spike.prob) - 9} L ${xs + 4} ${top.y(r.spike.prob) - 9} L ${xs} ${top.y(r.spike.prob) - 2} Z" fill="${MAGENTA}"/>`);
+        top.parts.push(`<text x="${xb}" y="${top.y(yMax * 0.74)}" text-anchor="middle" font-size="10" fill="${MUTED}">lifetimes ${LT_SHOW + 1}</text><text x="${xb}" y="${top.y(yMax * 0.74) + 12}" text-anchor="middle" font-size="10" fill="${MUTED}">to ${ns - 1}:</text><text x="${xb}" y="${top.y(yMax * 0.74) + 24}" text-anchor="middle" font-size="10" fill="${MUTED}">${pct(omitted, 1)}, not drawn</text>`);
+      }
+      axisMark(f, '#8A6D00', '#FFF6D6', `x-axis: ${m}(L) in dollars`, 250);
+      // Connectors: each of the first few lifetimes, from its bar top above to its twin below.
+      const links = [];
+      for (let L = 1; L <= Math.min(LT_COLORS.length, r.rows.length); L++) {
+        const row = r.rows[L - 1];
+        links.push(`<line x1="${top.left}" y1="${top.y(row.prob)}" x2="${OFFX + f.x(V(row.pav))}" y2="${f.y(row.prob)}" stroke="${ltColor(L)}" stroke-width="1.4" stroke-dasharray="3 4" opacity=".75"/>`);
+      }
+      links.push(`<line x1="${top.left}" y1="${top.y(r.spike.prob)}" x2="${OFFX + f.x(V(r.spike.pav))}" y2="${f.y(r.spike.prob)}" stroke="${MAGENTA}" stroke-width="1.4" stroke-dasharray="3 4" opacity=".8"/>`);
+      $('#r1-chart').innerHTML = `<title>Lifetime histogram beside the distribution of ${m}</title>${top.parts.join('')}<g transform="translate(${OFFX} 0)">${f.parts.join('')}</g>${links.join('')}`;
+    }
+
+    // Illustrative triangle: the rows of the 0/1 matrix for the shortest lifetimes, a break, then the
+    // row that reaches max(CLV) (paid every month, with its own break across the long run of months).
+    function renderCalc() {
+      if (!state.r1) return;
+      const { r, ns } = state.r1, p = TwoRoadsMath.normalize(params()), clv = isClv(), m = mName();
+      const SHORT = 6, TS = 5;                       // rows L = 1..6, month columns t = 0..4
+      const cell = t => { const v = p.m / Math.pow(1 + p.d, t); return num(v, v < 0.01 ? 6 : 2); };
+      const pS = v => pct(v, v >= 0.001 ? 1 : 5);
+      const nCols = (clv ? 1 : 0) + TS + 3;          // CAC, t=0..5, gap, t=n*-1, forever
+      let html = `<thead><tr><th style="text-align:left">Lifetime</th><th>P(L)</th>${clv ? '<th>CAC</th>' : ''}${Array.from({ length: TS }, (_, t) => `<th>t = ${t}</th>`).join('')}<th></th><th>t = ${ns - 1}</th><th></th><th>${m}(L)</th><th>P(L) x<br>${m}(L)</th></tr></thead><tbody>`;
+      for (let L = 1; L <= SHORT; L++) {
+        const row = r.rows[L - 1];
+        html += `<tr data-l="${L}"><td class="lab">L = ${L}</td><td class="pl">${pS(row.prob)}</td>${clv ? `<td class="cac">-${num(p.cac, 0)}</td>` : ''}`;
+        for (let t = 0; t < TS; t++) html += t < L ? `<td class="on">${cell(t)}</td>` : `<td class="off">0</td>`;
+        html += `<td class="gap">&hellip;</td><td class="off">0</td><td class="gap">&hellip;</td><td class="val">${money(V(row.pav))}</td><td class="val">${money(row.prob * V(row.pav))}</td></tr>`;
+      }
+      const between = r.rows.slice(SHORT).reduce((a, x) => a + x.prob, 0);
+      html += `<tr class="vgap"><td class="lab">L = ${SHORT + 1} to ${ns - 1}</td><td class="pl" style="font-size:.7rem">${pS(between)}</td><td colspan="${nCols}">&#8942;</td><td>&#8942;</td><td>&#8942;</td></tr>`;
+      const sp = r.spike;
+      html += `<tr class="spk" data-l="${ns}"><td class="lab">L &ge; ${ns}</td><td class="pl">${pS(sp.prob)}</td>${clv ? `<td class="cac">-${num(p.cac, 0)}</td>` : ''}`;
+      for (let t = 0; t < TS; t++) html += `<td class="on">${cell(t)}</td>`;
+      html += `<td class="gap">&hellip;</td><td class="on">${cell(ns - 1)}</td><td class="gap">&hellip;</td><td class="val">${money(V(sp.pav))}</td><td class="val">${money(sp.prob * V(sp.pav))}</td></tr>`;
+      html += `<tr class="tot"><td class="lab" colspan="${nCols + 2}">Add up the last column over every row</td><td></td><td class="val">E(${m}) = ${money(V(r.ePav))}</td></tr></tbody>`;
+      $('#tri').innerHTML = html;
+      $('#tri-note').innerHTML = `Each row is one type of customer: ${m}(L) adds that row across the months, and P(L) says how many customers have that row. The short lifetimes form a staircase; the last row pays every month, and past t = ${ns - 1} the payments are worth so little that its ${m} is already <b style="color:var(--magenta)">max(${m}) = ${money(V(sp.pav))}</b>.`;
+    }
+
+    // Value labels written on a chart's y-axis, nudged apart when close, with leader lines.
+    function axisLabels(f, items) {
+      const GAP = 14, yBottom = f.y(f.yMin ?? 0) - 4;
+      items.forEach(it => { it.ly = it.y; });
+      for (let k = 1; k < items.length; k++) items[k].ly = Math.max(items[k].ly, items[k - 1].ly + GAP);
+      if (items.length && items[items.length - 1].ly > yBottom) {
+        items[items.length - 1].ly = yBottom;
+        for (let k = items.length - 2; k >= 0; k--) items[k].ly = Math.min(items[k].ly, items[k + 1].ly - GAP);
+      }
+      const xLab = f.left - 22;
+      for (const it of items) {
+        f.parts.push(`<line x1="${xLab + 3}" y1="${it.ly - 4}" x2="${f.left}" y2="${it.y}" stroke="${it.color}" stroke-width="1.2"/><circle cx="${f.left}" cy="${it.y}" r="2.5" fill="${it.color}"/>`);
+        f.parts.push(`<text x="${xLab}" y="${it.ly}" text-anchor="end" font-size="11" font-weight="800" fill="${it.color}">${it.label}</text>`);
+      }
+    }
+    // Thick colored x-axis, tinted tick band, and a label pill (shared look with Road 1).
+    function axisPill(g, col, tint, label, pillW) {
+      const yA = g.H - g.bottom, cx = (g.left + g.W - g.right) / 2;
+      g.parts.unshift(`<rect x="${g.left}" y="${yA}" width="${g.W - g.left - g.right}" height="26" fill="${tint}"/>`);
+      g.parts.push(`<line x1="${g.left}" y1="${yA}" x2="${g.W - g.right}" y2="${yA}" stroke="${col}" stroke-width="4"/>`);
+      g.parts.push(`<rect x="${cx - pillW / 2}" y="${g.H - 34}" width="${pillW}" height="28" rx="14" fill="${col}"/><text x="${cx}" y="${g.H - 15}" text-anchor="middle" font-size="14" font-weight="900" fill="#fff">${label}</text>`);
+    }
+    function axisBreak(g, xb, col, lastLabel, xs) {
+      const yA = g.H - g.bottom, x = g.x(xb);
+      g.parts.push(`<rect x="${x - 7}" y="${yA - 6}" width="14" height="36" fill="#fff"/><line x1="${x - 9}" y1="${yA + 8}" x2="${x - 1}" y2="${yA - 8}" stroke="${col}" stroke-width="2.5"/><line x1="${x + 1}" y1="${yA + 8}" x2="${x + 9}" y2="${yA - 8}" stroke="${col}" stroke-width="2.5"/>`);
+      g.parts.push(`<text x="${g.x(xs)}" y="${yA + 18}" text-anchor="middle" font-size="12" font-weight="900" fill="${col}">${lastLabel}</text>`);
+    }
+
+    function renderRoad2() {
+      const p = params(), np = TwoRoadsMath.normalize(p), n = state.n, r = TwoRoadsMath.road2(p, n), m = mName(), clv = isClv();
+      const start = clv ? -np.cac : 0, c = TwoRoadsMath.converged(p);
+      const pS = v => pct(v, v >= 0.001 ? 2 : 5);
+      // ---- table: months 0..120, a break, then the 50 months up to the horizon ----
+      const W2 = 50, lo = Math.max(TABLE_MAX + 1, n - W2);
+      const rowHtml = row => `<tr data-t="${row.t}"><td>${row.t}</td><td>${pS(row.S)}</td><td>${num(row.df, row.t > 100 ? 6 : 4)}</td><td>${money(row.cash, row.cash < 0.01 ? 5 : 2)}</td><td>${money(start + row.cumPav)}</td></tr>`;
+      let html = clv ? `<tr><td>CAC</td><td></td><td></td><td>${money(-np.cac)}</td><td>${money(-np.cac)}</td></tr>` : '';
+      html += r.rows.slice(0, Math.min(TABLE_MAX + 1, n)).map(rowHtml).join('');
+      if (lo > TABLE_MAX + 1) html += `<tr class="gap"><td colspan="5">&#8942; months ${TABLE_MAX + 1} to ${lo - 1} not shown &#8942;</td></tr>`;
+      if (n > TABLE_MAX + 1) html += r.rows.slice(lo).map(rowHtml).join('');
+      html += `<tr class="total"><td>E(${m})</td><td></td><td></td><td></td><td>${money(V(r.ePav))}</td></tr>`;
+      $('#r2-body').innerHTML = html;
+
+      // ---- triangle, summed by columns ----
+      {
+        const Sx = TwoRoadsMath.survivalCurve(np, n), TS = 5, SHORT = 6, road1 = TwoRoadsMath.road1(p, n);
+        const cell = t => { const v = np.m / Math.pow(1 + np.d, t); return num(v, v < 0.01 ? 6 : 2); };
+        const colCash = t => np.m * Sx[t] / Math.pow(1 + np.d, t);
+        let h = `<thead><tr><th style="text-align:left">Lifetime</th><th>P(L)</th>${clv ? '<th>CAC</th>' : ''}${Array.from({ length: TS }, (_, t) => `<th data-t="${t}">t = ${t}</th>`).join('')}<th></th><th data-t="${n - 1}">t = ${n - 1}</th><th></th></tr></thead><tbody>`;
+        for (let L = 1; L <= Math.min(SHORT, n - 1); L++) {
+          const prob = Sx[L - 1] - Sx[L];
+          h += `<tr><td class="lab">L = ${L}</td><td class="pl">${pct(prob, 1)}</td>${clv ? `<td class="cac">-${num(np.cac, 0)}</td>` : ''}`;
+          for (let t = 0; t < TS; t++) h += t < L ? `<td class="on" data-t="${t}">${cell(t)}</td>` : `<td class="off" data-t="${t}">0</td>`;
+          h += `<td class="gap">&hellip;</td><td class="off" data-t="${n - 1}">0</td><td class="gap">&hellip;</td></tr>`;
+        }
+        h += `<tr class="vgap"><td class="lab">L = ${SHORT + 1} to ${n - 1}</td><td class="pl" style="font-size:.7rem">${pct(Sx[SHORT] - Sx[n - 1], 1)}</td><td colspan="${(clv ? 1 : 0) + TS + 3}">&#8942;</td></tr>`;
+        h += `<tr class="spk"><td class="lab">L &ge; ${n}</td><td class="pl">${pct(Sx[n - 1], 1)}</td>${clv ? `<td class="cac">-${num(np.cac, 0)}</td>` : ''}`;
+        for (let t = 0; t < TS; t++) h += `<td class="on" data-t="${t}">${cell(t)}</td>`;
+        h += `<td class="gap">&hellip;</td><td class="on" data-t="${n - 1}">${cell(n - 1)}</td><td class="gap">&hellip;</td></tr>`;
+        h += `<tr class="foot"><td class="lab" colspan="2">% surviving, S(t)</td>${clv ? '<td>100%</td>' : ''}${Array.from({ length: TS }, (_, t) => `<td data-t="${t}">${pct(Sx[t], 1)}</td>`).join('')}<td class="gap">&hellip;</td><td data-t="${n - 1}">${pct(Sx[n - 1], 2)}</td><td></td></tr>`;
+        h += `<tr class="foot2"><td class="lab" colspan="2">column total<br><small>m S(t) / (1+d)^t</small></td>${clv ? `<td>-${num(np.cac, 0)}</td>` : ''}${Array.from({ length: TS }, (_, t) => `<td data-t="${t}">${num(colCash(t), 2)}</td>`).join('')}<td class="gap">&hellip;</td><td data-t="${n - 1}">${num(colCash(n - 1), 6)}</td><td></td></tr>`;
+        h += `<tr class="tot"><td class="lab" colspan="${(clv ? 3 : 2) + TS + 3}">Add up the bottom row, month by month: <span style="color:var(--green)">E(${m}) = ${money(V(r.ePav))}</span></td></tr></tbody>`;
+        $('#tri2').innerHTML = h;
+        $('#tri2-note').innerHTML = `Same grid as Road 1, added the other way. Going <b>down</b> a column, the shares still paying add up to S(t), so the column's cash is m S(t) / (1+d)<sup>t</sup>. Then add the columns across the months. Road 1 gave ${money(V(road1.ePav))} from the rows; the columns give the same <b style="color:var(--green)">${money(V(r.ePav))}</b>.`;
+      }
+
+      // ---- charts: survivors by month (left) beside expected cash by month (right) ----
+      const SHOW = LT_SHOW, XS = SHOW + 3, XB = SHOW + 1.4, tLast = n - 1, OFFX = 520, S = TwoRoadsMath.survivalCurve(np, n);
+      const bar = (g, t, xPos, v, col) => { const w = Math.max(3, (g.x(1) - g.x(0)) * 0.72), y = g.y(v); return `<rect data-t="${t}" x="${g.x(xPos) - w / 2}" y="${y}" width="${w}" height="${Math.max(0, g.y(0) - y)}" fill="${col}"><title>t = ${t}</title></rect>`; };
+      const left = frame({ W: 500, H: 400, left: 92, top: 34, bottom: 70, tickUnderAxis: true, xMin: -0.7, xMax: XS + 1.2, yMin: 0, yMax: 1.08, xLabel: '', yLabel: 'S(t)', yFmt: () => '', xFmt: v => v >= 0 && v <= SHOW ? Math.round(v) : '' });
+      left.parts.push(`<text x="${left.left}" y="18" font-size="13.5" font-weight="800" fill="${BLUE}">How many survive to month t? S(t)</text>`);
+      for (let t = 0; t <= Math.min(SHOW, tLast); t++) left.parts.push(bar(left, t, t, S[t], BLUE_MID));
+      if (tLast > SHOW) left.parts.push(bar(left, tLast, XS, S[tLast], BLUE_MID));
+      axisLabels(left, [0, 1, 2, 3, 4, 5].filter(t => t <= tLast).map(t => ({ y: left.y(S[t]), label: pct(S[t], 1), color: BLUE_MID })).concat(tLast > SHOW ? [{ y: left.y(S[tLast]), label: pct(S[tLast], 1), color: BLUE_MID }] : []));
+      axisPill(left, BLUE_MID, '#E7EDF4', 'x-axis: MONTH t', 190);
+      if (tLast > SHOW) axisBreak(left, XB, BLUE_MID, `${tLast}`, XS);
+
+      const cashMax = np.m * 1.12;
+      const right = frame({ W: 800, H: 400, left: 92, top: 34, bottom: 70, tickUnderAxis: true, xMin: -0.7, xMax: XS + 1.2, yMin: 0, yMax: cashMax, xLabel: '', yLabel: 'expected cash ($)', yFmt: () => '', xFmt: v => v >= 0 && v <= SHOW ? Math.round(v) : '' });
+      right.parts.push(`<text x="${right.left - 60}" y="18" font-size="13" font-weight="800" fill="${BLUE}">Expected discounted cash flow from a newly acquired customer in month t: S(t) x m / (1+d)^t</text>`);
+      for (let t = 0; t <= Math.min(SHOW, tLast); t++) right.parts.push(bar(right, t, t, r.rows[t].cash, GREEN));
+      if (tLast > SHOW) right.parts.push(bar(right, tLast, XS, r.rows[tLast].cash, GREEN));
+      axisLabels(right, [0, 1, 2, 3, 4, 5].filter(t => t <= tLast).map(t => ({ y: right.y(r.rows[t].cash), label: money(r.rows[t].cash), color: GREEN })));
+      axisPill(right, GREEN, '#E4F3E9', 'x-axis: MONTH t (the same months)', 300);
+      if (tLast > SHOW) axisBreak(right, XB, GREEN, `${tLast}`, XS);
+      // The sum of every green bar, CAC included, is Road 2's answer.
+      right.parts.push(`<rect x="${right.W - right.right - 330}" y="${right.top + 20}" width="320" height="${clv ? 76 : 58}" rx="10" fill="#fff" stroke="${GREEN}"/>`
+        + `<text x="${right.W - right.right - 318}" y="${right.top + 42}" font-size="12.5" font-weight="800" fill="${GREEN}">Add up every green bar, t = 0 to ${tLast}:</text>`
+        + `<text x="${right.W - right.right - 318}" y="${right.top + 62}" font-size="12.5" font-weight="700" fill="${BLUE}">E(PAV) = ${money(r.ePav)}</text>`
+        + (clv ? `<text x="${right.W - right.right - 318}" y="${right.top + 82}" font-size="12.5" font-weight="900" fill="${GREEN}">minus CAC ${money(np.cac, 0)}  =  E(CLV) = ${money(r.eClv)}</text>` : ''));
+      if (tLast > SHOW) right.parts.push(`<text x="${right.x(XB)}" y="${right.y(cashMax * 0.55)}" text-anchor="middle" font-size="10" fill="${MUTED}">months ${SHOW + 1} to ${tLast - 1}</text><text x="${right.x(XB)}" y="${right.y(cashMax * 0.55) + 12}" text-anchor="middle" font-size="10" fill="${MUTED}">add ${money(r.rows.slice(SHOW + 1, tLast).reduce((a, x) => a + x.cash, 0))}</text><text x="${right.x(XB)}" y="${right.y(cashMax * 0.55) + 24}" text-anchor="middle" font-size="10" fill="${MUTED}">not drawn</text>`);
+      $('#r2-chart').innerHTML = `<title>Survivors by month beside expected cash by month</title>${left.parts.join('')}<g transform="translate(${OFFX} 0)">${right.parts.join('')}</g>`;
+
+      // ---- notes ----
+      const tail = c.ePav - r.ePav, ns = nStar();
+      $('#r2-formula').innerHTML = `E(${m}) = ${clv ? '-CAC + ' : ''}sum over t = 0 to ${n - 1} of m S(t) / (1+d)<sup>t</sup> = <span class="gk">${money(V(r.ePav))}</span>`;
+      $('#r2-why').innerHTML = `<b>Why stop at n = ${n}?</b> Road 2 needs a horizon: you choose how many months to add up (the slider in the bar above). The few customers still here keep paying after month ${n}, but all of those later months together are worth only <span class="gk">${tail < 0.0001 ? 'less than $0.0001' : money(tail, 4)}</span> today, so stopping at ${n} already matches the true E(${m}) to the cent.${n === ns ? ` That is the same n* = ${ns} Road 1 used, and the two roads give the <span class="gk">same ${money(V(r.ePav))}</span>.` : ` Road 1 used n* = ${ns}; set n = n* to see the two roads match.`}<br><br><b>What if you stop too early?</b> Stopping at 12 months gives only <span class="gk">${money(V(TwoRoadsMath.road2(p, 12).ePav))}</span>, because the customers who stay past a year, and their cash, are left out. Drag n down to watch E(${m}) fall.`;
+    }
+
+    function renderMatrix() {
+      const p = params(), N = MATRIX_MAX, mx = TwoRoadsMath.matrix(p, N), m = mName();
+      // Cells show either discounted cash (m x 1 / (1+d)^t) or plain survival (1 = still here, 0 = churned).
+      const alive = state.mcell === 'alive', clv = isClv() && !alive, off = clv ? 1 : 0;
+      const maxW = Math.max(...mx.rows.map(r => r.weight));
+      const rowHead = alive ? 'Row total<br>= months paid' : `Row total<br>= ${m}(L)`;
+      const rowW = alive ? 'P(L) x months' : `P(L) x ${m}(L)`;
+      let head = `<thead><tr><th class="rowhead">Customer type</th><th class="pcol">P(L)<br><small>share of cohort</small></th>${clv ? '<th>CAC</th>' : ''}${mx.cols.map(c => `<th data-t="${c.t}">t = ${c.t}</th>`).join('')}<th class="rsum reveal for-rows" style="--i:${N}">${rowHead}</th><th class="rsum reveal for-rows" style="--i:${N + 1}">${rowW}</th></tr></thead>`;
+      let body = '<tbody>', byRowsMonths = 0;
+      for (const row of mx.rows) {
+        const label = row.isSpike ? `Still here at n = ${N}` : `Churns end of month ${row.L}`;
+        const months = row.cells.filter(c => c.on).length;
+        byRowsMonths += row.weight * months;
+        body += `<tr data-l="${row.L}" class="${row.isSpike ? 'spike-row' : ''}"><th class="rowhead">${label}<span class="w" style="width:${(row.weight / maxW * 100).toFixed(1)}%;${row.isSpike ? `background:${MAGENTA}` : ''}"></span></th><td class="pcell" title="${row.isSpike ? `S(${N - 1})` : `P(L = ${row.L})`}">${pct(row.weight, 1)}</td>`;
+        if (clv) body += `<td class="cac" style="--i:${state.msum === 'cols' ? 0 : row.L - 1}">-${num(p.cac, 0)}</td>`;
+        row.cells.forEach(c => {
+          const txt = alive ? (c.on ? '1' : '0') : (c.on ? num(c.value, 2) : '0');
+          const tip = alive ? (c.on ? `still here at t = ${c.t}: 1` : `churned before t = ${c.t}: 0`) : (c.on ? `m x 1 / (1+d)^${c.t}` : 'm x 0: already churned');
+          body += `<td data-t="${c.t}" class="${c.on ? 'on' : 'off'}" style="--i:${state.msum === 'cols' ? c.t + off : row.L - 1}" title="${tip}">${txt}</td>`;
+        });
+        const rt = alive ? `${months}` : money(V(row.pav));
+        const rw = alive ? num(row.weight * months, 3) : money(row.weight * V(row.pav));
+        body += `<td class="rsum reveal for-rows" style="--i:${row.L - 1}">${rt}</td><td class="rw reveal for-rows" style="--i:${row.L}">${rw}</td></tr>`;
+      }
+      body += '</tbody>';
+      const byColsMonths = mx.cols.reduce((sum, c) => sum + c.share, 0);
+      const cacCol = clv ? `<td class="reveal for-cols" style="--i:0">100%</td>` : '';
+      const cacCash = clv ? `<td class="reveal for-cols" style="--i:0">${money(-p.cac)}</td>` : '';
+      let foot = `<tfoot><tr class="cfoot"><th class="rowhead">% Surviving, S(t)<br><small>= sum of P(L) over rows still paying</small></th><td class="pcell"></td>${cacCol}${mx.cols.map(c => `<td class="reveal for-cols" data-t="${c.t}" style="--i:${c.t + off}">${pct(c.share, 1)}</td>`).join('')}<td></td><td></td></tr>`;
+      if (alive) foot += `<tr class="cfoot"><th class="rowhead">Column total<br><small>= sum of P(L) x 1 = S(t)</small></th><td class="pcell"></td>${mx.cols.map(c => `<td class="reveal for-cols" data-t="${c.t}" style="--i:${c.t}">${num(c.share, 3)}</td>`).join('')}<td class="reveal for-cols" style="--i:${N + 1}" colspan="2">sum = ${num(byColsMonths, 3)} months</td></tr></tfoot>`;
+      else foot += `<tr class="cfoot"><th class="rowhead">Column total<br><small>= m S(t) / (1+d)^t</small></th><td class="pcell"></td>${cacCash}${mx.cols.map(c => `<td class="reveal for-cols" data-t="${c.t}" style="--i:${c.t + off}">${money(c.cash)}</td>`).join('')}<td class="reveal for-cols" style="--i:${N + 2}" colspan="2">sum = ${money(V(mx.byColsPav))}</td></tr></tfoot>`;
+      const tbl = $('#matrix');
+      tbl.innerHTML = head + body + foot;
+      tbl.classList.remove('sum-rows', 'sum-cols');
+      if (state.msum) { void tbl.offsetWidth; tbl.classList.add(state.msum === 'rows' ? 'sum-rows' : 'sum-cols'); }
+      $('#mt-r1').textContent = alive ? `${num(byRowsMonths, 3)} months` : money(V(mx.byRowsPav));
+      $('#mt-r2').textContent = alive ? `${num(byColsMonths, 3)} months` : money(V(mx.byColsPav));
+      $('#mt-r1-label').textContent = alive ? 'Rows first: sum of P(L) x months paid' : 'Rows first: sum of P(L) x row value';
+      $('#mt-r2-label').textContent = alive ? 'Columns first: sum of S(t)' : 'Columns first: sum of the bottom row';
+      $$('[data-msum]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.msum === state.msum)));
+      $$('[data-mcell]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mcell === state.mcell)));
+      $('#matrix-note').textContent = alive
+        ? `Survival view: each cell is just "still here?" as 1 or 0. Rows first gives each lifetime's number of payments; columns first gives S(t). Both add up to the expected number of months paid in the first ${N} months, E(min(L, ${N})) = sum of S(t). Switch back to discounted cash and the same two sums give E(${m}).`
+        : `A small picture: the grid stops at ${N} months so it fits on screen, with everyone still here at ${N} in the last row. The real tool runs Road 1 to n* = ${nStar()} and the same identity holds there: rows first and columns first always give the same total. The shares P(L) in the left column add up to ${pct(mx.weightSum, 0)}.`;
+    }
+
+    function renderConvergence() {
+      const p = params(), ns = nStar(), nMax = Math.max(600, Math.ceil(ns * 1.15)), h = TwoRoadsMath.horizonCurve(p, nMax), c = TwoRoadsMath.converged(p), m = mName();
+      const full = V(c.ePav);
+      const series = h.map(x => [x.n, V(x.ePav)]);
+      const wrong = h.map(x => [x.n, isClv() ? x.dropSpikeClv : x.dropSpikePav]);
+      const yMin = Math.min(...series.map(s => s[1]), ...wrong.map(s => s[1]), 0), yMax = Math.max(full, ...series.map(s => s[1])) * 1.1;
+      const f = frame({ W: 1000, H: 340, xMin: 0, xMax: nMax, yMin, yMax, xLabel: 'Horizon n (months)', yLabel: `E(${m}) at horizon n ($)`, yFmt: v => money(v, 0) });
+      f.parts.push(`<line x1="${f.left}" y1="${f.y(full)}" x2="${f.W - f.right}" y2="${f.y(full)}" stroke="${BLUE}" stroke-dasharray="6 4"/><text x="${f.W - f.right - 4}" y="${f.y(full) - 7}" text-anchor="end" font-size="11" font-weight="800" fill="${BLUE}">true E(${m}) ${money(full)}</text>`);
+      f.parts.push(`<path d="${path(wrong, f)}" fill="none" stroke="${GREY}" stroke-width="2" stroke-dasharray="4 4"/><text x="${f.x(nMax * 0.62)}" y="${f.y(wrong[Math.round(nMax * 0.62)][1]) + 16}" font-size="10.5" fill="${GREY}" font-weight="700">Road 1 if you forget the spike (wrong)</text>`);
+      f.parts.push(`<path d="${path(series, f)}" fill="none" stroke="${GREEN}" stroke-width="5" opacity=".55"/><path d="${path(series, f)}" fill="none" stroke="${BLUE_MID}" stroke-width="2" stroke-dasharray="7 5"/>`);
+      f.parts.push(`<text x="${f.x(nMax * 0.2)}" y="${f.y(series[Math.round(nMax * 0.2)][1]) + 22}" font-size="11" font-weight="800" fill="${GREEN}">Road 1 (dashed) = Road 2 (solid) at every n</text>`);
+      if (isClv()) f.parts.push(`<line x1="${f.left}" y1="${f.y(0)}" x2="${f.W - f.right}" y2="${f.y(0)}" stroke="${RED}" stroke-dasharray="4 4"/>`);
+      f.parts.push(`<line x1="${f.x(ns)}" y1="${f.top}" x2="${f.x(ns)}" y2="${f.H - f.bottom}" stroke="${MAGENTA}" stroke-width="2" stroke-dasharray="5 4"/><text x="${f.x(ns) - 6}" y="${f.H - f.bottom - 10}" text-anchor="end" font-size="11" font-weight="800" fill="${MAGENTA}">Road 1's n* = ${ns}</text>`);
+      const cur = V(h[Math.min(state.n, nMax) - 1].ePav);
+      f.parts.push(`<line x1="${f.x(state.n)}" y1="${f.top}" x2="${f.x(state.n)}" y2="${f.H - f.bottom}" stroke="${MAIZE_DARK}" stroke-width="2"/><circle cx="${f.x(state.n)}" cy="${f.y(cur)}" r="7" fill="${MAIZE}" stroke="${BLUE}" stroke-width="2"/><text x="${f.x(state.n) + 10}" y="${f.y(cur) + 20}" font-size="12" font-weight="800" fill="${BLUE}">n = ${state.n}: ${money(cur)}</text>`);
+      $('#conv-chart').innerHTML = `<title>E(${m}) as the horizon grows</title>${f.parts.join('')}`;
+      $('#excel-label').textContent = `Your E(${m}) from Excel ($)`;
+    }
+
+    function checkExcel() {
+      const val = Number($('#excel-val').value), n = Math.round(Number($('#excel-n').value));
+      const out = $('#match-out');
+      if (!$('#excel-val').value || !Number.isFinite(val) || !(n >= 1)) { out.className = 'match-out'; out.textContent = 'Enter your Excel value and the number of months your sheet covers.'; return; }
+      const mine = V(TwoRoadsMath.road2(params(), n).ePav), diff = val - mine;
+      if (Math.abs(diff) < 0.01) { out.className = 'match-out ok'; out.textContent = `Match. With n = ${n} months this tool gets ${money(mine)} too.`; return; }
+      out.className = 'match-out off';
+      let hint = 'Check the timing: the first payment is at t = 0 and undiscounted, and S(0) = 1.';
+      const shifted = V(TwoRoadsMath.road2(params(), n + 1).ePav) - mine;
+      if (Math.abs(val - V(TwoRoadsMath.road2(params(), n).ePav / (1 + params().d))) < 0.05) hint = 'You discounted the first payment. Cash arrives at the START of the month, so t = 0 is not discounted.';
+      else if (isClv() && Math.abs(diff - params().cac) < 0.05) hint = 'You are off by exactly CAC. Did you compute E(PAV) instead of E(CLV)?';
+      else if (Math.abs(diff) < Math.abs(shifted) * 1.5) hint = 'You are off by about one month of value. Check whether your sheet stops one month early or late.';
+      out.textContent = `Not quite: this tool gets ${money(mine)} at n = ${n}, so you are ${money(Math.abs(diff))} ${diff > 0 ? 'high' : 'low'}. ${hint}`;
+    }
+
+    function renderQuestion() {
+      const q = questions[state.step]();
+      $('#question-text').textContent = q.q;
+      $('#answer-text').textContent = q.a;
+      $('#answer-text').hidden = true;
+      $('#answer-toggle').setAttribute('aria-expanded', 'false');
+      $('#answer-toggle').textContent = 'Check your thinking';
+    }
+
+    function render() {
+      syncN();
+      const walk = state.mode === 'walk';
+      $$('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode)));
+      $$('[data-measure]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.measure === state.measure)));
+      $$('[data-churn]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.churn === state.churn)));
+      $$('.bg-only').forEach(el => el.hidden = state.churn !== 'bg');
+      $$('.r-only').forEach(el => el.hidden = state.churn === 'bg');
+      $('#stepper').hidden = !walk; $('#walk-nav').hidden = !walk; $('#question').hidden = !walk;
+      $$('.step').forEach(b => { const sel = Number(b.dataset.step) === state.step; b.setAttribute('aria-selected', String(sel)); b.tabIndex = sel ? 0 : -1; });
+      $('#prev').disabled = state.step === 1; $('#next').disabled = state.step === 6;
+      $$('[data-panel]').forEach(el => el.hidden = walk && Number(el.dataset.panel) !== state.step);
+      $('[data-out="cac"]').textContent = money(params().cac, 0);
+      renderResults();
+      if (walk) renderQuestion();
+      renderTiming(); renderSurvival(); renderRoad1(); renderRoad2(); renderMatrix(); renderConvergence();
+      applyHighlight();
+      const h = walk ? `#step-${state.step}` : '#explore';
+      if (location.hash !== h) history.replaceState(null, '', h);
+    }
+
+    // Hover a lifetime (row) or a month (column) anywhere and light it up everywhere.
+    function applyHighlight() {
+      // Hover wins; otherwise a clicked (locked) lifetime stays lit across every chart and table.
+      const L = state.hoverL ?? state.lockL;
+      $$('[data-l]').forEach(el => el.classList.toggle('hl', L !== null && Number(el.dataset.l) === L && el.tagName === 'TR'));
+      $$('#matrix [data-t]').forEach(el => el.classList.toggle('colhl', state.hoverT !== null && Number(el.dataset.t) === state.hoverT));
+      const T = state.hoverT ?? state.lockT;   // Road 2: hovered or clicked month
+      $$('#r2-body tr[data-t]').forEach(el => el.classList.toggle('hl', T !== null && Number(el.dataset.t) === T));
+      $$('#tri2 [data-t]').forEach(el => el.classList.toggle('colsel', T !== null && Number(el.dataset.t) === T));
+      $$('#s-body tr[data-t]').forEach(el => { const t = Number(el.dataset.t); el.classList.toggle('hl', (state.hoverT !== null && t === state.hoverT) || (L !== null && t === L)); });
+      $$('#r1-chart [data-l], #lt-chart [data-l], #s-chart [data-l]').forEach(el => el.classList.toggle('hl-mark', L !== null && Number(el.dataset.l) === L));
+      $$('#r2-chart [data-t]').forEach(el => el.classList.toggle('hl-mark', T !== null && Number(el.dataset.t) === T));
+    }
+    document.addEventListener('click', e => {
+      const tr = e.target.closest?.('#r1-body tr[data-l], #tri tr[data-l]');
+      if (tr) { state.lockL = Number(tr.dataset.l); applyHighlight(); }
+    });
+    document.addEventListener('click', e => {
+      const el = e.target.closest?.('#r2-chart [data-t], #tri2 [data-t], #r2-body tr[data-t]');
+      if (!el) return;
+      const t = Number(el.dataset.t);
+      state.lockT = t === state.lockT ? null : t;
+      applyHighlight();
+    });
+    // Click a bar in any chart to lock that lifetime; click it again (or empty space in a chart) to clear.
+    document.addEventListener('click', e => {
+      if (!e.target.closest?.('svg')) return;
+      const bar = e.target.closest('svg [data-l]');
+      const L = bar ? Number(bar.dataset.l) : null;
+      state.lockL = L === state.lockL ? null : L;
+      applyHighlight();
+    });
+    document.addEventListener('mouseover', e => {
+      const t = e.target.closest?.('[data-t]'), l = e.target.closest?.('[data-l]');
+      const inMatrix = e.target.closest?.('#matrix');
+      let nl = null, nt = null;
+      if (inMatrix) { const cell = e.target.closest('td[data-t], th[data-t]'); if (cell) nt = Number(cell.dataset.t); const tr = e.target.closest('tr[data-l]'); if (tr) nl = Number(tr.dataset.l); }
+      else { if (l) nl = Number(l.dataset.l); if (t) nt = Number(t.dataset.t); }
+      if (nl !== state.hoverL || nt !== state.hoverT) { state.hoverL = nl; state.hoverT = nt; applyHighlight(); }
+    });
+
+    // ---------- wiring ----------
+    const setStep = s => { state.step = Math.min(6, Math.max(1, s)); state.msum = null; render(); window.scrollTo({ top: $('#stepper').offsetTop - 10, behavior: 'smooth' }); };
+    $$('.step').forEach(b => b.addEventListener('click', () => setStep(Number(b.dataset.step))));
+    $('#prev').addEventListener('click', () => setStep(state.step - 1));
+    $('#next').addEventListener('click', () => setStep(state.step + 1));
+    document.addEventListener('keydown', e => {
+      if (state.mode !== 'walk' || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+      if (e.key === 'ArrowRight') { e.preventDefault(); setStep(state.step + 1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); setStep(state.step - 1); }
+    });
+    $$('[data-mode]').forEach(b => b.addEventListener('click', () => { state.mode = b.dataset.mode; render(); }));
+    // E(PAV) ignores CAC: grey the slider out at 0 and remember the CLV-view CAC for the PAV = CAC line.
+    function setMeasure(mv) {
+      const cac = $('#cac');
+      if (mv === 'pav' && state.measure !== 'pav') { state.cacSaved = Number(cac.value); cac.value = 0; }
+      if (mv === 'clv' && state.measure === 'pav') cac.value = state.cacSaved;
+      state.measure = mv;
+      cac.disabled = mv === 'pav';
+      $('#cac-ctl').classList.toggle('is-off', mv === 'pav');
+      $('#cac-label').textContent = mv === 'pav' ? 'CAC (not in PAV)' : 'CAC';
+      render();
+    }
+    $$('[data-measure]').forEach(b => b.addEventListener('click', () => setMeasure(b.dataset.measure)));
+    $$('[data-churn]').forEach(b => b.addEventListener('click', () => { state.churn = b.dataset.churn; render(); }));
+    $$('[data-key]').forEach(el => el.addEventListener('input', render));
+    const setN = v => { state.n = Math.min(Number($('#n-range').max), Math.max(1, Math.round(Number(v) || 1))); state.nFollows = false; syncN(); render(); };
+    function syncN() { const ns = nStar(), max = Math.max(600, ns); $('#n-range').max = max; $('#n-num').max = max; if (state.nFollows) state.n = ns; $('#n-range').value = state.n; $('#n-num').value = state.n; }
+    $('#n-reset').addEventListener('click', () => { state.nFollows = true; render(); });
+    $('#n-range').addEventListener('input', e => setN(e.target.value));
+    $('#n-num').addEventListener('change', e => setN(e.target.value));
+    $$('[data-mcell]').forEach(b => b.addEventListener('click', () => { state.mcell = b.dataset.mcell; renderMatrix(); applyHighlight(); }));
+    $$('[data-msum]').forEach(b => b.addEventListener('click', () => { state.msum = b.dataset.msum === 'none' ? null : b.dataset.msum; renderMatrix(); applyHighlight(); }));
+    $('#reset').addEventListener('click', () => { for (const [k, v] of Object.entries(defaults)) $(`[data-key="${k}"]`).value = v; state.cacSaved = defaults.cac; if (state.measure === 'pav') $('#cac').value = 0; state.churn = 'bg'; state.nFollows = true; render(); });
+    $('#answer-toggle').addEventListener('click', () => { const el = $('#answer-text'), open = el.hidden; el.hidden = !open; $('#answer-toggle').setAttribute('aria-expanded', String(open)); $('#answer-toggle').textContent = open ? 'Hide explanation' : 'Check your thinking'; });
+    $('#excel-check').addEventListener('click', checkExcel);
+    $('#excel-val').addEventListener('keydown', e => { if (e.key === 'Enter') checkExcel(); });
+    const lp = $('#lpick');
+    for (let L = 1; L <= 8; L++) { const b = document.createElement('button'); b.type = 'button'; b.dataset.l = L; b.textContent = L; b.addEventListener('click', () => { state.timingL = L; renderTiming(); }); lp.appendChild(b); }
+    render();
+  })();
+  </script>
+</body>
+</html>

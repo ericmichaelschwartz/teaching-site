@@ -169,7 +169,7 @@
   <main class="shell">
     <header class="hero">
       <div>
-        <p class="eyebrow">MKT 626 · Customer heterogeneity · Tool 2</p>
+        <p class="eyebrow">MKT 626 · Forecasting churn and CLV: Tool 2</p>
         <h1>From survivor table to CLV distribution</h1>
         <p class="lede">The survivor curve and the CLV distribution look like separate analyses. They are not. Both come straight from the rows of one table. Hover a row, or a point on either chart, and follow the same lifetime everywhere.</p>
       </div>
@@ -178,11 +178,11 @@
 
     <section class="control-bar card" aria-label="Model controls">
       <div class="main-control"><label for="cac"><span>Acquisition cost (CAC)</span><output data-output="cac"></output></label><input id="cac" data-key="cac" type="range" min="0" max="400" step="1" value="50"></div>
-      <div class="baseline"><b>Blue Apron sBG baseline</b><br>Monthly contribution $26.8164 · discount 1.53% · gamma 0.6746 · delta 1.2336</div>
+      <div class="baseline"><b>Blue Apron sBG baseline</b><br>Monthly contribution $26.8164 · discount 1.53% · a 0.6746 · b 1.2336</div>
       <button class="settings-toggle" id="settings-toggle" type="button" aria-expanded="false">Model settings</button>
       <div class="advanced" id="advanced" hidden>
-        <div class="mini-control"><label for="gamma"><span>Gamma</span><output data-output="gamma"></output></label><input id="gamma" data-key="gamma" type="number" min="0.1" max="2" step="0.0001" value="0.6746182701085135"></div>
-        <div class="mini-control"><label for="delta"><span>Delta</span><output data-output="delta"></output></label><input id="delta" data-key="delta" type="number" min="0.2" max="4" step="0.0001" value="1.2336012934958855"></div>
+        <div class="mini-control"><label for="a"><span>a</span><output data-output="a"></output></label><input id="a" data-key="a" type="number" min="0.1" max="2" step="0.0001" value="0.6746182701085135"></div>
+        <div class="mini-control"><label for="b"><span>b</span><output data-output="b"></output></label><input id="b" data-key="b" type="number" min="0.2" max="4" step="0.0001" value="1.2336012934958855"></div>
         <div class="mini-control"><label for="contribution"><span>Contribution / month</span><output data-output="contribution"></output></label><input id="contribution" data-key="contribution" type="number" min="5" max="70" step="0.0001" value="26.8164"></div>
         <div class="mini-control"><label for="discount"><span>Monthly discount</span><output data-output="discount"></output></label><input id="discount" data-key="discount" type="number" min="0.001" max="0.05" step="0.0001" value="0.0153"></div>
         <button class="reset" id="reset" type="button">Reset workbook defaults</button>
@@ -253,7 +253,7 @@
     <details class="method">
       <summary>Model, row mapping, and source notes</summary>
       <div class="method-grid">
-        <p><strong>Fitted inputs.</strong> <code>Class 7 - BG and CLV.xlsx</code>: <code>Beta Geometric (BG)!B1:B2</code> supplies gamma and delta. <code>BG CLV!E1:E5</code> supplies AOF, AOV, margin, monthly contribution, and discount rate. Retention, survival, churn probability, discounting, and value formulas follow <code>BG CLV!C9:J594</code>.</p>
+        <p><strong>Fitted inputs.</strong> <code>Class 7 - BG and CLV.xlsx</code>: <code>Beta Geometric (BG)!B1:B2</code> supplies a and b. <code>BG CLV!E1:E5</code> supplies AOF, AOV, margin, monthly contribution, and discount rate. Retention, survival, churn probability, discounting, and value formulas follow <code>BG CLV!C9:J594</code>.</p>
         <p><strong>Tail row.</strong> The visible table shows lifetimes 1 to 60 plus a 61+ aggregate. Its probability is S(60), and its displayed PAV and CLV are the probability-weighted conditional average of the remaining model tail. That keeps both expected-value routes complete without pretending the tail is a single lifetime.</p>
       </div>
     </details>
@@ -276,22 +276,22 @@
       return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
     }
     function lnBeta(a, b) { return lnGamma(a) + lnGamma(b) - lnGamma(a + b); }
-    function survival(gamma, delta, t) {
+    function survival(a, b, t) {
       if (t <= 0) return 1;
-      return Math.exp(lnBeta(gamma, delta + t) - lnBeta(gamma, delta));
+      return Math.exp(lnBeta(a, b + t) - lnBeta(a, b));
     }
-    function retention(gamma, delta, t) {
+    function retention(a, b, t) {
       if (t <= 0) return 1;
-      return survival(gamma, delta, t) / survival(gamma, delta, t - 1);
+      return survival(a, b, t) / survival(a, b, t - 1);
     }
-    function probabilityLifetime(gamma, delta, lifetime) {
-      return survival(gamma, delta, lifetime - 1) - survival(gamma, delta, lifetime);
+    function probabilityLifetime(a, b, lifetime) {
+      return survival(a, b, lifetime - 1) - survival(a, b, lifetime);
     }
     function normalize(raw) {
       const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, Number(v)));
       return {
-        gamma: clamp(raw.gamma, 0.001, 100),
-        delta: clamp(raw.delta, 0.001, 100),
+        a: clamp(raw.a, 0.001, 100),
+        b: clamp(raw.b, 0.001, 100),
         contribution: clamp(raw.contribution, 0, 100000),
         discount: clamp(raw.discount, 0.000001, 10),
         cac: clamp(raw.cac, 0, 1000000),
@@ -305,7 +305,7 @@
       const pav = new Array(p.horizon + 1);
       let cumulativePav = 0, expectedPav = 0;
       for (let t = 0; t <= p.horizon; t++) {
-        s[t] = survival(p.gamma, p.delta, t);
+        s[t] = survival(p.a, p.b, t);
         const dcf = p.contribution / Math.pow(1 + p.discount, t);
         cumulativePav += dcf;
         pav[t] = cumulativePav;
@@ -319,7 +319,7 @@
         displayedPavContribution += probability * rowPav;
         rows.push({ index: lifetime - 1, label: String(lifetime), lifetime,
           startT: lifetime - 1, survival: s[lifetime - 1],
-          retentionNext: retention(p.gamma, p.delta, lifetime), probability,
+          retentionNext: retention(p.a, p.b, lifetime), probability,
           pav: rowPav, clv: rowPav - p.cac, weightedClv: probability * (rowPav - p.cac),
           // Value of one exact lifetime. For every row but the tail this is the same
           // number as `clv`; the value chart uses this field so the two never diverge.
@@ -368,8 +368,8 @@
       const asymptotePav = p.contribution * (1 + p.discount) / p.discount;
       return { ...p, s, pav, rows, expectedPav, expectedClv, distributionExpectedClv,
         medianLifetime, medianPav, medianClv: medianPav - p.cac,
-        paybackLifetime, unprofitableShare, r1: retention(p.gamma, p.delta, 1),
-        r12: retention(p.gamma, p.delta, 12), tailProbability,
+        paybackLifetime, unprofitableShare, r1: retention(p.a, p.b, 1),
+        r12: retention(p.a, p.b, 12), tailProbability,
         asymptotePav, asymptoteClv: asymptotePav - p.cac };
     }
     return { lnGamma, lnBeta, survival, retention, probabilityLifetime, normalize, buildModel };
@@ -384,8 +384,8 @@
     const BLUE = '#00274C', BLUE_MID = '#2F65A7', MAIZE = '#FFCB05', MAIZE_DARK = '#D9A900', RED = '#9A3324';
     const initialStep = Math.min(5, Math.max(1, Number(location.hash.match(/step-(\d+)/)?.[1] || 1)));
     const state = { step: initialStep, hover: null, locked: null, model: null };
-    const defaults = { gamma: 0.6746182701085135, delta: 1.2336012934958855, contribution: 26.8164, discount: 0.0153, cac: 50 };
-    const formats = { cac:v=>money(v,0), gamma:v=>v.toFixed(4), delta:v=>v.toFixed(4), contribution:v=>money(v,2), discount:v=>pct(v,2) };
+    const defaults = { a: 0.6746182701085135, b: 1.2336012934958855, contribution: 26.8164, discount: 0.0153, cac: 50 };
+    const formats = { cac:v=>money(v,0), a:v=>v.toFixed(4), b:v=>v.toFixed(4), contribution:v=>money(v,2), discount:v=>pct(v,2) };
     const activeIndex = () => state.hover ?? state.locked;
     const inputs = () => Object.fromEntries($$('[data-key]').map(el => [el.dataset.key, Number(el.value)]));
 
