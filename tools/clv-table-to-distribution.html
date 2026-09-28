@@ -58,7 +58,7 @@
     .advanced[hidden] { display: none; }
     .reset { align-self: end; border: 0; border-bottom: 1px solid currentColor; background: transparent; padding: 2px; color: var(--blue-mid); font-size: .72rem; font-weight: 800; cursor: pointer; }
 
-    .metrics { display: grid; grid-template-columns: repeat(5, 1fr); margin: 14px 0 22px; overflow: hidden; }
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); margin: 14px 0 22px; overflow: hidden; }
     .metric { min-height: 86px; border-right: 1px solid var(--line); padding: 16px 17px; }
     .metric:last-child { border-right: 0; }
     .metric b { display: block; color: var(--blue); font-family: inherit; font-size: 1.45rem; font-weight: 750; letter-spacing: -.02em; line-height: 1.15; font-variant-numeric: tabular-nums; }
@@ -111,6 +111,11 @@
     .chart-label { fill: var(--blue); font-size: 11px; font-weight: 750; }
     .chart-point { cursor: pointer; }
     .chart-point.is-active { stroke: var(--maize-dark) !important; stroke-width: 5px !important; }
+    /* Step 4 connectors, lifetime bar to its CLV twin. A few show by default; the hovered or
+       locked lifetime's connector always shows, in maize. */
+    .link { display: none; }
+    .link.default { display: inline; }
+    .link.is-on { display: inline; stroke: var(--maize-dark); stroke-width: 2.6px; stroke-dasharray: none; opacity: 1; }
     .avg-mark { margin-left: 4px; padding: 0 3px; border: 1px solid var(--muted); border-radius: 3px;
       font-size: .6rem; font-weight: 700; color: var(--muted); text-decoration: none; cursor: help;
       vertical-align: 1px; }
@@ -192,8 +197,7 @@
     <section class="metrics card" aria-label="Model results">
       <div class="metric"><b id="metric-r1">...</b><span>Retention into month 2, r(1)</span></div>
       <div class="metric"><b id="metric-r12">...</b><span>Retention into month 13, r(12)</span></div>
-      <div class="metric locked" data-unlock="4"><b id="metric-eclv">Unlocks in step 4</b><span>Expected CLV after CAC</span></div>
-      <div class="metric locked" data-unlock="4"><b id="metric-median">Unlocks in step 4</b><span>Median customer CLV</span></div>
+      <div class="metric locked" data-unlock="5"><b id="metric-median">Unlocks in step 5</b><span>Median customer CLV</span></div>
       <div class="metric locked" data-unlock="5"><b id="metric-loss">Unlocks in step 5</b><span>Customers who never cover CAC</span></div>
     </section>
 
@@ -201,7 +205,7 @@
       <button class="step" type="button" role="tab" aria-selected="true" data-step="1"><small>Step 1</small><span>The survivor table</span></button>
       <button class="step" type="button" role="tab" aria-selected="false" data-step="2"><small>Step 2</small><span>What is one lifetime worth?</span></button>
       <button class="step" type="button" role="tab" aria-selected="false" data-step="3"><small>Step 3</small><span>How likely is each lifetime?</span></button>
-      <button class="step" type="button" role="tab" aria-selected="false" data-step="4"><small>Step 4</small><span>The average is weighted</span></button>
+      <button class="step" type="button" role="tab" aria-selected="false" data-step="4"><small>Step 4</small><span>How likely is each possible CLV?</span></button>
       <button class="step" type="button" role="tab" aria-selected="false" data-step="5"><small>Step 5</small><span>Who never pays back?</span></button>
     </nav>
 
@@ -232,19 +236,13 @@
           <div class="chart-wrap"><svg id="value-chart" viewBox="0 0 720 285" role="img" aria-label="Customer lifetime value by realized lifetime"></svg></div>
         </section>
 
-        <section class="chart-card card" id="distribution-card" hidden aria-labelledby="distribution-title">
-          <div class="chart-head"><h2 id="distribution-title">Probability distribution of CLV</h2><p>CLV sets the horizontal position; P(L) sets the height. Same rows, rearranged.</p></div>
-          <div class="chart-wrap"><svg id="distribution-chart" viewBox="0 0 720 300" role="img" aria-label="Probability distribution of customer lifetime value"></svg></div>
-        </section>
-
-        <section class="formula-card card" id="formula-card" hidden aria-label="Two routes to expected value">
-          <div class="route"><small>Route A · discount the survivor curve</small><code>E(PAV) = sum of m x S(t) / (1+d)^t</code><b id="route-a">...</b><span class="route-note" id="route-a-note"></span></div>
-          <span class="equals" aria-label="equals">=</span>
-          <div class="route"><small>Route B · weight every lifetime</small><code>E(CLV) = sum of P(L) x CLV(L)</code><b id="route-b">...</b><span class="route-note" id="route-b-note"></span></div>
+        <section class="chart-card card" id="lifetime-card" hidden aria-labelledby="lifetime-title">
+          <div class="chart-head"><h2 id="lifetime-title">Probability of each lifetime, P(L)</h2><p id="lifetime-caption"></p></div>
+          <div class="chart-wrap"><svg id="lifetime-chart" viewBox="0 0 720 285" role="img" aria-label="Probability of each customer lifetime in months"></svg></div>
         </section>
 
         <section class="risk-card card" id="risk-card" hidden aria-labelledby="risk-title">
-          <h2 id="risk-title">The average hides the downside</h2>
+          <h2 id="risk-title">Who never pays back</h2>
           <p id="risk-copy"></p>
         </section>
       </section>
@@ -254,7 +252,7 @@
       <summary>Model, row mapping, and source notes</summary>
       <div class="method-grid">
         <p><strong>Fitted inputs.</strong> <code>Class 7 - BG and CLV.xlsx</code>: <code>Beta Geometric (BG)!B1:B2</code> supplies a and b. <code>BG CLV!E1:E5</code> supplies AOF, AOV, margin, monthly contribution, and discount rate. Retention, survival, churn probability, discounting, and value formulas follow <code>BG CLV!C9:J594</code>.</p>
-        <p><strong>Tail row.</strong> The visible table shows lifetimes 1 to 60 plus a 61+ aggregate. Its probability is S(60), and its displayed PAV and CLV are the probability-weighted conditional average of the remaining model tail. That keeps both expected-value routes complete without pretending the tail is a single lifetime.</p>
+        <p><strong>Tail row.</strong> The visible table shows lifetimes 1 to 60 plus a 61+ aggregate. Its probability is S(60), and its displayed PAV and CLV are the probability-weighted conditional average of the remaining model tail, so the tail is not treated as a single lifetime.</p>
       </div>
     </details>
     <footer>Self-contained teaching prototype · PAV is value before CAC; CLV = PAV - CAC · Built for MKT 626 at Michigan Ross</footer>
@@ -395,9 +393,9 @@
     const questions = {
       1: m => ({q:`Retention climbs from ${pct(m.r1)} in month 1 to ${pct(m.r12)} in month 12. Did customers get more loyal?`,a:'No individual changed. The customers most likely to churn leave first, so the group that remains is a steadily more loyal mix. That sorting effect is the whole point of the beta-geometric model.'}),
       2: m => ({q:'What is a customer worth if they last exactly one month?',a:`They produce one undiscounted contribution of ${money(m.contribution)}. After ${money(m.cac,0)} of CAC, their CLV is ${money(m.rows[0].clv)}.`}),
-      3: m => ({q:'What share of the cohort lasts exactly one month?',a:`${pct(m.rows[0].probability)}, the single biggest group. Its bar in the distribution uses the same P(L) value you can see in the first row of the table.`}),
-      4: m => ({q:'Expected CLV versus median CLV: which one describes a typical customer?',a:`The median. Expected CLV is ${money(m.expectedClv)}, but the median customer is worth ${money(m.medianClv)}. A small group of long-lived customers pulls the average up, so the average describes almost nobody.`}),
-      5: m => ({q:'How high can CAC go before expected CLV hits zero, and what does customer-level risk look like at that point?',a:`CAC can rise to expected PAV, which is ${money(m.expectedPav)}. The cohort then breaks even on average, yet about ${pct(breakEvenShare(m))} of customers individually lose money. The long tail carries everyone else.`})
+      3: m => ({q:'What share of the cohort lasts exactly one month?',a:`${pct(m.rows[0].probability)}, the single biggest group. Its spike on the lifetime chart is the same P(L) value you can see in the first row of the table.`}),
+      4: m => ({q:'The tallest spike on the lifetime chart is L = 1 month. Where does it land once the x-axis is CLV instead of months?',a:`At CLV(1) = ${money(m.rows[0].clv)}, ${m.rows[0].clv<0?'left of':'at or right of'} break-even, with the same height of ${pct(m.rows[0].probability)}. No spike changes height. Each one just slides from its month L to its dollar value CLV(L), so the two panels are the same rows of the table, rearranged.`}),
+      5: m => ({q:`At a CAC of ${money(m.cac,0)}, what share of new customers never earn back what it cost to acquire them?`,a:`${pct(m.unprofitableShare)}: every lifetime whose spike sits left of the break-even line. They churn before their discounted contributions cover CAC. Drag CAC and watch the spikes slide across break-even: their heights never change, only their dollar values.`})
     };
 
     function setStep(step) {
@@ -412,8 +410,7 @@
     function renderMetrics(m) {
       $('#metric-r1').textContent = pct(m.r1);
       $('#metric-r12').textContent = pct(m.r12);
-      $('#metric-eclv').textContent = state.step>=4 ? money(m.expectedClv) : 'Unlocks in step 4';
-      $('#metric-median').textContent = state.step>=4 ? money(m.medianClv) : 'Unlocks in step 4';
+      $('#metric-median').textContent = state.step>=5 ? money(m.medianClv) : 'Unlocks in step 5';
       $('#metric-loss').textContent = state.step>=5 ? pct(m.unprofitableShare) : 'Unlocks in step 5';
       $$('[data-unlock]').forEach(el=>el.classList.toggle('locked',state.step<Number(el.dataset.unlock)));
     }
@@ -429,7 +426,6 @@
       const h=['Lifetime L','S(L-1)','r(next)'];
       if(state.step>=2) h.push('PAV(L)','CLV(L)');
       if(state.step>=3) h.push('P(L)');
-      if(state.step>=4) h.push('P(L) x CLV(L)');
       return h;
     }
     // Shared by renderTable and updateHighlight so the caption can never drift between them.
@@ -451,7 +447,6 @@
         const avgMark=row.isTail?`<abbr class="avg-mark" title="Average across every lifetime of ${m.displayRows+1} months or more. A lifetime of exactly ${m.displayRows+1} months is worth ${money(row.clvAtLifetime)}, which is the point plotted on the value chart.">avg</abbr>`:'';
         if(state.step>=2) cells.push(`<td class="col-new">${money(row.pav)}${avgMark}</td>`,`<td class="col-new">${money(row.clv)}${avgMark}</td>`);
         if(state.step>=3) cells.push(`<td class="col-new">${pct(row.probability,2)}</td>`);
-        if(state.step>=4) cells.push(`<td class="col-new">${money(row.weightedClv)}</td>`);
         return `<tr tabindex="0" data-index="${row.index}" aria-selected="${state.locked===row.index}" class="${row.isTail?'tail ':''}${active===row.index?'active ':''}${state.locked===row.index?'locked':''}">${cells.join('')}</tr>`;
       }).join('');
       const row=active===null?null:m.rows[active];
@@ -475,12 +470,12 @@
       }
       return ticks.length ? ticks : [min, max];
     }
-    function frame({W=720,H=285,left=62,right=22,top=22,bottom=45,xMin=0,xMax=60,yMin=0,yMax=1,xLabel='',yLabel=''}) {
+    function frame({W=720,H=285,left=62,right=22,top=22,bottom=45,xMin=0,xMax=60,yMin=0,yMax=1,xLabel='',yLabel='',xFmt=null,yFmt=null,tickUnder=false}) {
       const x=v=>left+(v-xMin)/(xMax-xMin)*(W-left-right);
       const y=v=>top+(yMax-v)/(yMax-yMin)*(H-top-bottom);
       const parts=[];
-      for(const v of niceTicks(yMin,yMax,4)){parts.push(`<line class="grid" x1="${left}" y1="${y(v)}" x2="${W-right}" y2="${y(v)}"/><text class="tick" x="${left-8}" y="${y(v)+4}" text-anchor="end">${yLabel==='Probability'?pct(v,0):yLabel.includes('$')?money(v,0):v.toFixed(2)}</text>`)}
-      for(const v of niceTicks(xMin,xMax,6)){parts.push(`<line class="grid" x1="${x(v)}" y1="${top}" x2="${x(v)}" y2="${H-bottom}"/><text class="tick" x="${x(v)}" y="${H-22}" text-anchor="middle">${xLabel.includes('CLV')?money(v,0):Math.round(v)}</text>`)}
+      for(const v of niceTicks(yMin,yMax,4)){parts.push(`<line class="grid" x1="${left}" y1="${y(v)}" x2="${W-right}" y2="${y(v)}"/><text class="tick" x="${left-8}" y="${y(v)+4}" text-anchor="end">${yFmt?yFmt(v):yLabel==='Probability'?pct(v,0):yLabel.includes('$')?money(v,0):v.toFixed(2)}</text>`)}
+      for(const v of niceTicks(xMin,xMax,6)){parts.push(`<line class="grid" x1="${x(v)}" y1="${top}" x2="${x(v)}" y2="${H-bottom}"/><text class="tick" x="${x(v)}" y="${tickUnder?H-bottom+17:H-22}" text-anchor="middle">${xFmt?xFmt(v):xLabel.includes('CLV')?money(v,0):Math.round(v)}</text>`)}
       parts.push(`<line class="axis" x1="${left}" y1="${H-bottom}" x2="${W-right}" y2="${H-bottom}"/><line class="axis" x1="${left}" y1="${top}" x2="${left}" y2="${H-bottom}"/><text class="chart-label" x="${(left+W-right)/2}" y="${H-4}" text-anchor="middle">${xLabel}</text><text class="chart-label" transform="translate(14 ${(top+H-bottom)/2}) rotate(-90)" text-anchor="middle">${yLabel}</text>`);
       return {x,y,parts,W,H,left,right,top,bottom};
     }
@@ -507,13 +502,66 @@
       for(const row of m.rows){const xx=row.isTail?m.displayRows+1:row.lifetime,isActive=activeIndex()===row.index,color=state.step>=5&&row.clvAtLifetime<0?RED:BLUE_MID;f.parts.push(`<circle ${pointAttrs(row.index,`Lifetime ${row.label}, CLV ${money(row.clvAtLifetime)}`)} cx="${f.x(xx)}" cy="${f.y(row.clvAtLifetime)}" r="${isActive?7:3.5}" fill="${isActive?MAIZE:color}" stroke="${isActive?'#8A6D00':'#fff'}" stroke-width="2"><title>Lifetime ${row.label}${row.isTail?' (exactly '+(m.displayRows+1)+' months)':''}: CLV ${money(row.clvAtLifetime)}</title></circle>`)}
       $('#value-chart').innerHTML=`<title>Customer lifetime value by realized lifetime</title>${f.parts.join('')}`;
     }
-    function renderDistribution(m) {
-      const xMin=Math.min(...m.rows.map(r=>r.clv)),xMax=Math.max(...m.rows.map(r=>r.clv)),yMax=Math.max(...m.rows.map(r=>r.probability))*1.15;
-      const f=frame({W:720,H:300,xMin:xMin,xMax:xMax,yMin:0,yMax:yMax,xLabel:'CLV after CAC ($)',yLabel:'Probability'});
-      if(xMin<0&&xMax>0)f.parts.push(`<line x1="${f.x(0)}" y1="${f.top}" x2="${f.x(0)}" y2="${f.H-f.bottom}" stroke="${RED}" stroke-width="2" stroke-dasharray="5 4"/><text x="${f.x(0)+6}" y="${f.top+12}" fill="${RED}" font-size="10" font-weight="800">BREAK-EVEN</text>`);
-      if(state.step>=4)f.parts.push(`<line x1="${f.x(m.expectedClv)}" y1="${f.top}" x2="${f.x(m.expectedClv)}" y2="${f.H-f.bottom}" stroke="${MAIZE_DARK}" stroke-width="3"/><text x="${f.x(m.expectedClv)+6}" y="${f.top+26}" fill="#6E5600" font-size="10" font-weight="800">E(CLV) ${money(m.expectedClv)}</text>`);
-      for(const row of m.rows){const isActive=activeIndex()===row.index,color=state.step>=5&&row.clv<0?RED:BLUE,xx=f.x(row.clv),yy=f.y(row.probability);f.parts.push(`<line x1="${xx}" y1="${f.y(0)}" x2="${xx}" y2="${yy}" stroke="${color}" stroke-width="${isActive?7:4}" opacity="${isActive?1:.78}"/><circle ${pointAttrs(row.index,`Lifetime ${row.label}, CLV ${money(row.clv)}, probability ${pct(row.probability)}`)} cx="${xx}" cy="${yy}" r="${isActive?7:4}" fill="${isActive?MAIZE:color}" stroke="${isActive?'#8A6D00':'#fff'}" stroke-width="2"><title>Lifetime ${row.label}: ${money(row.clv)} with probability ${pct(row.probability,2)}</title></circle>`)}
-      $('#distribution-chart').innerHTML=`<title>Probability distribution of customer lifetime value</title>${f.parts.join('')}`;
+    // Step 3: P(L) against months, on the same x-axis as the CLV-by-lifetime chart above.
+    // Step 4: the same panel grows a second panel below it with the SAME y-scale and x = CLV(L),
+    // joined by connectors, so the only thing that changes is the x-axis (as in two_roads_eclv).
+    const LINK_DEFAULT = 6;
+    function spikes(f, rows, xOf, colorOf) {
+      for(const row of rows){const xx=f.x(xOf(row)),yy=f.y(row.probability),isActive=activeIndex()===row.index,color=colorOf(row);f.parts.push(`<line x1="${xx}" y1="${f.y(0)}" x2="${xx}" y2="${yy}" stroke="${color}" stroke-width="${isActive?7:4}" opacity="${isActive?1:.78}"/><circle ${pointAttrs(row.index,`Lifetime ${row.label}, CLV ${money(row.clv)}, probability ${pct(row.probability)}`)} cx="${xx}" cy="${yy}" r="${isActive?7:4}" fill="${isActive?MAIZE:color}" stroke="${isActive?'#8A6D00':'#fff'}" stroke-width="2"><title>Lifetime ${row.label}: CLV ${money(row.clv)}, probability ${pct(row.probability,2)}</title></circle>`)}
+    }
+    // The first few heights written on the y-axis, nudged apart when close, each with a leader line.
+    function heightLabels(f, items) {
+      const GAP=14, yBottom=f.y(0)-4, xLab=f.left-22;
+      items.forEach(it=>{it.y=f.y(it.prob);it.ly=it.y});
+      items.sort((p,q)=>p.y-q.y);
+      for(let k=1;k<items.length;k++)items[k].ly=Math.max(items[k].ly,items[k-1].ly+GAP);
+      if(items.length&&items[items.length-1].ly>yBottom){items[items.length-1].ly=yBottom;for(let k=items.length-2;k>=0;k--)items[k].ly=Math.min(items[k].ly,items[k+1].ly-GAP)}
+      for(const it of items)f.parts.push(`<line x1="${xLab+3}" y1="${it.ly-4}" x2="${f.left}" y2="${it.y}" stroke="${it.color}" stroke-width="1.2"/><circle cx="${f.left}" cy="${it.y}" r="2.5" fill="${it.color}"/><text x="${xLab}" y="${it.ly}" text-anchor="end" font-size="11" font-weight="800" fill="${it.color}">${pct(it.prob,1)}</text>`);
+    }
+    // A thick colored x-axis with a tinted tick band and a label pill, so the two axes cannot be confused.
+    function axisMark(f, col, tint, label, pillW) {
+      const yA=f.H-f.bottom,cx=(f.left+f.W-f.right)/2;
+      f.parts.unshift(`<rect x="${f.left}" y="${yA}" width="${f.W-f.left-f.right}" height="26" fill="${tint}"/>`);
+      f.parts.push(`<line x1="${f.left}" y1="${yA}" x2="${f.W-f.right}" y2="${yA}" stroke="${col}" stroke-width="4"/><rect x="${cx-pillW/2}" y="${f.H-30}" width="${pillW}" height="26" rx="13" fill="${col}"/><text x="${cx}" y="${f.H-12}" text-anchor="middle" font-size="13" font-weight="900" fill="#fff">${label}</text>`);
+    }
+    function renderLifetime(m) {
+      const twin=state.step>=4, tailX=m.displayRows+1, tail=m.rows[m.rows.length-1];
+      const yMax=Math.max(...m.rows.map(r=>r.probability))*1.15;
+      const lColor=row=>row.isTail?MAIZE_DARK:BLUE;
+      $('#lifetime-title').textContent=twin?'How likely is each possible customer lifetime value?':'Probability of each lifetime, P(L)';
+      $('#lifetime-caption').textContent=twin
+        ?'Top: P(L) by lifetime in months. Bottom: the same spikes at the same heights, moved to x = CLV(L). Only the x-axis changes. Dashed lines follow the first six lifetimes and the 61+ group; hover or click any lifetime to follow it.'
+        :'The share of new customers whose lifetime is exactly L months: P(L) = S(L-1) - S(L). Same months axis as the chart above; the last spike collects everyone who lasts 61 months or more.';
+      const svg=$('#lifetime-chart');
+      if(!twin){
+        svg.setAttribute('viewBox','0 0 720 285');
+        const f=frame({xMin:1,xMax:tailX,yMin:0,yMax:yMax,xLabel:'Realized lifetime L (months)',yLabel:'Probability'});
+        spikes(f,m.rows,row=>row.isTail?tailX:row.lifetime,lColor);
+        f.parts.push(`<text x="${f.x(tailX)-8}" y="${f.y(tail.probability)-8}" text-anchor="end" fill="#6E5600" font-size="10" font-weight="800">${tail.label} months: ${pct(tail.probability)}</text>`);
+        svg.innerHTML=`<title>Probability of each customer lifetime in months</title>${f.parts.join('')}`;
+        return;
+      }
+      // Twin panels, stacked. Same yMax in both, so every spike keeps its height.
+      const H1=300, OFFY=312, H2=300;
+      svg.setAttribute('viewBox',`0 0 720 ${OFFY+H2}`);
+      const top=frame({H:H1,left:84,top:30,bottom:60,tickUnder:true,xMin:0,xMax:tailX+1,yMin:0,yMax:yMax,yLabel:'P(L)',yFmt:()=>'',xFmt:v=>v>=1&&v<m.displayRows?Math.round(v):''});
+      top.parts.push(`<text x="${top.left}" y="17" font-size="13" font-weight="800" fill="${BLUE}">How many customers have each lifetime? (x = months)</text>`);
+      spikes(top,m.rows,row=>row.isTail?tailX:row.lifetime,lColor);
+      top.parts.push(`<text x="${top.x(tailX)}" y="${top.H-top.bottom+18}" text-anchor="middle" font-size="11" font-weight="900" fill="#6E5600">${tail.label}</text>`);
+      const shown=m.rows.slice(0,LINK_DEFAULT);
+      heightLabels(top,[...shown.map(r=>({prob:r.probability,color:BLUE})),{prob:tail.probability,color:MAIZE_DARK}]);
+      axisMark(top,BLUE_MID,'#E7EDF4','x-axis: LIFETIME L (months)',250);
+      const cl=m.rows.map(r=>r.clv), xMin=Math.min(0,...cl), xMax=Math.max(0,...cl), pad=(xMax-xMin)*0.04;
+      const bot=frame({H:H2,left:84,top:30,bottom:60,tickUnder:true,xMin:xMin-pad,xMax:xMax+pad,yMin:0,yMax:yMax,yLabel:'P(L)',xFmt:v=>money(v,0),yFmt:v=>pct(v,0)});
+      bot.parts.push(`<text x="${bot.left}" y="17" font-size="13" font-weight="800" fill="${BLUE}">The same heights, moved to x = CLV(L)</text>`);
+      if(xMin<0&&xMax>0)bot.parts.push(`<line x1="${bot.x(0)}" y1="${bot.top}" x2="${bot.x(0)}" y2="${bot.H-bot.bottom}" stroke="${RED}" stroke-width="2" stroke-dasharray="5 4"/><text x="${bot.x(0)+6}" y="${bot.top+12}" fill="${RED}" font-size="10" font-weight="800">BREAK-EVEN</text>`);
+      spikes(bot,m.rows,row=>row.clv,row=>state.step>=5&&row.clv<0?RED:row.isTail?MAIZE_DARK:BLUE);
+      axisMark(bot,'#8A6D00','#FFF6D6','x-axis: CLV(L) in dollars',250);
+      // Connectors: bar tip above to its twin's tip below. Every lifetime gets one; only the first
+      // few (and the 61+ group) show until a lifetime is hovered or locked.
+      const links=m.rows.map((row,i)=>{const x1=top.x(row.isTail?tailX:row.lifetime),y1=top.y(row.probability),x2=bot.x(row.clv),y2=OFFY+bot.y(row.probability);
+        const dflt=i<LINK_DEFAULT||row.isTail;return `<line class="link${dflt?' default':''}" data-link="${row.index}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${row.isTail?MAIZE_DARK:BLUE_MID}" stroke-width="1.4" stroke-dasharray="3 4" opacity=".7"/>`});
+      svg.innerHTML=`<title>Lifetime distribution in months above the same distribution in CLV dollars</title>${top.parts.join('')}<g transform="translate(0 ${OFFY})">${bot.parts.join('')}</g>${links.join('')}`;
     }
     function updateHighlight() {
       const active=activeIndex();
@@ -524,6 +572,7 @@
         row.setAttribute('aria-selected',String(state.locked===index));
       });
       $$('svg [data-index]').forEach(point=>point.classList.toggle('is-active',Number(point.dataset.index)===active));
+      $$('svg [data-link]').forEach(link=>link.classList.toggle('is-on',Number(link.dataset.link)===active));
       const row=active===null?null:state.model.rows[active];
       $('#selection').innerHTML=selectionHtml(row);
     }
@@ -545,15 +594,9 @@
       renderMetrics(model);renderQuestion(model);
       renderTable(model);renderSurvival(model);
       if(state.step>=2)renderValue(model);
-      if(state.step>=3)renderDistribution(model);
-      $('#value-card').hidden=state.step<2;$('#distribution-card').hidden=state.step<3;$('#formula-card').hidden=state.step<4;$('#risk-card').hidden=state.step<5;
-      if(state.step>=4){
-        $('#route-a').textContent=money(model.expectedClv);
-        $('#route-a-note').textContent=`E(PAV) ${money(model.expectedPav)} less CAC ${money(model.cac,0)}`;
-        $('#route-b').textContent=money(model.distributionExpectedClv);
-        $('#route-b-note').textContent=`Weighted across ${model.rows.length} lifetime rows`;
-      }
-      if(state.step>=5){$('#risk-copy').innerHTML=`At CAC ${money(model.cac,0)}, <strong>${pct(model.unprofitableShare)}</strong> of customers never reach a CLV of zero or better. Expected CLV is ${money(model.expectedClv)}, but the median customer is worth ${money(model.medianClv)}. When you weigh an acquisition or retention idea, watch what it does to the left tail, not just the average.`}
+      if(state.step>=3)renderLifetime(model);
+      $('#value-card').hidden=state.step<2;$('#lifetime-card').hidden=state.step<3;$('#risk-card').hidden=state.step<5;
+      if(state.step>=5){$('#risk-copy').innerHTML=`At CAC ${money(model.cac,0)}, <strong>${pct(model.unprofitableShare)}</strong> of customers never reach a CLV of zero or better: every spike left of break-even. The median customer is worth ${money(model.medianClv)}. When you weigh an acquisition or retention idea, watch what it does to the left tail.`}
       attachInteractions();
     }
 

@@ -1178,10 +1178,11 @@
         for (let t = 0; t <= X; t++) {
           if (t < S.history.length) obs.push([t, S.history[t]]);
           model.push([t, COINS.bgExpectedRetention(S.mu, K, t)]);
-          ident.push([t, COINS.homogeneousRetention(S.mu, t)]);
         }
       }
-      return { obs, model, ident, identical, rate };
+      // The identical-coins benchmark is drawn only in the rate view; on the survivor
+      // curve it read as confusing, so ident stays empty there.
+      return { obs, model, ident, identical, rate, showIdent: !identical && ident.length > 0 };
     }
 
     function renderChartLegend(sr) {
@@ -1189,7 +1190,7 @@
       bits.push(sr.identical
         ? `<span><span class="chip model"></span>what the model expects</span>`
         : `<span><span class="chip model"></span>mixed coins, expected</span>`
-        + `<span><span class="chip ident"></span>if every coin were identical</span>`);
+        + (sr.showIdent ? `<span><span class="chip ident"></span>if every coin were identical</span>` : ''));
       $('chartLegend').innerHTML = bits.join('');
       $('chartTitle').textContent = sr.rate
         ? 'What share of the survivors renew?'
@@ -1220,7 +1221,7 @@
         ? 'M ' + pts.map(([t, y]) => `${xOf(t).toFixed(1)} ${yOf(y).toFixed(1)}`).join(' L ')
         : '';
       // both model curves sit behind the observed line
-      if (!sr.identical) {
+      if (sr.showIdent) {
         g += `<path d="${path(sr.ident)}" fill="none" stroke="${CC.ident}" stroke-width="2"
             stroke-dasharray="2 4" stroke-linecap="round" opacity=".95"/>`;
       }
@@ -1252,7 +1253,7 @@
         let html = `<b>Round ${t}</b><br><span class="t-sub">`;
         html += seen === '—' ? `not flipped yet` : `<b>${seen}</b> ${label} · observed`;
         html += `<br>${at(sr.model, t)} · ${sr.identical ? 'model' : 'mixed coins, expected'}`;
-        if (!sr.identical) html += `<br>${at(sr.ident, t)} · if coins were identical`;
+        if (sr.showIdent) html += `<br>${at(sr.ident, t)} · if coins were identical`;
         tip.innerHTML = html + `</span>`;
         tip.classList.add('show');
         tip.style.left = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8) + 'px';
