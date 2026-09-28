@@ -131,6 +131,15 @@
     @media (max-width: 1180px) { .value-section { grid-template-columns: 1fr; }  }
     @media (max-width: 980px) { .value-inputs { position: static; } }
     footer { margin-top: 22px; color: var(--muted); font-size: .74rem; }
+    /* Hover readouts and click hints */
+    svg.chart { cursor: crosshair; }
+    g.hl { pointer-events: none; }
+    .hint { margin: 5px 0 0; color: var(--blue-mid); font-size: .7rem; font-weight: 600; }
+    .hint button { border: 1px solid var(--maize-dark); border-radius: 6px; background: var(--maize-tint); padding: 1px 7px; margin-left: 4px; font: inherit; font-size: .68rem; color: var(--maize-edge); cursor: pointer; }
+    .tip { position: fixed; z-index: 50; max-width: 290px; padding: 8px 11px; border-radius: 9px; background: var(--blue); color: #fff; font-size: .74rem; line-height: 1.42; box-shadow: 0 8px 24px rgba(0, 39, 76, .28); pointer-events: none; }
+    .tip b { color: var(--maize); display: block; margin-bottom: 2px; font-size: .8rem; }
+    .tip span { display: block; margin-top: 3px; }
+    .tip .act { color: var(--maize); font-style: italic; }
   </style>
 </head>
 <body>
@@ -182,7 +191,7 @@
       <div class="presets" id="presets"></div>
       <div class="panel-head sub">
         <h2 id="plane-title">The parameter plane</h2>
-        <p>Where the current a and b sit. Both axes are log scale, so the lines at 1 split the four shapes. You can also click or drag here.</p>
+        <p>Where the current a and b sit. Both axes are log scale, so the lines at 1 split the four shapes. Hover to preview any point; click or drag to move there.</p>
       </div>
       <div class="plane-wrap"><svg id="plane" viewBox="0 0 340 340" role="img" aria-labelledby="plane-title"></svg></div>
       <div class="coords"><p class="coord-note" id="coord-note"></p></div>
@@ -193,6 +202,10 @@
         <div class="chart-head"><h2 id="beta-title">How churn risk is spread across the cohort</h2><p>Each customer draws one churn probability from this distribution and keeps it for life.</p></div>
         <div class="legend"><span><i class="bar"></i>initial cohort</span><span data-min-step="3"><i class="post"></i>survivors after n renewals</span><span><i class="avg"></i>average churn</span></div>
         <div class="chart-wrap"><svg id="beta-chart" class="chart" viewBox="0 0 460 240" role="img" aria-label="Distribution of churn probabilities across customers"></svg></div>
+        <div class="coords" id="renewal-row" hidden style="grid-template-columns:1fr">
+          <div class="coord"><label for="renewals"><span>Survivors after n renewals (moves the green bars only)</span><output id="out-renewals"></output></label><input id="renewals" type="range" min="0" max="11" step="1" value="4"></div>
+          <p class="coord-note" id="posterior-note"></p>
+        </div>
       </section>
 
       <section class="chart-card card" id="survival-card" aria-labelledby="surv-title">
@@ -208,10 +221,6 @@
       <section class="chart-card card" id="retention-card" aria-labelledby="ret-title">
         <div class="chart-head"><h2 id="ret-title">Retention rate</h2><p>The share of last month's survivors who stay. It climbs, and no individual customer ever changes.</p></div>
         <div class="chart-wrap"><svg id="retention-chart" class="chart" viewBox="0 0 460 240" role="img" aria-label="Aggregate retention rate curve"></svg></div>
-        <div class="coords" id="renewal-row" hidden style="grid-template-columns:1fr">
-          <div class="coord"><label for="renewals"><span>Look at the survivors after n renewals</span><output id="out-renewals"></output></label><input id="renewals" type="range" min="0" max="24" step="1" value="4"></div>
-          <p class="coord-note" id="posterior-note"></p>
-        </div>
       </section>
 
       <section class="value-section" id="value-section" aria-label="Customer value" data-min-step="4">
@@ -543,6 +552,8 @@ const BGShape = (() => {
   const initialStep = Math.min(5, Math.max(1, Number(location.hash.match(/step-(\d+)/)?.[1] || 1)));
   const state = { step: initialStep, a: M.BLUE_APRON_FIT.a, b: M.BLUE_APRON_FIT.b,
     renewals: 4, dragging: false,
+    // Churn probability of the one customer being followed, or null (click a bar on the churn-risk chart).
+    customer: null,
     // Customer value inputs. Defaults are the Class 7 workbook: m = AOF x AOV x CM = 1.8 x 57.3 x 26%.
     cf: 26.8164, disc: 0.0153, cac: 100, N: 1000 };
 
@@ -569,7 +580,7 @@ const BGShape = (() => {
     },
     3: () => ({
       q: 'Aggregate retention climbs month after month. Which customers changed their behaviour to make that happen?',
-      a: 'None of them. Every customer keeps the churn probability they were born with. The mix changes, not the customers: after n renewals the survivors follow Beta(a, b + n), the same a with a larger b, which is shifted toward the loyal end. Drag the renewals slider and watch the distribution slide left.'
+      a: 'None of them. Every customer keeps the churn probability they were born with. The mix changes, not the customers: after n renewals the survivors follow Beta(a, b + n), the same a with a larger b, which is shifted toward the loyal end. Drag the renewals slider and watch the distribution slide left. Or click a bar on the churn-risk chart to follow one customer: their own retention is a flat line at 1 - p, while the cohort\'s climbs.'
     }),
     4: () => {
       const model = M.buildModel({ a: state.a, b: state.b, cf: state.cf, disc: state.disc, cac: state.cac });
@@ -622,7 +633,15 @@ const BGShape = (() => {
       `<line class="axis" x1="${left}" y1="${top}" x2="${left}" y2="${H - bottom}"/>` +
       `<text class="chart-label" x="${(left + W - right) / 2}" y="${H - 3}" text-anchor="middle">${xLabel}</text>` +
       `<text class="chart-label" transform="translate(11 ${(top + H - bottom) / 2}) rotate(-90)" text-anchor="middle">${yLabel}</text>`);
-    return { x, y, parts, W, H, left, right, top, bottom };
+    const xInv = sx => xMin + (sx - left) / (W - left - right) * (xMax - xMin);
+    return { x, y, xInv, parts, W, H, left, right, top, bottom };
+  }
+  // Every chart keeps its frame and ends with an empty highlight layer, so hover marks can be
+  // redrawn on their own without rebuilding the chart.
+  const FR = {};
+  function mount(id, f, html = f.parts.join('')) {
+    FR[id] = f;
+    $(`#${id}`).innerHTML = html + '<g class="hl"></g>';
   }
   const path = (pts, f) => pts.length
     ? 'M ' + pts.map(([px, py]) => `${f.x(px).toFixed(1)} ${f.y(py).toFixed(1)}`).join(' L ')
@@ -670,17 +689,22 @@ const BGShape = (() => {
     p.push(`<line x1="${px(state.a)}" y1="${py(state.b)}" x2="${px(state.a)}" y2="${S - pad}" stroke="#00274C" stroke-dasharray="2 3" opacity=".4"/>`);
     p.push(`<line x1="${pad}" y1="${py(state.b)}" x2="${px(state.a)}" y2="${py(state.b)}" stroke="#00274C" stroke-dasharray="2 3" opacity=".4"/>`);
     p.push(`<circle cx="${px(state.a)}" cy="${py(state.b)}" r="8" fill="#FFCB05" stroke="#8A6D00" stroke-width="2"/>`);
-    $('#plane').innerHTML = p.join('');
+    $('#plane').innerHTML = p.join('') + '<g class="hl"></g>';
+    FR.plane = { px, py };
   }
-  function planeFromEvent(ev) {
+  // The a, b under the pointer. Outside the box: null, or the nearest edge when clampToBox.
+  function planeCoords(ev, clampToBox) {
     const svg = $('#plane'), rect = svg.getBoundingClientRect();
     const S = 340, pad = 40;
     const sx = (ev.clientX - rect.left) / rect.width * S;
     const sy = (ev.clientY - rect.top) / rect.height * S;
     const ua = (sx - pad) / (S - pad - 16);
     const ub = ((S - pad) - sy) / (S - pad - 16);
-    state.a = M.clamp(fromLog(M.clamp(ua, 0, 1)), GMIN, GMAX);
-    state.b = M.clamp(fromLog(M.clamp(ub, 0, 1)), GMIN, GMAX);
+    if (!clampToBox && (ua < 0 || ua > 1 || ub < 0 || ub > 1)) return null;
+    return { a: M.clamp(fromLog(M.clamp(ua, 0, 1)), GMIN, GMAX), b: M.clamp(fromLog(M.clamp(ub, 0, 1)), GMIN, GMAX) };
+  }
+  function planeFromEvent(ev) {
+    Object.assign(state, planeCoords(ev, true));
     render();
   }
 
@@ -706,15 +730,26 @@ const BGShape = (() => {
       f.parts.push(bars(bp, f, 'rgba(134, 201, 156, .6)', '#2E7D4F'));
       const mp = M.meanChurn(post.a, post.b);
       f.parts.push(`<line x1="${f.x(mp)}" y1="${f.top}" x2="${f.x(mp)}" y2="${f.y(0)}" stroke="#2E7D4F" stroke-width="1.6"/>`);
+      f.parts.push(`<text class="tick" x="${f.x(mp) + 5}" y="${f.top + 24}" fill="#2E7D4F">survivors ${pct(mp)}</text>`);
     }
     const mean = M.meanChurn(state.a, state.b);
     f.parts.push(`<line x1="${f.x(mean)}" y1="${f.top}" x2="${f.x(mean)}" y2="${f.y(0)}" stroke="#2F65A7" stroke-width="1.6"/>`);
     f.parts.push(`<text class="tick" x="${f.x(mean) + 5}" y="${f.top + 11}" fill="#2F65A7">average ${pct(mean)}</text>`);
-    $('#beta-chart').innerHTML = f.parts.join('');
+    mount('beta-chart', f);
   }
 
   const T_CURVE = 12;
   const monthTicks = from => Array.from({ length: T_CURVE - from + 1 }, (_, i) => i + from);
+
+  // Step 3 onward: mark the survivors after n renewals, at t = n, on both time charts.
+  const showRenewalMarks = () => state.step >= 3 && state.renewals + 1 <= T_CURVE;
+  const renewalGuide = (f, n) =>
+    `<line x1="${f.x(n)}" y1="${f.top}" x2="${f.x(n)}" y2="${f.y(0)}" stroke="#2E7D4F" stroke-width="1.2" stroke-dasharray="4 3"/>` +
+    `<text class="tick" x="${f.x(n)}" y="${f.y(0) - 5}" text-anchor="middle" fill="#2E7D4F" paint-order="stroke" stroke="#fff" stroke-width="3">n = ${n}</text>`;
+  const markLabel = (f, x, y, text, dy) => {
+    const right = f.x(x) < (f.left + f.W - f.right) / 2;
+    return `<text class="tick" x="${f.x(x) + (right ? 9 : -9)}" y="${f.y(y) + dy}" text-anchor="${right ? 'start' : 'end'}" fill="#2E7D4F" paint-order="stroke" stroke="#fff" stroke-width="3">${text}</text>`;
+  };
 
   function renderSurvival() {
     const f = frame({ xMin: 0, xMax: T_CURVE, yMin: 0, yMax: 1, xTicks: monthTicks(0),
@@ -725,20 +760,31 @@ const BGShape = (() => {
     f.parts.push(`<path d="${path(bg, f)}" fill="none" stroke="#00274C" stroke-width="2.6"/>`);
     f.parts.push(`<text class="tick" x="${f.W - f.right - 4}" y="${f.top + 12}" text-anchor="end" fill="#5B6B7C">` +
       `S(12) = ${pct(M.survival(state.a, state.b, 12))}</text>`);
-    $('#survival-chart').innerHTML = f.parts.join('');
+    if (showRenewalMarks()) {
+      const n = state.renewals, sn = M.survival(state.a, state.b, n);
+      f.parts.push(renewalGuide(f, n));
+      f.parts.push(`<circle cx="${f.x(n)}" cy="${f.y(sn)}" r="5.5" fill="#86C99C" stroke="#2E7D4F" stroke-width="1.6"/>`);
+      f.parts.push(markLabel(f, n, sn, `S(${n}) = ${pct(sn)} still active`, -10));
+    }
+    mount('survival-chart', f);
   }
 
   function renderRetention() {
     const rs = [];
     for (let t = 1; t <= T_CURVE; t++) rs.push(M.retention(state.a, state.b, t));
-    const f = frame({ xMin: 1, xMax: T_CURVE, yMin: 0, yMax: 1, xTicks: monthTicks(1),
+    // The axis starts at 0 so it lines up with the survivor curve above; r(t) itself starts at t = 1.
+    const f = frame({ xMin: 0, xMax: T_CURVE, yMin: 0, yMax: 1, xTicks: monthTicks(0),
       xLabel: 'time since acquisition, t', yLabel: 'r(t)', xFmt: v => Math.round(v), yFmt: v => pct(v, 0) });
     f.parts.push(`<path d="${path(rs.map((r, i) => [i + 1, r]), f)}" fill="none" stroke="#00274C" stroke-width="2.6"/>`);
-    if (state.step >= 3 && state.renewals > 0 && state.renewals + 1 <= T_CURVE) {
-      const t = state.renewals + 1;
-      f.parts.push(`<circle cx="${f.x(t)}" cy="${f.y(M.retention(state.a, state.b, t))}" r="5.5" fill="#86C99C" stroke="#2E7D4F" stroke-width="1.6"/>`);
+    // Survivors after n renewals are active at t = n; the retention rate they produce next is
+    // r(n+1) = (b + n) / (a + b + n) = 1 - their average churn.
+    if (showRenewalMarks()) {
+      const n = state.renewals, t = n + 1, rn = M.retention(state.a, state.b, t);
+      f.parts.push(renewalGuide(f, n));
+      f.parts.push(`<circle cx="${f.x(t)}" cy="${f.y(rn)}" r="5.5" fill="#86C99C" stroke="#2E7D4F" stroke-width="1.6"/>`);
+      f.parts.push(markLabel(f, t, rn, `r(${t}) = ${pct(rn)} = 1 - survivors' churn`, 22));
     }
-    $('#retention-chart').innerHTML = f.parts.join('');
+    mount('retention-chart', f);
   }
 
   // Lifetime histogram, as in the Shiny app's pt_conv: P(churn at t) for t = 1..12 plus one
@@ -758,7 +804,7 @@ const BGShape = (() => {
     });
     const xl = f.x(T + 1);
     f.parts.push(`<text class="tick" x="${xl - bw / 2 - 4}" y="${f.y(p[T]) + 12}" text-anchor="end" fill="#8A6D00">churn after t = ${T}</text>`);
-    $('#churn-chart').innerHTML = f.parts.join('');
+    mount('churn-chart', f);
   }
 
   /* ---------- customer value charts ---------- */
@@ -801,7 +847,7 @@ const BGShape = (() => {
       f.parts.push(`<circle cx="${f.x(model.halflife)}" cy="${f.y(clv[model.halflife])}" r="6" fill="#FFCB05" stroke="#8A6D00" stroke-width="1.4"/>`);
     if (model.payback !== null && model.payback <= P)
       f.parts.push(`<circle cx="${f.x(model.payback)}" cy="${f.y(clv[model.payback])}" r="5" fill="${C.pink}" stroke="${C.red}" stroke-width="1.4"/>`);
-    $('#ue-chart').innerHTML = f.parts.join('');
+    mount('ue-chart', f);
     $('#ue-legend').innerHTML = `<span><i class="clvpt"></i>CLV if lifetime ends at t</span><span><i class="ectv"></i>E(CtV), expected value through t</span>` +
       `<span><i class="eclv"></i>E(CLV)</span><span><i class="cac"></i>-CAC</span>` +
       `<span><i class="pay"></i>payback: t = ${model.payback ?? 'never'}</span><span><i class="half"></i>half-life: t = ${model.halflife ?? '> horizon'}</span>`;
@@ -815,7 +861,7 @@ const BGShape = (() => {
     f.parts.push(vline(f, 0, C.red, 'PAV = CAC', { side: 'left' }));
     f.parts.push(vline(f, model.eclv, C.blue, `average ${money(model.eclv)}`, { dy: 24 }));
     f.parts.push(`<text class="tick" x="${f.W - f.right - 4}" y="${f.top + 11}" text-anchor="end">CLV below $0: ${pct(model.pNeg)}</text>`);
-    $('#clvd-chart').innerHTML = f.parts.join('');
+    mount('clvd-chart', f);
   }
 
   function renderPosteriorValue() {
@@ -831,7 +877,7 @@ const BGShape = (() => {
     const m0 = M.meanChurn(state.a, state.b), m1 = M.meanChurn(post.a, post.b);
     f.parts.push(vline(f, m0, C.blue, `average ${pct(m0)}`, { dy: 11 }));
     f.parts.push(vline(f, m1, C.green, `after ${n}: ${pct(m1)}`, { dy: 24 }));
-    $('#post-chart').innerHTML = f.parts.join('');
+    mount('post-chart', f);
   }
 
   // Two stacked panels on one x scale, like the Shiny app's facet_grid of P(PAV) over P(RLV).
@@ -849,7 +895,7 @@ const BGShape = (() => {
     };
     panel(top, model.pav, model.ptConv, C.blueFill, `PAV, initial cohort: E(PAV) = ${money(model.epav)}`);
     panel(bot, rlvModel.rlv, rlvModel.ptCond, C.greenFill.replace('.6', '.9'), `RLV after ${n} renewals: E(RLV) = ${money(rlvModel.erlv)}`);
-    $('#rlvd-chart').innerHTML = top.parts.join('') + `<g transform="translate(0 118)">${bot.parts.join('')}</g>`;
+    mount('rlvd-chart', { top, bot }, top.parts.join('') + `<g transform="translate(0 118)">${bot.parts.join('')}</g>`);
   }
 
   function renderCohort(model, rlvModel) {
@@ -877,7 +923,8 @@ const BGShape = (() => {
     }
     f.parts.push(vline(f, sim.initMean, C.blue, `mean ${money(sim.initMean)}`, { dy: 11 }));
     f.parts.push(vline(f, sim.residMean, C.green, `mean ${money(sim.residMean)}`, { dy: 24 }));
-    $('#cohort-chart').innerHTML = f.parts.join('');
+    Object.assign(f, { hist: { lo, w, K, h0, h1 } });
+    mount('cohort-chart', f);
     $('#cohort-legend').innerHTML = `<span><i class="bar" style="background:${C.blueFill}"></i>initial cohort: total PAV of all ${N.toLocaleString()} customers acquired</span>` +
       `<span><i class="grn"></i>survivors: total RLV of the ${sim.survivors.toLocaleString()} customers still active after ${n} renewals</span>`;
     $('#cohort-blurb').textContent = `Simulated total value of the cohort across ${nsims.toLocaleString()} possible worlds, as in the Shiny app. The survivors are only ${pct(rlvModel.sPast)} of the customers acquired, yet they are worth ${pct(sim.residMean / sim.initMean)} of the value the whole cohort was expected to bring in at acquisition.`;
@@ -891,6 +938,7 @@ const BGShape = (() => {
     const { a, b, cf, disc, cac, N } = state, n = state.renewals;
     const model = M.buildModel({ a, b, cf, disc, cac });
     const rlvModel = M.buildRLV({ a, b, cf, disc, pastT: n });
+    V.model = model; V.rlv = rlvModel;
     // The CLV and RLV spike charts share one scale once both are on screen, as in the Shiny app.
     const rlvOn = state.step >= 5;
     const xmaxBoth = Math.max(model.clv[model.clv.length - 1], model.pav[model.pav.length - 1], rlvOn ? rlvModel.rlv[rlvModel.rlv.length - 1] : 0);
@@ -912,12 +960,310 @@ const BGShape = (() => {
     $('#s-erlv').textContent = money(rlvModel.erlv);
     renderUnitEconomics(model);
     renderClvDist(model, xmaxBoth, ymaxBoth);
-    if (!rlvOn) return;
+    if (!rlvOn) { drawHL(); return; }
     renderPosteriorValue();
     renderRlvDist(model, rlvModel, xmaxBoth, ymaxBoth);
     const sim = renderCohort(model, rlvModel);
     $('#s-cv').textContent = money(sim.initMean);
     $('#s-crv').textContent = money(sim.residMean);
+    drawHL();
+  }
+
+  /* ---------- hover and click ---------- */
+  // hov is whatever the pointer is on right now; each chart's highlight layer reads it, so one
+  // hover can light up the matching spot on several linked charts.
+  const V = { model: null, rlv: null };
+  let hov = {};
+  let suppressBin = null;
+  const CUST = '#8A6D00', HI = { line: '#00274C', dot: '#FFCB05', band: 'rgba(255, 203, 5, .32)' };
+  const tip = document.createElement('div');
+  tip.className = 'tip'; tip.hidden = true;
+  document.body.appendChild(tip);
+  const hd = s => `<b>${s}</b>`, ln = s => (s ? `<span>${s}</span>` : ''), act = s => (s ? `<span class="act">${s}</span>` : '');
+  const pctS = v => pct(v, v > 0 && v < 0.01 ? 2 : 1);
+  const plural = (k, w) => `${k} ${w}${k === 1 ? '' : 's'}`;
+  function showTip(ev, lines) {
+    tip.innerHTML = lines.filter(Boolean).join('');
+    tip.hidden = false;
+    const gap = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+    let x = ev.clientX + gap, y = ev.clientY + gap;
+    if (x + w > innerWidth - 8) x = ev.clientX - w - gap;
+    if (y + h > innerHeight - 8) y = ev.clientY - h - gap;
+    tip.style.left = `${Math.max(8, x)}px`;
+    tip.style.top = `${Math.max(8, y)}px`;
+  }
+  function clearHover() {
+    tip.hidden = true;
+    if (Object.keys(hov).length) { hov = {}; drawHL(); }
+  }
+  const svgXY = (svg, ev) => {
+    const r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+    return { x: (ev.clientX - r.left) / r.width * vb.width, y: (ev.clientY - r.top) / r.height * vb.height };
+  };
+  const inPlot = (f, pt) => pt.x >= f.left - 6 && pt.x <= f.W - f.right + 6 && pt.y >= f.top - 6 && pt.y <= f.H - f.bottom + 4;
+  const tAt = (f, pt, lo, hi) => (inPlot(f, pt) ? Math.min(hi, Math.max(lo, Math.round(f.xInv(pt.x)))) : null);
+  // Steps 3 and 4 stop n at 11 so r(n + 1) stays on the 12-month charts; step 5 allows up to 24.
+  const canSetN = n => state.step >= 3 && n >= 0 && n <= (state.step >= 5 ? 24 : T_CURVE - 1) && n !== state.renewals;
+  const customer = () => hov.cust ?? state.customer;
+
+  /* highlight marks */
+  const floor = f => f.H - f.bottom;
+  const crossV = (f, x) => `<line x1="${f.x(x)}" y1="${f.top}" x2="${f.x(x)}" y2="${floor(f)}" stroke="${HI.line}" stroke-dasharray="3 3" opacity=".5"/>`;
+  const dot = (f, x, y, r = 5) => `<circle cx="${f.x(x)}" cy="${f.y(y)}" r="${r}" fill="${HI.dot}" stroke="${HI.line}" stroke-width="1.6"/>`;
+  const band = (f, x0, x1) => `<rect x="${f.x(x0)}" y="${f.top}" width="${Math.max(2, f.x(x1) - f.x(x0))}" height="${floor(f) - f.top}" fill="${HI.band}" stroke="${CUST}" stroke-width=".8"/>`;
+  const tag = (f, x, y, text) => {
+    const right = f.x(x) < (f.left + f.W - f.right) / 2;
+    return `<text class="tick" x="${f.x(x) + (right ? 5 : -5)}" y="${y}" text-anchor="${right ? 'start' : 'end'}" fill="${CUST}" font-weight="700" paint-order="stroke" stroke="#fff" stroke-width="3">${text}</text>`;
+  };
+  const bigSpike = (f, x, p) => `<line x1="${f.x(x)}" y1="${f.y(0)}" x2="${f.x(x)}" y2="${f.y(Math.min(p, f.yMax0))}" stroke="${HI.line}" stroke-width="3.5"/>` + dot(f, x, Math.min(p, f.yMax0), 4);
+
+  const HL = {
+    plane: f => (hov.plane ? `<circle cx="${f.px(hov.plane.a)}" cy="${f.py(hov.plane.b)}" r="8" fill="rgba(255, 203, 5, .45)" stroke="${CUST}" stroke-width="1.5" stroke-dasharray="3 2"/>` : ''),
+    'beta-chart': f => {
+      let s = hov.src === 'beta' ? band(f, hov.bin / 100, (hov.bin + 1) / 100) : '';
+      const p = customer();
+      if (p != null) s += `<line x1="${f.x(p)}" y1="${f.top}" x2="${f.x(p)}" y2="${floor(f)}" stroke="${CUST}" stroke-width="2" stroke-dasharray="5 3"/>` +
+        tag(f, p, f.top + 37, `one customer: ${pct(p, 1)}`);
+      return s;
+    },
+    'survival-chart': f => {
+      const { a, b } = state, t = hov.t, p = customer();
+      let s = '';
+      if (p != null) {
+        const pts = [];
+        for (let k = 0; k <= T_CURVE; k++) pts.push([k, Math.pow(1 - p, k)]);
+        s += `<path d="${path(pts, f)}" fill="none" stroke="${CUST}" stroke-width="2" stroke-dasharray="6 4"/>` +
+          `<text class="tick" x="${f.W - f.right - 4}" y="${f.top + 26}" text-anchor="end" fill="${CUST}" font-weight="700">dashed: one customer with churn ${pct(p, 1)}, (1 - p)^t</text>`;
+      }
+      if (t == null) return s;
+      if (hov.src === 'churn') {
+        // The bar at t is the drop in the survivor curve from t - 1 to t (or everything left after 12).
+        const t0 = Math.min(t - 1, T_CURVE), s0 = M.survival(a, b, t0), s1 = t > T_CURVE ? 0 : M.survival(a, b, t);
+        const x = t > T_CURVE ? T_CURVE : t;
+        return s + `<line x1="${f.x(t0)}" y1="${f.y(s0)}" x2="${f.x(x)}" y2="${f.y(s0)}" stroke="${HI.line}" stroke-dasharray="3 3"/>` +
+          `<line x1="${f.x(x)}" y1="${f.y(s0)}" x2="${f.x(x)}" y2="${f.y(s1)}" stroke="${HI.dot}" stroke-width="5"/>` +
+          `<line x1="${f.x(x)}" y1="${f.y(s0)}" x2="${f.x(x)}" y2="${f.y(s1)}" stroke="${CUST}" stroke-width="1.2"/>` + dot(f, t0, s0, 4);
+      }
+      if (t > T_CURVE) return s;
+      s += crossV(f, t) + dot(f, t, M.survival(a, b, t));
+      if (hov.src === 'retention' && t >= 1) s += dot(f, t - 1, M.survival(a, b, t - 1), 4);
+      if (p != null) s += `<circle cx="${f.x(t)}" cy="${f.y(Math.pow(1 - p, t))}" r="4" fill="#fff" stroke="${CUST}" stroke-width="1.6"/>`;
+      return s;
+    },
+    'retention-chart': f => {
+      const t = hov.t, p = customer();
+      let s = '';
+      if (p != null) {
+        const yl = f.y(1 - p);
+        s += `<line x1="${f.x(1)}" y1="${yl}" x2="${f.x(T_CURVE)}" y2="${yl}" stroke="${CUST}" stroke-width="2" stroke-dasharray="6 4"/>` +
+          tag(f, T_CURVE, yl > floor(f) - 22 ? yl - 6 : yl + 14, `one customer: 1 - p = ${pct(1 - p)}, every period`);
+      }
+      if (t != null && t >= 1 && t <= T_CURVE) s += crossV(f, t) + dot(f, t, M.retention(state.a, state.b, t));
+      return s;
+    },
+    'churn-chart': f => {
+      const t = hov.t;
+      if (t == null || t < 1) return '';
+      const w = (f.x(2) - f.x(1)) * 0.86;
+      return `<rect x="${f.x(t) - w / 2}" y="${f.top}" width="${w}" height="${floor(f) - f.top}" fill="${HI.band}" stroke="${CUST}" stroke-width=".8"/>`;
+    },
+    'ue-chart': f => {
+      const p = hov.vp, m = V.model;
+      if (p == null || !m || p > f.xMax0) return '';
+      return crossV(f, p) + `<circle cx="${f.x(p)}" cy="${f.y(m.ectv[p])}" r="4" fill="#fff" stroke="${HI.line}" stroke-width="1.6"/>` + dot(f, p, m.clv[p], 6);
+    },
+    'clvd-chart': f => {
+      const p = hov.vp, m = V.model;
+      if (p == null || !m || m.clv[p] > f.xMax0) return '';
+      return bigSpike(f, m.clv[p], m.ptConv[p]);
+    },
+    'post-chart': f => (hov.src === 'post' ? band(f, hov.bin / 100, (hov.bin + 1) / 100) : ''),
+    'rlvd-chart': ({ top, bot }) => {
+      const r = hov.rlv;
+      if (!r || !V.model || !V.rlv) return '';
+      if (r.panel === 'pav') return bigSpike(top, V.model.pav[r.i], V.model.ptConv[r.i]);
+      return `<g transform="translate(0 118)">${bigSpike(bot, V.rlv.rlv[r.i], V.rlv.ptCond[r.i])}</g>`;
+    },
+    'cohort-chart': f => {
+      if (hov.k == null) return '';
+      const { lo, w } = f.hist;
+      return band(f, lo + hov.k * w, lo + (hov.k + 1) * w);
+    }
+  };
+  function drawHL() {
+    for (const [id, fn] of Object.entries(HL)) {
+      const g = document.querySelector(`#${id} > g.hl`);
+      if (g && FR[id]) g.innerHTML = fn(FR[id]);
+    }
+  }
+
+  /* readouts */
+  function binTip(i, n, clickable) {
+    const { a, b } = state, lo = i / 100, hi = (i + 1) / 100, p = (i + 0.5) / 100;
+    const lines = [hd(`Churn probability ${pct(lo, 0)} to ${pct(hi, 0)}`),
+      ln(`${pctS(M.betaCdf(hi, a, b) - M.betaCdf(lo, a, b))} of the cohort at acquisition. ${pctS(M.betaCdf(hi, a, b))} have a churn probability below ${pct(hi, 0)}.`)];
+    if (n > 0) {
+      const pb = b + n;
+      lines.push(ln(`Among the survivors after ${plural(n, 'renewal')}: ${pctS(M.betaCdf(hi, a, pb) - M.betaCdf(lo, a, pb))} here, and ${pctS(M.betaCdf(hi, a, pb))} below ${pct(hi, 0)}.`));
+    }
+    if (clickable) lines.push(act(state.customer === p ? 'Click again to stop following this customer.'
+      : `Click to follow one customer whose churn probability is ${pct(p, 1)}.`));
+    return lines;
+  }
+  function valueTip(p) {
+    const m = V.model;
+    return [hd(`Lifetime ends at t = ${p}: CLV = ${money(m.clv[p])}`),
+      ln(`Pays ${plural(p + 1, 'time')} (t = 0${p ? ` to ${p}` : ''}), then churns. PAV = ${money(m.pav[p])}, so CLV = PAV - CAC = ${money(m.pav[p])} - ${money(state.cac)}.`),
+      ln(`${pctS(m.ptConv[p])} of new customers end up with this lifetime: S(${p}) - S(${p + 1}).`),
+      ln(`E(CtV) through t = ${p}: ${money(m.ectv[p])}, the dashed line.`),
+      p === m.payback ? ln('Payback: the first t where PAV covers CAC.') : '',
+      p === m.halflife ? ln('Half-life: the first t with fewer than half the cohort left.') : ''];
+  }
+  function nearestSpike(f, xs, ps, sx, maxPx = 10) {
+    let best = null, bd = maxPx;
+    for (let i = 0; i < xs.length; i++) {
+      if (!(ps[i] > 0) || xs[i] > f.xMax0) continue;
+      const d = Math.abs(f.x(xs[i]) - sx);
+      if (d < bd) { bd = d; best = i; }
+    }
+    return best;
+  }
+
+  // move(pt, frame) returns { hov, tip } or null; click(pt, frame) returns true when it changed something.
+  function interact(id, move, click) {
+    const svg = $(`#${id}`);
+    const handle = ev => {
+      const f = FR[id], r = f && move(svgXY(svg, ev), f);
+      if (!r) { clearHover(); return; }
+      hov = r.hov; drawHL(); showTip(ev, r.tip);
+    };
+    svg.addEventListener('pointermove', handle);
+    svg.addEventListener('pointerdown', handle);
+    svg.addEventListener('pointerleave', ev => { if (ev.pointerType !== 'touch') clearHover(); });
+    if (click) svg.addEventListener('click', ev => { const f = FR[id]; if (f && click(svgXY(svg, ev), f)) handle(ev); });
+  }
+  const binAt = (f, pt) => (inPlot(f, pt) ? Math.min(99, Math.max(0, Math.floor(f.xInv(pt.x) * 100))) : null);
+
+  interact('beta-chart', (pt, f) => {
+    const i = binAt(f, pt);
+    if (i == null) return null;
+    if (i !== suppressBin) suppressBin = null;
+    const preview = state.customer == null && suppressBin == null ? (i + 0.5) / 100 : undefined;
+    return { hov: { src: 'beta', bin: i, cust: preview }, tip: binTip(i, state.step >= 3 ? state.renewals : 0, true) };
+  }, (pt, f) => {
+    const i = binAt(f, pt);
+    if (i == null) return false;
+    const p = (i + 0.5) / 100;
+    if (state.customer === p) { state.customer = null; suppressBin = i; } else state.customer = p;
+    render();
+    return true;
+  });
+
+  interact('survival-chart', (pt, f) => {
+    const t = tAt(f, pt, 0, T_CURVE);
+    if (t == null) return null;
+    const { a, b } = state, s = M.survival(a, b, t), p = state.customer;
+    return { hov: { src: 'survival', t }, tip: [hd(`t = ${t}: S(${t}) = ${pct(s)}`),
+      ln(`${pct(s)} of the original cohort is still active; ${pct(1 - s)} has churned.`),
+      ln(t > 0 ? `S(${t}) = S(${t - 1}) x r(${t}) = ${pct(M.survival(a, b, t - 1))} x ${pct(M.retention(a, b, t))}.` : 'Everyone is active at acquisition.'),
+      p != null ? ln(`The one customer with churn ${pct(p, 1)} is still active with probability (1 - p)^${t} = ${pct(Math.pow(1 - p, t))}.`) : '',
+      canSetN(t) ? act(`Click to look at the survivors after n = ${t} renewals.`) : ''] };
+  }, (pt, f) => {
+    const t = tAt(f, pt, 0, T_CURVE);
+    if (t == null || !canSetN(t)) return false;
+    state.renewals = t; render();
+    return true;
+  });
+
+  interact('churn-chart', (pt, f) => {
+    const t = tAt(f, pt, 1, T_CURVE + 1);
+    if (t == null) return null;
+    const { a, b } = state, S0 = M.survival(a, b, Math.min(t - 1, T_CURVE));
+    if (t > T_CURVE) return { hov: { src: 'churn', t }, tip: [hd(`P(churn after t = ${T_CURVE}) = S(${T_CURVE}) = ${pct(S0)}`),
+      ln(`Everyone still active at t = ${T_CURVE}. They keep leaving after the chart ends, more and more slowly.`)] };
+    const S1 = M.survival(a, b, t);
+    return { hov: { src: 'churn', t }, tip: [hd(`P(churn at t = ${t}) = ${pct(S0 - S1)}`),
+      ln(`Active at t = ${t - 1}, gone at t = ${t}: S(${t - 1}) - S(${t}) = ${pct(S0)} - ${pct(S1)}. It is the highlighted drop on the survivor curve.`),
+      canSetN(t) ? act(`Click to look at the survivors after n = ${t} renewals.`) : ''] };
+  }, (pt, f) => {
+    const t = tAt(f, pt, 1, T_CURVE);
+    if (t == null || !canSetN(t)) return false;
+    state.renewals = t; render();
+    return true;
+  });
+
+  interact('retention-chart', (pt, f) => {
+    const t = tAt(f, pt, 1, T_CURVE);
+    if (t == null) return null;
+    const { a, b } = state, r = M.retention(a, b, t), S0 = M.survival(a, b, t - 1), p = state.customer;
+    return { hov: { src: 'retention', t }, tip: [hd(`r(${t}) = ${pct(r)}`),
+      ln(`Of the ${pct(S0)} still active at t = ${t - 1}, ${pct(r)} renew at t = ${t}: S(${t}) / S(${t - 1}) = ${pct(M.survival(a, b, t))} / ${pct(S0)}.`),
+      ln(`r(${t}) = (b + ${t - 1}) / (a + b + ${t - 1}) = ${num(b + t - 1, 2)} / ${num(a + b + t - 1, 2)}: one minus the average churn of those survivors, ${pct(1 - r)}.`),
+      p != null ? ln(`The one customer with churn ${pct(p, 1)} renews with probability ${pct(1 - p)} every period. Their own retention never climbs.`) : '',
+      canSetN(t - 1) ? act(`Click to look at the survivors after n = ${t - 1} renewals.`) : ''] };
+  }, (pt, f) => {
+    const t = tAt(f, pt, 1, T_CURVE);
+    if (t == null || !canSetN(t - 1)) return false;
+    state.renewals = t - 1; render();
+    return true;
+  });
+
+  interact('ue-chart', (pt, f) => {
+    const p = V.model && tAt(f, pt, 0, f.xMax0);
+    return p == null ? null : { hov: { vp: p }, tip: valueTip(p) };
+  });
+  interact('clvd-chart', (pt, f) => {
+    const p = V.model && inPlot(f, pt) ? nearestSpike(f, V.model.clv, V.model.ptConv, pt.x) : null;
+    return p == null ? null : { hov: { vp: p }, tip: valueTip(p) };
+  });
+  interact('post-chart', (pt, f) => {
+    const i = binAt(f, pt);
+    return i == null ? null : { hov: { src: 'post', bin: i }, tip: binTip(i, state.renewals, false) };
+  });
+  interact('rlvd-chart', (pt, { top, bot }) => {
+    if (!V.model || !V.rlv) return null;
+    const onTop = pt.y < 118, f = onTop ? top : bot, q = onTop ? pt : { x: pt.x, y: pt.y - 118 };
+    if (!inPlot(f, q)) return null;
+    const n = state.renewals;
+    if (onTop) {
+      const i = nearestSpike(f, V.model.pav, V.model.ptConv, q.x);
+      return i == null ? null : { hov: { rlv: { panel: 'pav', i } }, tip: [hd(`PAV = ${money(V.model.pav[i])}`),
+        ln(`A new customer who pays ${plural(i + 1, 'time')}, then churns: ${pctS(V.model.ptConv[i])} of new customers.`)] };
+    }
+    const i = nearestSpike(f, V.rlv.rlv, V.rlv.ptCond, q.x);
+    return i == null ? null : { hov: { rlv: { panel: 'rlv', i } }, tip: [hd(`RLV = ${money(V.rlv.rlv[i])}`),
+      ln(`A survivor of ${plural(n, 'renewal')} who pays ${plural(i, 'more time')}, then churns: ${pctS(V.rlv.ptCond[i])} of survivors.`),
+      i === 0 ? ln('RLV = $0: this survivor churns at the very next renewal. Their past payments are sunk.') : ''] };
+  });
+  interact('cohort-chart', (pt, f) => {
+    if (!inPlot(f, pt)) return null;
+    const { lo, w, K, h0, h1 } = f.hist, k = Math.floor((f.xInv(pt.x) - lo) / w);
+    if (k < 0 || k >= K) return null;
+    return { hov: { k }, tip: [hd(`Total value ${money(lo + k * w)} to ${money(lo + (k + 1) * w)}`),
+      ln(`Initial cohort, total PAV: ${pctS(h0[k])} of simulated worlds.`),
+      ln(`Survivors, total RLV: ${pctS(h1[k])} of simulated worlds.`)] };
+  });
+
+  const HINTS = {
+    'beta-chart': () => (state.customer == null
+      ? 'Hover a bar to read it. Click a bar to follow one customer with that churn probability.'
+      : `Following one customer with churn ${pct(state.customer, 1)}: see the dashed lines on the survivor and retention charts.<button type="button" data-clear-customer>Stop following</button>`),
+    'survival-chart': () => 'Hover to read S(t).' + (state.step >= 3 ? ' Click to set n, the renewals survived.' : ''),
+    'churn-chart': () => 'Hover a bar to read it and see its drop on the survivor curve.' + (state.step >= 3 ? ' Click to set n.' : ''),
+    'retention-chart': () => 'Hover to see how r(t) is built.' + (state.step >= 3 ? ' Click to set n = t - 1.' : ''),
+    'ue-chart': () => 'Hover a dot to read one lifetime; its spike lights up in the CLV distribution.',
+    'clvd-chart': () => 'Hover a spike to read it; its dot lights up in the unit economics chart.',
+    'post-chart': () => 'Hover a bar to compare the whole cohort with the survivors.',
+    'rlvd-chart': () => 'Hover a spike to read that lifetime.',
+    'cohort-chart': () => 'Hover a column to read it.'
+  };
+  function renderHints() {
+    for (const [id, fn] of Object.entries(HINTS)) {
+      const head = $(`#${id}`).closest('.chart-card').querySelector('.chart-head');
+      let el = head.querySelector('.hint');
+      if (!el) { el = document.createElement('p'); el.className = 'hint'; head.appendChild(el); }
+      el.innerHTML = fn();
+    }
   }
 
   /* ---------- shell ---------- */
@@ -952,6 +1298,8 @@ const BGShape = (() => {
 
   function render() {
     const a = state.a, b = state.b;
+    // The step-3 slider stops at 11 so r(n+1) stays on the 12-month charts; step 5 allows up to 24.
+    if (state.step < 5) state.renewals = Math.min(state.renewals, T_CURVE - 1);
     $('#param-a').value = toLog(a) * 2 - 1;
     $('#param-b').value = toLog(b) * 2 - 1;
     $('#out-a').textContent = num(a);
@@ -980,12 +1328,14 @@ const BGShape = (() => {
     $('#renewals').value = state.renewals;
     $('#v-n').value = state.renewals;
     scheduleValue();
+    renderHints();
+    drawHL();
     if (state.step >= 3) {
       $('#out-renewals').textContent = state.renewals === 0 ? 'not yet' : `${state.renewals} renewal${state.renewals === 1 ? '' : 's'}`;
       const post = M.posterior(a, b, state.renewals);
       $('#posterior-note').innerHTML = state.renewals === 0
         ? 'Slide right to keep only the customers who survived that many renewals.'
-        : `Survivors after ${state.renewals} follow Beta(${num(post.a, 2)}, ${num(post.b, 2)}): same a, b up by ${state.renewals}. Their average churn is <b>${pct(M.meanChurn(post.a, post.b))}</b>, down from ${pct(M.meanChurn(a, b))}. Nobody changed.`;
+        : `Survivors after ${state.renewals} follow Beta(${num(post.a, 2)}, ${num(post.b, 2)}): same a, b up by ${state.renewals}. Their average churn is <b>${pct(M.meanChurn(post.a, post.b))}</b>, down from ${pct(M.meanChurn(a, b))}. Nobody changed. They are S(${state.renewals}) = ${pct(M.survival(a, b, state.renewals))} of the cohort, and next period they renew at r(${state.renewals + 1}) = ${pct(M.retention(a, b, state.renewals + 1))}.`;
     }
   }
 
@@ -1010,11 +1360,27 @@ const BGShape = (() => {
     $('#answer-toggle').textContent = open ? 'Hide explanation' : 'Check your thinking';
   });
   const plane = $('#plane');
-  plane.addEventListener('pointerdown', e => { state.dragging = true; plane.setPointerCapture(e.pointerId); planeFromEvent(e); });
-  plane.addEventListener('pointermove', e => { if (state.dragging) planeFromEvent(e); });
+  plane.addEventListener('pointerdown', e => { state.dragging = true; clearHover(); plane.setPointerCapture(e.pointerId); planeFromEvent(e); });
+  plane.addEventListener('pointermove', e => {
+    if (state.dragging) { planeFromEvent(e); return; }
+    const c = planeCoords(e, false);
+    if (!c) { clearHover(); return; }
+    hov = { plane: c }; drawHL();
+    showTip(e, [hd(`a = ${num(c.a, 2)}, b = ${num(c.b, 2)}`),
+      ln(`Average churn ${pct(M.meanChurn(c.a, c.b))}; polarization ${num(M.polarization(c.a, c.b))}.`),
+      ln(`Shape: ${M.shapeName(c.a, c.b)}.`),
+      ln(`S(12) = ${pct(M.survival(c.a, c.b, 12))}, against ${pct(M.survival(state.a, state.b, 12))} now.`),
+      act('Click to move here.')]);
+  });
+  plane.addEventListener('pointerleave', e => { if (e.pointerType !== 'touch') clearHover(); });
   plane.addEventListener('pointerup', e => { state.dragging = false; try { plane.releasePointerCapture(e.pointerId); } catch (_) {} });
   plane.addEventListener('pointercancel', () => { state.dragging = false; });
+  // Touch has no hover-out: a tap anywhere else clears the readout. Scrolling does too.
+  document.addEventListener('pointerdown', ev => { if (!ev.target.closest('svg.chart, #plane')) clearHover(); });
+  addEventListener('scroll', () => { tip.hidden = true; }, { passive: true });
+  document.addEventListener('click', ev => { if (ev.target.closest('[data-clear-customer]')) { state.customer = null; render(); } });
   document.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape') { clearHover(); if (state.customer != null) { state.customer = null; render(); } return; }
     if (!ev.target.classList.contains('step') || !['ArrowLeft', 'ArrowRight'].includes(ev.key)) return;
     ev.preventDefault();
     const next = Math.min(5, Math.max(1, state.step + (ev.key === 'ArrowRight' ? 1 : -1)));
