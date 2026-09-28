@@ -81,11 +81,11 @@
   <section class="series" aria-labelledby="series-title">
     <div class="series-head">
       <span class="badge">Use in Classes 07-08</span>
-      <p class="kicker">Forecasting churn and CLV: a three-part series</p>
+      <p class="kicker">Forecasting churn and CLV: a four-part series</p>
       <h3 id="series-title">From coin flips to CLV, in order</h3>
-      <p>Work through these three tools in sequence. Each one builds on the
-      last: why retention rises, what a cohort is worth, and how the BG
-      model's a and b shape both.</p>
+      <p>Work through these four tools in sequence. Each one builds on the
+      last: why retention rises, what a cohort is worth, how the BG model's
+      a and b shape both, and two ways to compute E(CLV).</p>
     </div>
     <ol>
       <li>
@@ -124,19 +124,20 @@
           <p class="q">How do a and b change the answer?</p>
         </a>
       </li>
+      <li>
+        <span class="step" aria-hidden="true">4</span>
+        <a class="card" href="tools/two-roads-eclv.html">
+          <p class="kicker">Forecasting churn and CLV: Tool 4</p>
+          <h3>Two Roads to E(CLV)</h3>
+          <p>Start from one survivor curve. Road 1 weights each lifetime's CLV by how
+          many customers have that lifetime; Road 2 weights each month's discounted
+          cash by how many customers survive. Step through the 0/1 matrix to see why
+          they are the same sum, added up by rows or by columns.</p>
+          <p class="q">Why do both roads give exactly the same E(CLV)?</p>
+        </a>
+      </li>
     </ol>
   </section>
-
-  <a class="card featured" href="tools/two-roads-eclv.html">
-    <span class="badge">Use in Classes 07-08</span>
-    <p class="kicker">Computing E(CLV): two roads, one answer</p>
-    <h3>Two Roads to E(CLV)</h3>
-    <p>Start from one survivor curve. Road 1 weights each lifetime's CLV by how
-    many customers have that lifetime; Road 2 weights each month's discounted
-    cash by how many customers survive. Step through the 0/1 matrix to see why
-    they are the same sum, added up by rows or by columns.</p>
-    <p class="q">Why do both roads give exactly the same E(CLV)?</p>
-  </a>
 
   <h2>More tools</h2>
 
@@ -185,12 +186,12 @@
   </a>
 
   <a class="card" href="tools/bg-clv-explorer.html">
-    <p class="kicker">Reference: use after the three-part series</p>
+    <p class="kicker">Reference: use after the four-part series</p>
     <h3>BG/CLV Explorer</h3>
     <p>Every piece of the BG model on one page: the churn distribution,
     survival and retention, survivors after n renewals, and CLV, payback,
     and remaining lifetime value. Nothing is built step by step here, so it
-    works best once you have worked through Tools 1 to 3.</p>
+    works best once you have worked through Tools 1 to 4.</p>
   </a>
 
   <footer>
