@@ -184,7 +184,7 @@
     </header>
 
     <section class="control-bar card" aria-label="Model controls">
-      <div class="main-control"><label for="cac"><span>Acquisition cost (CAC)</span><output data-output="cac"></output></label><input id="cac" data-key="cac" type="range" min="0" max="400" step="1" value="50"></div>
+      <div class="main-control"><label for="cac"><span>Acquisition cost (CAC)</span><output data-output="cac"></output></label><input id="cac" data-key="cac" type="range" min="0" max="400" step="1" value="100"></div>
       <div class="baseline"><b>Blue Apron sBG baseline</b><br>Monthly contribution $26.8164 · discount 1.53% · a 0.6746 · b 1.2336</div>
       <button class="settings-toggle" id="settings-toggle" type="button" aria-expanded="false">Model settings</button>
       <div class="advanced" id="advanced" hidden>
@@ -389,7 +389,7 @@
     const BLUE = '#00274C', BLUE_MID = '#2F65A7', MAIZE = '#FFCB05', MAIZE_DARK = '#D9A900', RED = '#9A3324';
     const initialStep = Math.min(5, Math.max(1, Number(location.hash.match(/step-(\d+)/)?.[1] || 1)));
     const state = { step: initialStep, hover: null, locked: null, model: null };
-    const defaults = { a: 0.6746182701085135, b: 1.2336012934958855, contribution: 26.8164, discount: 0.0153, cac: 50 };
+    const defaults = { a: 0.6746182701085135, b: 1.2336012934958855, contribution: 26.8164, discount: 0.0153, cac: 100 };
     const formats = { cac:v=>money(v,0), a:v=>v.toFixed(4), b:v=>v.toFixed(4), contribution:v=>money(v,2), discount:v=>pct(v,2) };
     const activeIndex = () => state.hover ?? state.locked;
     const inputs = () => Object.fromEntries($$('[data-key]').map(el => [el.dataset.key, Number(el.value)]));
@@ -503,7 +503,7 @@
       const yMax=showCeiling?Math.max(maxPlotted,m.asymptoteClv):maxPlotted;
       const f=frame({xMin:1,xMax:m.displayRows+1,yMin:yMin*1.08,yMax:yMax*1.05,xLabel:'Realized lifetime L (months)',yLabel:'CLV ($)'});
       if(yMin<0&&yMax>0)f.parts.push(`<line x1="${f.left}" y1="${f.y(0)}" x2="${f.W-f.right}" y2="${f.y(0)}" stroke="${RED}" stroke-dasharray="5 4"/>`);
-      if(showCeiling)f.parts.push(`<line x1="${f.left}" y1="${f.y(m.asymptoteClv)}" x2="${f.W-f.right}" y2="${f.y(m.asymptoteClv)}" stroke="${BLUE}" stroke-width="2" stroke-dasharray="6 4" opacity=".55"/><text x="${f.W-f.right-4}" y="${f.y(m.asymptoteClv)-6}" text-anchor="end" fill="${BLUE}" font-size="10" font-weight="800">Ceiling ${money(m.asymptoteClv,0)}: never reached, however long they stay</text>`);
+      if(showCeiling)f.parts.push(`<line x1="${f.left}" y1="${f.y(m.asymptoteClv)}" x2="${f.W-f.right}" y2="${f.y(m.asymptoteClv)}" stroke="${BLUE}" stroke-width="2" stroke-dasharray="6 4" opacity=".55"/><text x="${f.W-f.right-4}" y="${f.y(m.asymptoteClv)-6}" text-anchor="end" fill="${BLUE}" font-size="10" font-weight="800">Max CLV ${money(m.asymptoteClv)} (max PAV ${money(m.asymptoteClv+m.cac)} - CAC): never reached, however long they stay</text>`);
       const pts=m.rows.map(r=>[r.isTail?m.displayRows+1:r.lifetime,r.clvAtLifetime]);
       f.parts.push(`<path d="${pts.map((p,i)=>`${i?'L':'M'} ${f.x(p[0])} ${f.y(p[1])}`).join(' ')}" fill="none" stroke="${BLUE_MID}" stroke-width="3"/>`);
       for(const row of m.rows){const xx=row.isTail?m.displayRows+1:row.lifetime,isActive=activeIndex()===row.index,color=state.step>=5&&row.clvAtLifetime<0?RED:BLUE_MID;f.parts.push(`<circle ${pointAttrs(row.index,`Lifetime ${row.label}, CLV ${money(row.clvAtLifetime)}`)} cx="${f.x(xx)}" cy="${f.y(row.clvAtLifetime)}" r="${isActive?7:3.5}" fill="${isActive?MAIZE:color}" stroke="${isActive?'#8A6D00':'#fff'}" stroke-width="2"><title>Lifetime ${row.label}${row.isTail?' (exactly '+(m.displayRows+1)+' months)':''}: CLV ${money(row.clvAtLifetime)}</title></circle>`)}
@@ -567,7 +567,7 @@
       YEARS.forEach((L,i)=>{const L0=i?YEARS[i-1]:0,x0=L0?right.x(clvAt(L0)):right.x(clvAt(1)-m.contribution),x1=right.x(clvAt(L)),add=clvAt(L)-(L0?clvAt(L0):-m.cac);
         right.parts.push(`<text x="${(x0+x1)/2}" y="${right.top+30}" text-anchor="middle" font-size="10.5" font-weight="800" fill="${GUIDE}">+${money(add,0)}</text>`)});
       right.parts.push(`<text x="${right.x(clvAt(YEARS[0]))+6}" y="${right.top+46}" font-size="10" fill="${GUIDE}">each year of lifetime adds less</text>`);
-      if(ceil!==null)right.parts.push(`<line x1="${right.x(ceil)}" y1="${right.top}" x2="${right.x(ceil)}" y2="${right.H-right.bottom}" stroke="${BLUE}" stroke-width="2" stroke-dasharray="6 4" opacity=".55"/><text x="${right.x(ceil)-6}" y="${right.top+12}" text-anchor="end" font-size="10" font-weight="800" fill="${BLUE}">ceiling ${money(ceil,0)}</text><text x="${right.x(ceil)-6}" y="${right.top+25}" text-anchor="end" font-size="10" fill="${BLUE}">never reached</text>`);
+      if(ceil!==null)right.parts.push(`<line x1="${right.x(ceil)}" y1="${right.top}" x2="${right.x(ceil)}" y2="${right.H-right.bottom}" stroke="${BLUE}" stroke-width="2" stroke-dasharray="6 4" opacity=".55"/><text x="${right.x(ceil)-6}" y="${right.top+12}" text-anchor="end" font-size="10" font-weight="800" fill="${BLUE}">max CLV ${money(ceil)}, never reached</text><text x="${right.x(ceil)-6}" y="${right.top+25}" text-anchor="end" font-size="10" fill="${BLUE}">= max PAV ${money(ceil+m.cac)} - CAC ${money(m.cac,0)}</text>`);
       spikes(right,m.rows,row=>row.clv,row=>state.step>=5&&row.clv<0?RED:row.isTail?MAIZE_DARK:BLUE);
       axisMark(right,'#8A6D00','#FFF6D6','x-axis: CLV(L) in dollars',250);
       // Connectors, bar tip to twin tip: horizontal, because the heights match. Every lifetime has
