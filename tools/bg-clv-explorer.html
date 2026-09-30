@@ -65,16 +65,16 @@ details summary { cursor:pointer; font-weight:600; }
 <div id="layout">
   <aside id="controls">
   <h2>sBG model parameters</h2>
-  <div class="ctl" data-key="a"><label><span>a</span><output>0.68</output></label>
-    <input type="range" min="0.0001" max="10" step="0.01" value="0.68">
-    <input type="number" min="0.0001" max="10" step="0.01" value="0.68"></div>
-  <div class="ctl" data-key="b"><label><span>b</span><output>1.23</output></label>
-    <input type="range" min="0.0001" max="10" step="0.01" value="1.23">
-    <input type="number" min="0.0001" max="10" step="0.01" value="1.23"></div>
+  <div class="ctl" data-key="a"><label><span>a</span><output>0.675</output></label>
+    <input type="range" min="0.001" max="10" step="0.001" value="0.675">
+    <input type="number" min="0.001" max="10" step="0.001" value="0.675"></div>
+  <div class="ctl" data-key="b"><label><span>b</span><output>1.234</output></label>
+    <input type="range" min="0.001" max="10" step="0.001" value="1.234">
+    <input type="number" min="0.001" max="10" step="0.001" value="1.234"></div>
   <h2>CLV inputs (CLV = PAV − CAC)</h2>
-  <div class="ctl" data-key="cac"><label><span>CAC ($)</span><output>50</output></label>
-    <input type="range" min="0" max="500" step="1" value="50">
-    <input type="number" min="0" max="500" step="1" value="50"></div>
+  <div class="ctl" data-key="cac"><label><span>CAC ($)</span><output>100.00</output></label>
+    <input type="range" min="0" max="500" step="0.01" value="100">
+    <input type="number" min="0" max="500" step="0.01" value="100"></div>
   <div class="ctl" data-key="cf"><label><span>Net cash flow / period ($)</span><output>26.82</output></label>
     <input type="range" min="0" max="100" step="0.01" value="26.82">
     <input type="number" min="0" max="100" step="0.01" value="26.82"></div>
@@ -543,7 +543,13 @@ function renderSurvivalSection(model) {
       highlightT, clearHighlight);
 }
 
-const DEFAULTS = { a: 0.68, b: 1.23, cac: 50, cf: 26.82, disc: 0.0153, N: 1000, n: 4 };
+// Class defaults: a, b to the nearest 0.001 (fit: 0.6746, 1.2336); dollars to the cent
+// (m = 1.8 x 57.3 x 26% = 26.8164); CAC $100 as in the Class 7 workbook; d = 1.53%.
+const DEFAULTS = { a: 0.675, b: 1.234, cac: 100, cf: 26.82, disc: 0.0153, N: 1000, n: 4 };
+// Each control's readout at its own precision: parameters 0.001, dollars 0.01, d 0.0001.
+const fmtCtl = (key, v) => key === 'a' || key === 'b' ? Number(v).toFixed(3)
+  : key === 'cac' || key === 'cf' ? Number(v).toFixed(2)
+  : key === 'disc' ? Number(v).toFixed(4) : String(Math.round(v));
 const state = { ...DEFAULTS };
 let raf = 0;
 function scheduleRender() { if (!raf) raf = requestAnimationFrame(() => { raf = 0; renderAll(); }); }
@@ -557,7 +563,7 @@ for (const ctl of document.querySelectorAll('.ctl')) {
   const apply = v => {
     if (!Number.isFinite(v)) v = state[key];      // revert on garbage input
     v = clamp(v);
-    state[key] = v; range.value = v; num.value = v; out.textContent = fmt2(v);
+    state[key] = v; range.value = v; num.value = v; out.textContent = fmtCtl(key, v);
     scheduleRender();
   };
   range.addEventListener('input', () => apply(+range.value));
@@ -569,7 +575,7 @@ document.getElementById('reset-link').addEventListener('click', ev => {
     const key = ctl.dataset.key;
     ctl.querySelector('input[type=range]').value = DEFAULTS[key];
     ctl.querySelector('input[type=number]').value = DEFAULTS[key];
-    ctl.querySelector('output').textContent = fmt2(DEFAULTS[key]);
+    ctl.querySelector('output').textContent = fmtCtl(key, DEFAULTS[key]);
     state[key] = DEFAULTS[key];
   }
   scheduleRender();
