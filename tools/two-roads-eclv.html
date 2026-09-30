@@ -255,7 +255,7 @@
         <h1>Two roads to E(CLV)</h1>
         <p class="lede">Start from one survivor curve, S(t). Road 1 weights each lifetime value by how many customers have that lifetime. Road 2 weights the cash so far by how many customers survive. Same inputs, same answer, and the 0/1 matrix shows why: one road adds up rows, the other adds up columns.</p>
       </div>
-      <div class="hero-aside"><strong>Two ways to think about E(CLV)</strong>Road 1: sum over time, then customers. Road 2: sum over customers, then time. Road 1 runs lifetimes out to n* = 1000 months, where CLV has reached its maximum to the cent. Run Road 2 that long and both land on the same number.</div>
+      <div class="hero-aside"><strong>Two ways to think about E(CLV)</strong>Road 1: sum over time, then customers. Road 2: sum over customers, then time. Road 1 runs lifetimes out to n*, the first month where discounting has converged CLV to its maximum to the cent (842 months with the class inputs). Run Road 2 that long and both land on the same number.</div>
     </header>
 
     <section class="control-bar card" aria-label="Model inputs">
@@ -386,7 +386,7 @@
     <!-- Step 6: where they meet -->
     <section class="panel card" data-panel="6" aria-labelledby="p6-title">
       <div class="panel-head"><div><h2 id="p6-title">Where the roads meet: pick a horizon big enough</h2>
-        <p class="caption">Adding up to infinity is possible, but the formula is inconvenient. Road 1 already runs out to n* = 1000 months, where every longer lifetime is worth max(<span class="mname">CLV</span>) to the cent. Road 2 needs you to pick how many months to add: that is E(C<i>n</i>V), the value of the first n months. Drag n down in the bar above and watch Road 2 fall short; at <b>n = n*</b> the two roads agree. (Stop Road 1 at the same n and they would agree at every n: the solid and dashed lines are the same curve.)</p></div><span class="tag base">Can do in Excel</span></div>
+        <p class="caption">Adding up to infinity is possible, but the formula is inconvenient. Road 1 already runs out to n*, the first month where every longer lifetime is worth max(<span class="mname">CLV</span>) to the cent. Road 2 needs you to pick how many months to add: that is E(C<i>n</i>V), the value of the first n months. Drag n down in the bar above and watch Road 2 fall short; at <b>n = n*</b> the two roads agree. (Stop Road 1 at the same n and they would agree at every n: the solid and dashed lines are the same curve.)</p></div><span class="tag base">Can do in Excel</span></div>
       <svg id="conv-chart" viewBox="0 0 1000 340" role="img" aria-label="Expected value as the horizon grows"></svg>
       <div class="match" id="match">
         <h3>Match your Excel</h3>
@@ -460,10 +460,10 @@
       while (n < 1e6 && limit * discount(p, n) >= threshold) n++;
       return n;
     }
-    // Road 1's spike sits at n* = 1000 (Eric's choice), pushed further out only if the
-    // inputs make the cumulative total converge to the cent later than that.
-    const N_STAR = 1000;
-    function nStar(raw) { return Math.max(N_STAR, nConverge(raw, 0.005)); }
+    // Road 1's spike sits at n*, the month where discounting has converged the value series to
+    // its final value to the cent (the whole remaining tail is under half a cent). Not a fixed
+    // round number: 842 months at the class inputs.
+    function nStar(raw) { return nConverge(raw, 0.005); }
     // Road 1: distribution of possible values, spike at n* = n.
     function road1(raw, n) {
       const p = normalize(raw); n = Math.max(1, Math.round(n));
@@ -640,7 +640,7 @@
     const questions = {
       1: () => ({ q: 'A customer churns at the end of month 2. What is their lifetime L, and how many payments did they make?', a: 'L = 2, and they paid twice: once at t = 0 (undiscounted) and once at t = 1. Churning at the end of month t means t payments.' }),
       2: () => { const S = TwoRoadsMath.survivalCurve(TwoRoadsMath.normalize(params()), 12); return { q: `S(1) is ${pct(S[1])}. What share of the cohort churns at the end of month 1, and what share makes the payment at t = 1?`, a: `${pct(1 - S[1])} churn after one payment: that is P(L = 1) = S(0) - S(1). The other ${pct(S[1])} are still alive and pay at t = 1. The same subtraction gives P(L = t) for every lifetime.` }; },
-      3: () => { const ns = nStar(), r = TwoRoadsMath.road1(params(), ns), inc = TwoRoadsMath.nIncrement(params(), 0.005), conv = TwoRoadsMath.nConverge(params(), 0.005), np = TwoRoadsMath.normalize(params()), lim = np.m * (1 + np.d) / np.d; return { q: `After month ${inc}, one more month adds less than half a cent. So why not put the spike at n* = ${inc}?`, a: `Because hundreds of sub-cent months still add up. At ${inc}, max(PAV) is still ${money(lim - TwoRoadsMath.pavAtLifetime(params(), inc))} short of its limit ${money(lim)}; it only rounds to the limit at month ${conv}. By n* = ${ns}, every longer lifetime is worth ${money(V(r.spike.pav))} to the cent, so giving the ${pct(r.spike.prob)} in the spike that one value loses nothing.` }; },
+      3: () => { const ns = nStar(), r = TwoRoadsMath.road1(params(), ns), inc = TwoRoadsMath.nIncrement(params(), 0.005), conv = TwoRoadsMath.nConverge(params(), 0.005), np = TwoRoadsMath.normalize(params()), lim = np.m * (1 + np.d) / np.d; return { q: `After month ${inc}, one more month adds less than half a cent. So why not put the spike at n* = ${inc}?`, a: `Because hundreds of sub-cent months still add up. At ${inc}, max(PAV) is still ${money(lim - TwoRoadsMath.pavAtLifetime(params(), inc))} short of its limit ${money(lim)}; it only rounds to the limit at month ${conv}, which is why n* = ${ns}. From there on every longer lifetime is worth ${money(V(r.spike.pav))} to the cent, so giving the ${pct(r.spike.prob)} in the spike that one value loses nothing.` }; },
       4: () => ({ q: 'Road 2 never asks how long any one customer lasts. How can it still get the average right?', a: 'Because S(t) already is an average: the average of "still paying? 1 or 0" across all customers in month t. Weighting each month\'s cash by that average is the same as averaging over customers first.' }),
       5: () => ({ q: 'Sum the S(t) row at the bottom of any column. Why does it always equal the share of rows that still have an m x 1 in that column?', a: 'A customer pays in month t only if their lifetime is longer than t. Adding P(L) over those rows gives P(L > t) = S(t). So the column sum IS the survivor curve, and Road 2 is just Road 1 added up in the other direction.' }),
       6: () => { const h = TwoRoadsMath.horizonCurve(params(), 600), c = TwoRoadsMath.converged(params()); const at12 = V(h[11].ePav), full = V(c.ePav); const n99 = h.findIndex(x => Math.abs(full - V(x.ePav)) <= Math.abs(full) * 0.01) + 1; return { q: `With n = 12 months, E(${mName()}) is ${money(at12)}. How many months until you are within 1% of the true ${money(full)}?`, a: n99 > 0 ? `About ${n99} months. The BG tail is heavy: a few very loyal customers keep paying for years, so a one-year horizon misses a lot of value. In Excel, extend the sheet far enough (the Class 7 workbook runs 586 months).` : 'More than 600 months with these inputs. The BG tail is heavy: a few very loyal customers keep paying for a very long time.' }; }
@@ -771,7 +771,7 @@
         $('#nstar-same').innerHTML = `For every lifetime L &ge; n* = ${ns}:  ${mName()}(L) = ${mName()}(${ns}) = <span class="pk">max(${mName()}) = ${money(V(lim))}</span>  (the same to the cent)`;
         // Plain-language answer: the whole rest-of-forever after n* is worth less than a cent today.
         const tail = n => lim * Math.pow(1 + np.d, -n);   // value today of every payment from month n on
-        $('#nstar-rule').innerHTML = `<b>Why stop at n* = ${ns}?</b> Because after month ${ns}, staying longer adds nothing you can see. Every payment a customer makes from month ${ns} on, added up forever, is worth only <span class="pk">${money(tail(ns), 4)}</span> today. So a customer who stays ${ns} months and a customer who never leaves have the same ${mName()}, <span class="pk">${money(V(lim))}</span>. That is why all of them can share <span class="pk">one bar</span> without changing E(${mName()}).<br><br><b>Why not stop earlier, say at month ${inc}?</b> By then each single month is already worth less than half a cent (${money(np.m / Math.pow(1 + np.d, inc), 5)}). But there are hundreds of those months left, and together they still add <span class="pk">${money(tail(inc))}</span>. The whole remaining tail only drops below half a cent at <span class="pk">month ${conv}</span>. ${ns} is a round number safely past that.`; }
+        $('#nstar-rule').innerHTML = `<b>Why stop at n* = ${ns}?</b> Because after month ${ns}, staying longer adds nothing you can see. Every payment a customer makes from month ${ns} on, added up forever, is worth only <span class="pk">${money(tail(ns), 5)}</span> today, under half a cent. So a customer who stays ${ns} months and a customer who never leaves have the same ${mName()}, <span class="pk">${money(V(lim))}</span>. That is why all of them can share <span class="pk">one bar</span> without changing E(${mName()}).<br><br><b>Why not stop earlier, say at month ${inc}?</b> By then each single month is already worth less than half a cent (${money(np.m / Math.pow(1 + np.d, inc), 5)}). But there are hundreds of those months left, and together they still add <span class="pk">${money(tail(inc))}</span>. The whole remaining tail only drops below half a cent at <span class="pk">month ${conv}</span>, and that is exactly where n* sits.`; }
       // Table: lifetimes 1..TABLE_MAX, a break, then n*-49..n*+50 so students can watch CLV(L)
       // stop changing (to the cent) around the cutoff. Lifetimes at or past n* are inside the spike.
       const np1 = TwoRoadsMath.normalize(p), W1 = 50, Sx = TwoRoadsMath.survivalCurve(np1, ns + W1);

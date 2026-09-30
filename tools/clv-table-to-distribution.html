@@ -251,7 +251,7 @@
     </section>
 
     <section class="chart-card card twin-card" id="twin-card" hidden aria-labelledby="twin-title">
-      <div class="chart-head"><h2 id="twin-title">How likely is each possible customer lifetime value?</h2><p>Left: P(L) by lifetime in months. Right: the same spikes at the same heights, moved to x = CLV(L). Both panels share one y-scale, so each dashed connector runs flat from a lifetime to its CLV twin: only the x-axis changes. The gold guides mark L = 12, 24, 36, 48 and 60 months: evenly spaced in months, but squeezed together in dollars, because discounting makes each extra year of lifetime add less (and CLV never reaches its ceiling). Connectors show for the first six lifetimes and the 61+ group; hover or click any lifetime, here or in the table, to follow it.</p></div>
+      <div class="chart-head"><h2 id="twin-title">How likely is each possible customer lifetime value?</h2><p id="twin-caption">Left: P(L) by lifetime in months. Right: the same spikes at the same heights, moved to x = CLV(L). Both panels share one y-scale, so each dashed connector runs flat from a lifetime to its CLV twin: only the x-axis changes. The gold guides mark L = 12, 24, 36, 48 and 60 months: evenly spaced in months, but squeezed together in dollars, because discounting makes each extra year of lifetime add less. Everyone still here at n* = 1000 months is worth the maximum, max PAV less CAC, so they share one spike placed exactly there. Connectors show for the first six lifetimes and that spike; hover or click any lifetime, here or in the table, to follow it.</p></div>
       <div class="chart-wrap"><svg id="twin-chart" viewBox="0 0 1360 416" role="img" aria-label="Lifetime distribution in months beside the same distribution in CLV dollars"></svg></div>
     </section>
 
@@ -377,7 +377,29 @@
         r12: retention(p.a, p.b, 12), tailProbability,
         asymptotePav, asymptoteClv: asymptotePav - p.cac };
     }
-    return { lnGamma, lnBeta, survival, retention, probabilityLifetime, normalize, buildModel };
+    // Step 4 chart: every lifetime 1 .. n*-1 at its own CLV, and one spike for everyone still
+    // here at n*, placed at the maximum: max PAV = m(1+d)/d, max CLV = max PAV - CAC.
+    // n* is where discounting has converged the series to its final value to the cent: the first
+    // L whose shortfall, max PAV x (1+d)^-L, is under half a cent, so PAV(L) rounds to max PAV.
+    // Computed directly (not from the model's horizon), so a tiny d still converges correctly.
+    function twinDistribution(raw) {
+      const p = normalize(raw);
+      const maxPav = p.contribution * (1 + p.discount) / p.discount;
+      let nStar = 1;
+      while (nStar < 1e6 && maxPav * Math.pow(1 + p.discount, -nStar) >= 0.005) nStar++;
+      const rows = [];
+      let sPrev = 1, pav = 0;
+      for (let L = 1; L < nStar; L++) {
+        const sL = survival(p.a, p.b, L);
+        pav += p.contribution / Math.pow(1 + p.discount, L - 1);
+        rows.push({ L, prob: sPrev - sL, clv: pav - p.cac });
+        sPrev = sL;
+      }
+      const spike = { L: nStar, prob: sPrev, clv: maxPav - p.cac };
+      const expectedClv = rows.reduce((acc, r) => acc + r.prob * r.clv, 0) + spike.prob * spike.clv;
+      return { nStar, rows, spike, maxPav, maxClv: maxPav - p.cac, expectedClv };
+    }
+    return { lnGamma, lnBeta, survival, retention, probabilityLifetime, normalize, buildModel, twinDistribution };
   })();
   /*MATH-CORE-END*/
 
@@ -503,7 +525,7 @@
       const yMax=showCeiling?Math.max(maxPlotted,m.asymptoteClv):maxPlotted;
       const f=frame({xMin:1,xMax:m.displayRows+1,yMin:yMin*1.08,yMax:yMax*1.05,xLabel:'Realized lifetime L (months)',yLabel:'CLV ($)'});
       if(yMin<0&&yMax>0)f.parts.push(`<line x1="${f.left}" y1="${f.y(0)}" x2="${f.W-f.right}" y2="${f.y(0)}" stroke="${RED}" stroke-dasharray="5 4"/>`);
-      if(showCeiling)f.parts.push(`<line x1="${f.left}" y1="${f.y(m.asymptoteClv)}" x2="${f.W-f.right}" y2="${f.y(m.asymptoteClv)}" stroke="${BLUE}" stroke-width="2" stroke-dasharray="6 4" opacity=".55"/><text x="${f.W-f.right-4}" y="${f.y(m.asymptoteClv)-6}" text-anchor="end" fill="${BLUE}" font-size="10" font-weight="800">Max CLV ${money(m.asymptoteClv)} (max PAV ${money(m.asymptoteClv+m.cac)} - CAC): never reached, however long they stay</text>`);
+      if(showCeiling)f.parts.push(`<line x1="${f.left}" y1="${f.y(m.asymptoteClv)}" x2="${f.W-f.right}" y2="${f.y(m.asymptoteClv)}" stroke="${BLUE}" stroke-width="2" stroke-dasharray="6 4" opacity=".55"/><text x="${f.W-f.right-4}" y="${f.y(m.asymptoteClv)-6}" text-anchor="end" fill="${BLUE}" font-size="10" font-weight="800">Max PAV ${money(m.asymptoteClv+m.cac)}, so max CLV ${money(m.asymptoteClv)} after CAC</text>`);
       const pts=m.rows.map(r=>[r.isTail?m.displayRows+1:r.lifetime,r.clvAtLifetime]);
       f.parts.push(`<path d="${pts.map((p,i)=>`${i?'L':'M'} ${f.x(p[0])} ${f.y(p[1])}`).join(' ')}" fill="none" stroke="${BLUE_MID}" stroke-width="3"/>`);
       for(const row of m.rows){const xx=row.isTail?m.displayRows+1:row.lifetime,isActive=activeIndex()===row.index,color=state.step>=5&&row.clvAtLifetime<0?RED:BLUE_MID;f.parts.push(`<circle ${pointAttrs(row.index,`Lifetime ${row.label}, CLV ${money(row.clvAtLifetime)}`)} cx="${f.x(xx)}" cy="${f.y(row.clvAtLifetime)}" r="${isActive?7:3.5}" fill="${isActive?MAIZE:color}" stroke="${isActive?'#8A6D00':'#fff'}" stroke-width="2"><title>Lifetime ${row.label}${row.isTail?' (exactly '+(m.displayRows+1)+' months)':''}: CLV ${money(row.clvAtLifetime)}</title></circle>`)}
@@ -512,7 +534,7 @@
     // Step 3: P(L) against months, on the same x-axis as the CLV-by-lifetime chart above.
     // Step 4: the same panel grows a second panel below it with the SAME y-scale and x = CLV(L),
     // joined by connectors, so the only thing that changes is the x-axis (as in two_roads_eclv).
-    const LINK_DEFAULT = 6;
+    const LINK_DEFAULT = 6, MUTED_T = '#5B6B7C';
     function spikes(f, rows, xOf, colorOf) {
       for(const row of rows){const xx=f.x(xOf(row)),yy=f.y(row.probability),isActive=activeIndex()===row.index,color=colorOf(row);f.parts.push(`<line x1="${xx}" y1="${f.y(0)}" x2="${xx}" y2="${yy}" stroke="${color}" stroke-width="${isActive?7:4}" opacity="${isActive?1:.78}"/><circle ${pointAttrs(row.index,`Lifetime ${row.label}, CLV ${money(row.clv)}, probability ${pct(row.probability)}`)} cx="${xx}" cy="${yy}" r="${isActive?7:4}" fill="${isActive?MAIZE:color}" stroke="${isActive?'#8A6D00':'#fff'}" stroke-width="2"><title>Lifetime ${row.label}: CLV ${money(row.clv)}, probability ${pct(row.probability,2)}</title></circle>`)}
     }
@@ -543,37 +565,48 @@
         $('#lifetime-chart').innerHTML=`<title>Probability of each customer lifetime in months</title>${f.parts.join('')}`;
         return;
       }
-      // Step 4 on: twin panels side by side, as in two_roads_eclv. Same H, top, bottom and yMax
-      // in both, so every spike sits at the same height and each connector is horizontal.
-      const H=416, OFFX=600;
-      const left=frame({W:580,H,left:84,right:16,top:50,bottom:62,tickUnder:true,xMin:0,xMax:tailX+1,yMin:0,yMax:yMax,yLabel:'P(L)',yFmt:()=>'',xFmt:v=>v>=1&&v<m.displayRows?Math.round(v):''});
+      // Step 4 on: twin panels side by side. Same H, top, bottom and yMax in both, so every spike
+      // sits at the same height and each connector is horizontal. Lifetimes 1..60 match the table;
+      // everyone still here at n* shares one spike placed exactly at the maximum (max PAV - CAC).
+      const tw=DistributionMath.twinDistribution(inputs()), ns=tw.nStar, SPIKE='#C2188B';
+      $('#twin-caption').textContent=`Left: P(L) by lifetime in months. Right: the same spikes at the same heights, moved to x = CLV(L). Both panels share one y-scale, so each dashed connector runs flat from a lifetime to its CLV twin: only the x-axis changes. The gold guides mark L = 12, 24, 36, 48 and 60: evenly spaced in months, squeezed together in dollars, because discounting makes each extra year of lifetime add less. By month n* = ${ns}, discounting has converged PAV to its final value to the cent, max PAV = m(1+d)/d = ${money(tw.maxPav)}, so everyone still here then (${pct(tw.spike.prob,2)}) shares one spike placed exactly at max PAV less CAC. Hover or click any lifetime, here or in the table, to follow it.`;
+      const shownRows=m.rows.filter(r=>!r.isTail);
+      const yMax2=Math.max(...shownRows.map(r=>r.probability),tw.spike.prob)*1.15;
+      const H=416, OFFX=600, XB=m.displayRows+1.6, XS=m.displayRows+3.2;
+      const left=frame({W:580,H,left:84,right:16,top:50,bottom:62,tickUnder:true,xMin:0,xMax:XS+1,yMin:0,yMax:yMax2,yLabel:'P(L)',yFmt:()=>'',xFmt:v=>v>=1&&v<m.displayRows?Math.round(v):''});
       left.parts.push(`<text x="${left.left}" y="20" font-size="14" font-weight="800" fill="${BLUE}">How many customers have each lifetime? (x = months)</text>`);
-      spikes(left,m.rows,row=>row.isTail?tailX:row.lifetime,lColor);
-      left.parts.push(`<text x="${left.x(tailX)}" y="${left.H-left.bottom+18}" text-anchor="middle" font-size="11" font-weight="900" fill="#6E5600">${tail.label}</text>`);
-      // Year guides at L = 12, 24, ...: evenly spaced here in months, squeezed together on the CLV axis.
       const YEARS=[12,24,36,48,60].filter(L=>L<=m.displayRows), GUIDE='#8A6D00';
       for(const L of YEARS)left.parts.unshift(`<line x1="${left.x(L)}" y1="${left.top}" x2="${left.x(L)}" y2="${left.H-left.bottom}" stroke="${GUIDE}" stroke-width="1.2" stroke-dasharray="2 4" opacity=".75"/><text x="${left.x(L)}" y="${left.top-4}" text-anchor="middle" font-size="10.5" font-weight="800" fill="${GUIDE}">L = ${L}</text>`);
-      heightLabels(left,[...m.rows.slice(0,LINK_DEFAULT).map(r=>({prob:r.probability,color:BLUE})),{prob:tail.probability,color:MAIZE_DARK}]);
+      spikes(left,shownRows,row=>row.lifetime,()=>BLUE);
+      { const yA=left.H-left.bottom, xb=left.x(XB), xs=left.x(XS), ys=left.y(tw.spike.prob), omitted=m.s[m.displayRows]-tw.spike.prob;
+        left.parts.push(`<line x1="${xs}" y1="${left.y(0)}" x2="${xs}" y2="${ys}" stroke="${SPIKE}" stroke-width="5"/><circle cx="${xs}" cy="${ys}" r="4" fill="${SPIKE}" stroke="#fff" stroke-width="2"/>`);
+        left.parts.push(`<rect x="${xb-6}" y="${yA-6}" width="12" height="34" fill="#fff"/><line x1="${xb-8}" y1="${yA+8}" x2="${xb}" y2="${yA-8}" stroke="${BLUE_MID}" stroke-width="2.5"/><line x1="${xb+1}" y1="${yA+8}" x2="${xb+9}" y2="${yA-8}" stroke="${BLUE_MID}" stroke-width="2.5"/>`);
+        left.parts.push(`<text x="${xs}" y="${yA+18}" text-anchor="middle" font-size="11" font-weight="900" fill="${SPIKE}">&#8805; ${ns}</text>`);
+        { const yl=left.y(yMax2*0.62); left.parts.push(`<text x="${xs+6}" y="${yl}" text-anchor="end" font-size="11.5" font-weight="800" fill="${SPIKE}">still here at n* = ${ns}: ${pct(tw.spike.prob,2)}</text><text x="${xs+6}" y="${yl+15}" text-anchor="end" font-size="10.5" fill="${SPIKE}">PAV(${ns}) = max PAV = ${money(tw.maxPav)} to the cent</text><text x="${xs+6}" y="${yl+30}" text-anchor="end" font-size="10" fill="${MUTED_T}">lifetimes ${m.displayRows+1} to ${ns-1} (${pct(omitted)}) drawn only on the right</text><line x1="${xs}" y1="${yl+36}" x2="${xs}" y2="${ys-8}" stroke="${SPIKE}" stroke-width="1.3"/><path d="M ${xs-4} ${ys-12} L ${xs+4} ${ys-12} L ${xs} ${ys-5} Z" fill="${SPIKE}"/>`); } }
+      heightLabels(left,[...shownRows.slice(0,LINK_DEFAULT).map(r=>({prob:r.probability,color:BLUE})),{prob:tw.spike.prob,color:SPIKE}]);
       axisMark(left,BLUE_MID,'#E7EDF4','x-axis: LIFETIME L (months)',250);
-      const ceil=Number.isFinite(m.asymptoteClv)?m.asymptoteClv:null;
-      const cl=m.rows.map(r=>r.clv), xMin=Math.min(0,...cl), xMax=Math.max(0,...cl,ceil??-Infinity), pad=(xMax-xMin)*0.04;
-      const right=frame({W:760,H,left:60,right:16,top:50,bottom:62,tickUnder:true,xMin:xMin-pad,xMax:xMax+pad,yMin:0,yMax:yMax,yLabel:'P(L)',xFmt:v=>money(v,0),yFmt:v=>pct(v,0)});
+      const xMin=Math.min(0,tw.rows[0].clv), xMax=Math.max(0,tw.maxClv), pad=(xMax-xMin)*0.04;
+      const right=frame({W:760,H,left:60,right:16,top:50,bottom:62,tickUnder:true,xMin:xMin-pad,xMax:xMax+pad,yMin:0,yMax:yMax2,yLabel:'P(L)',xFmt:v=>money(v,0),yFmt:v=>pct(v,0)});
       right.parts.push(`<text x="${right.left}" y="20" font-size="14" font-weight="800" fill="${BLUE}">The same heights, moved to x = CLV(L)</text>`);
       if(xMin<0&&xMax>0)right.parts.push(`<line x1="${right.x(0)}" y1="${right.top}" x2="${right.x(0)}" y2="${right.H-right.bottom}" stroke="${RED}" stroke-width="2" stroke-dasharray="5 4"/><text x="${right.x(0)+6}" y="${right.top+12}" fill="${RED}" font-size="10" font-weight="800">BREAK-EVEN</text>`);
-      // The same year guides at x = CLV(L), with what each extra year of lifetime adds. Discounting
-      // makes each year add less, so the guides crowd together, and CLV never reaches the ceiling.
-      const clvAt=L=>m.rows[L-1].clvAtLifetime;
+      // Year guides at x = CLV(L), with what each extra year of lifetime adds.
+      const clvAt=L=>tw.rows[L-1].clv;
       for(const L of YEARS)right.parts.unshift(`<line x1="${right.x(clvAt(L))}" y1="${right.top}" x2="${right.x(clvAt(L))}" y2="${right.H-right.bottom}" stroke="${GUIDE}" stroke-width="1.2" stroke-dasharray="2 4" opacity=".75"/><text x="${right.x(clvAt(L))}" y="${right.top-4}" text-anchor="middle" font-size="10.5" font-weight="800" fill="${GUIDE}">L = ${L}</text>`);
-      YEARS.forEach((L,i)=>{const L0=i?YEARS[i-1]:0,x0=L0?right.x(clvAt(L0)):right.x(clvAt(1)-m.contribution),x1=right.x(clvAt(L)),add=clvAt(L)-(L0?clvAt(L0):-m.cac);
+      YEARS.forEach((L,i)=>{const L0=i?YEARS[i-1]:0,x0=L0?right.x(clvAt(L0)):right.x(-m.cac),x1=right.x(clvAt(L)),add=clvAt(L)-(L0?clvAt(L0):-m.cac);
         right.parts.push(`<text x="${(x0+x1)/2}" y="${right.top+30}" text-anchor="middle" font-size="10.5" font-weight="800" fill="${GUIDE}">+${money(add,0)}</text>`)});
       right.parts.push(`<text x="${right.x(clvAt(YEARS[0]))+6}" y="${right.top+46}" font-size="10" fill="${GUIDE}">each year of lifetime adds less</text>`);
-      if(ceil!==null)right.parts.push(`<line x1="${right.x(ceil)}" y1="${right.top}" x2="${right.x(ceil)}" y2="${right.H-right.bottom}" stroke="${BLUE}" stroke-width="2" stroke-dasharray="6 4" opacity=".55"/><text x="${right.x(ceil)-6}" y="${right.top+12}" text-anchor="end" font-size="10" font-weight="800" fill="${BLUE}">max CLV ${money(ceil)}, never reached</text><text x="${right.x(ceil)-6}" y="${right.top+25}" text-anchor="end" font-size="10" fill="${BLUE}">= max PAV ${money(ceil+m.cac)} - CAC ${money(m.cac,0)}</text>`);
-      spikes(right,m.rows,row=>row.clv,row=>state.step>=5&&row.clv<0?RED:row.isTail?MAIZE_DARK:BLUE);
+      // The maximum: max PAV, less CAC. The n* spike sits exactly on it.
+      const mx=right.x(tw.maxClv);
+      right.parts.push(`<line x1="${mx}" y1="${right.top}" x2="${mx}" y2="${right.H-right.bottom}" stroke="${SPIKE}" stroke-width="2" stroke-dasharray="5 4"/><text x="${mx-6}" y="${right.top+12}" text-anchor="end" font-size="11" font-weight="800" fill="${SPIKE}">max PAV ${money(tw.maxPav)}</text><text x="${mx-6}" y="${right.top+26}" text-anchor="end" font-size="10.5" font-weight="700" fill="${SPIKE}">= max CLV ${money(tw.maxClv)} after CAC ${money(m.cac,0)}</text>`);
+      // Lifetimes 61 .. n*-1 have no table row: thin, unlinked spikes. Lifetimes 1..60 link to the table.
+      for(const r of tw.rows.slice(m.displayRows)){if(r.prob<1e-6)continue;const xx=right.x(r.clv);right.parts.push(`<line x1="${xx}" y1="${right.y(0)}" x2="${xx}" y2="${right.y(r.prob)}" stroke="${BLUE}" stroke-width="1.5" opacity=".6"/>`)}
+      spikes(right,shownRows,row=>row.clv,row=>state.step>=5&&row.clv<0?RED:BLUE);
+      right.parts.push(`<line x1="${mx}" y1="${right.y(0)}" x2="${mx}" y2="${right.y(tw.spike.prob)}" stroke="${SPIKE}" stroke-width="5"/><circle cx="${mx}" cy="${right.y(tw.spike.prob)}" r="4.5" fill="${SPIKE}" stroke="#fff" stroke-width="2"><title>Everyone still here at n* = ${ns}: ${pct(tw.spike.prob,2)}, each worth the maximum</title></circle>`);
       axisMark(right,'#8A6D00','#FFF6D6','x-axis: CLV(L) in dollars',250);
-      // Connectors, bar tip to twin tip: horizontal, because the heights match. Every lifetime has
-      // one; the first few and the 61+ group show until a lifetime is hovered or locked.
-      const links=m.rows.map((row,i)=>{const x1=left.x(row.isTail?tailX:row.lifetime),y=left.y(row.probability),x2=OFFX+right.x(row.clv);
-        const dflt=i<LINK_DEFAULT||row.isTail;return `<line class="link${dflt?' default':''}" data-link="${row.index}" x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${row.isTail?MAIZE_DARK:BLUE_MID}" stroke-width="1.4" stroke-dasharray="3 4" opacity=".7"/>`});
+      // Connectors, bar tip to twin tip: horizontal, because the heights match.
+      const links=shownRows.map((row,i)=>{const x1=left.x(row.lifetime),y=left.y(row.probability),x2=OFFX+right.x(row.clv);
+        return `<line class="link${i<LINK_DEFAULT?' default':''}" data-link="${row.index}" x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${BLUE_MID}" stroke-width="1.4" stroke-dasharray="3 4" opacity=".7"/>`});
+      links.push(`<line x1="${left.x(XS)}" y1="${left.y(tw.spike.prob)}" x2="${OFFX+mx}" y2="${left.y(tw.spike.prob)}" stroke="${SPIKE}" stroke-width="1.4" stroke-dasharray="3 4" opacity=".8"/>`);
       $('#twin-chart').innerHTML=`<title>Lifetime distribution in months beside the same distribution in CLV dollars</title>${left.parts.join('')}<g transform="translate(${OFFX} 0)">${right.parts.join('')}</g>${links.join('')}`;
     }
     function updateHighlight() {

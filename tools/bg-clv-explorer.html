@@ -205,7 +205,18 @@ function fitGeomTheta(a, b) {
 }
 function geomSurvival(theta, t) { return Math.pow(1 - theta, t); }
 
-function buildModel({ a, b, cf, disc, cac, horizon = 2000 }) {
+// n*: the first lifetime L at which discounting has converged the value series to its final
+// value to the cent: max PAV x (1+d)^-L < 0.005, where max PAV = cf(1+d)/d. Every lifetime
+// from n* on is worth max PAV to the cent, so the distribution ends there, with one spike of
+// mass S(n*-1) at the maximum. Capped for very small d.
+function nStarFor(cf, disc, cap = 20000) {
+  if (!(disc > 0)) return cap;
+  const maxPav = cf * (1 + disc) / disc;
+  let n = 1;
+  while (n < cap && maxPav * Math.pow(1 + disc, -n) >= 0.005) n++;
+  return n;
+}
+function buildModel({ a, b, cf, disc, cac, horizon = nStarFor(cf, disc) - 1 }) {
   const st = [], discT = [], discCf = [], pav = [], clv = [], ectv = [];
   let cumDisc = 0, cumDiscSurv = 0;
   for (let p = 0; p <= horizon; p++) {
@@ -218,7 +229,7 @@ function buildModel({ a, b, cf, disc, cac, horizon = 2000 }) {
   const ptConv = [];
   let acc = 0;
   for (let p = 0; p < horizon; p++) { const q = st[p] - st[p + 1]; ptConv.push(q); acc += q; }
-  ptConv.push(1 - acc); // terminal mass at the horizon
+  ptConv.push(1 - acc); // everyone still here at n*: one spike at max PAV (to the cent)
   let eclv = 0, epav = 0;
   for (let p = 0; p <= horizon; p++) { eclv += clv[p] * ptConv[p]; epav += pav[p] * ptConv[p]; }
   const firstIndex = (arr, pred) => { for (let i = 0; i < arr.length; i++) if (pred(arr[i])) return i; return null; };
@@ -228,10 +239,12 @@ function buildModel({ a, b, cf, disc, cac, horizon = 2000 }) {
   if (maxPeriodToShow === null || maxPeriodToShow < 12) maxPeriodToShow = Math.max(maxPeriodToShow ?? 60, 60);
   return { st, discT, discCf, pav, clv, ptConv, ectv, eclv, epav,
     payback, halflife, clvToCac: cac > 0 ? eclv / cac : null, maxPeriodToShow,
+    nStar: horizon + 1, maxPav: cf * (1 + disc) / disc,
     params: { a, b, cf, disc, cac, horizon } };
 }
 
-function buildRLV({ a, b, cf, disc, pastT, horizon = 2000 }) {
+// Residual stream: rlv[i] after i more payments; it converges at i = n*, so rows run 0 .. n*.
+function buildRLV({ a, b, cf, disc, pastT, horizon = pastT + nStarFor(cf, disc) + 1 }) {
   const sPast = survival(a, b, pastT);
   const nRows = horizon - pastT;           // residual lifetimes 0 .. nRows−1
   const rl = [], rlv = [], ptCond = [];
@@ -249,7 +262,7 @@ function buildRLV({ a, b, cf, disc, pastT, horizon = 2000 }) {
   ptCond.push(1 - ptCond.reduce((a, b) => a + b, 0)); // terminal mass
   let erlv = 0;
   for (let i = 0; i < nRows; i++) erlv += rlv[i] * ptCond[i];
-  return { rl, rlv, ptCond, erlv, sPast, params: { a, b, cf, disc, pastT, horizon } };
+  return { rl, rlv, ptCond, erlv, sPast, nStar: nRows - 1, params: { a, b, cf, disc, pastT, horizon } };
 }
 
 function mulberry32(seed) {
@@ -303,7 +316,7 @@ function cohortSim({ model, rlvModel, N, nsims = 1000, seed = 42 }) {
 }
 
 const BGCLV = { lnGamma, lnBeta, betaPdf, betaCdf,
-  survival, retention, pmf, binnedPropensity, fitGeomTheta, geomSurvival, buildModel, buildRLV,
+  survival, retention, pmf, binnedPropensity, fitGeomTheta, geomSurvival, nStarFor, buildModel, buildRLV,
   mulberry32, sampleIndex, cohortSim };
 /*MATH-CORE-END*/
 if (typeof window !== 'undefined') window.BGCLV = BGCLV;
@@ -315,6 +328,7 @@ const COLORS = { blue:'#2563eb', grey:'#6b7280', green:'#16a34a', red:'#dc2626',
   blueLight:'#93c5fd', greenLight:'#86efac' };
 const SVGNS = 'http://www.w3.org/2000/svg';
 const fmt$ = v => (v < 0 ? '−$' : '$') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 0 });
+const fmtCents = v => (v < 0 ? '−$' : '$') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmt2 = v => v.toLocaleString('en-US', { maximumFractionDigits: 2 });
 const fmtPct = v => (100 * v).toFixed(1) + '%';
 
@@ -380,8 +394,10 @@ function makeChart({ parent, width = 640, height = 340,
   chart.vline = (xv, { stroke, label = '', dash = '4 3', labelY = 12 } = {}) => {
     el(SVGNS, 'line', { x1: x(xv), y1: 0, x2: x(xv), y2: ih, stroke,
       'stroke-dasharray': dash }, g);
-    if (label) el(SVGNS, 'text', { class: 'axis-label', x: x(xv) + 4, y: labelY, fill: stroke }, g)
-      .textContent = label;
+    // Near the right edge the label flips to the left of its line so it is never clipped.
+    const flip = x(xv) > iw * 0.6;
+    if (label) el(SVGNS, 'text', { class: 'axis-label', x: x(xv) + (flip ? -4 : 4), y: labelY,
+      'text-anchor': flip ? 'end' : 'start', fill: stroke }, g).textContent = label;
     return chart;
   };
   chart.hline = (yv, { stroke, label = '', dash = '4 3' } = {}) => {
@@ -657,11 +673,9 @@ function renderValueSection(model) {
 function renderClvDistSection(model) {
   const host = document.getElementById('sec-clvdist');
   host.innerHTML = '';
-  const P = model.maxPeriodToShow;
-  const xs = model.clv.slice(0, P + 1);
-  const ps = model.ptConv.slice(0, P + 1);
-  // fold the tail probability beyond P into the last shown bar so mass still sums to 1 on screen
-  ps[P] = model.ptConv.slice(P).reduce((a, b) => a + b, 0);
+  // Every lifetime up to n*, the month the discounted sum has converged to the cent. The last bar
+  // is everyone still here at n*: all worth the maximum, max CLV = max PAV - CAC.
+  const xs = model.clv, ps = model.ptConv, last = xs.length - 1, maxClv = model.maxPav - model.params.cac;
   const yMax = Math.max(...ps) * 1.15;
   const nearest = dx => { let best = 0; for (let i = 1; i < xs.length; i++)
     if (Math.abs(xs[i] - dx) < Math.abs(xs[best] - dx)) best = i; return best; };
@@ -671,10 +685,13 @@ function renderClvDistSection(model) {
     xLabel: 'Customer lifetime value ($)', yLabel: 'Proportion of customers' });
   c.axes({ xFormat: fmt$, yFormat: fmtPct })
     .bars(xs.map((x, i) => ({ x, y: ps[i] })), { fill: COLORS.blueLight, barWidth: 4 })
-    .vline(model.eclv, { stroke: COLORS.blue, label: `E(CLV) ${fmt$(model.eclv)}` })
+    .vline(model.eclv, { stroke: COLORS.blue, label: `E(CLV) ${fmt$(model.eclv)}`, labelY: 26 })
     .vline(0, { stroke: COLORS.red, dash: 'none', label: 'CLV = $0 (PAV = CAC)' })
+    .vline(maxClv, { stroke: '#C2188B', label: `max CLV ${fmtCents(maxClv)} = max PAV ${fmtCents(model.maxPav)} - CAC: ${fmtPct(ps[last])} still here at n* = ${model.nStar}` })
     .hover(dx => { const best = nearest(dx);
-      return `lifetime T=${best + 1} payments\nCLV: ${fmt$(xs[best])}\nP(T): ${fmtPct(ps[best])}`;
+      return best === last
+        ? `lifetime ${model.nStar}+ payments (still here at n*)\nCLV: ${fmtCents(maxClv)} (the maximum)\nP: ${fmtPct(ps[best])}`
+        : `lifetime T=${best + 1} payments\nCLV: ${fmt$(xs[best])}\nP(T): ${fmtPct(ps[best])}`;
     })
     .click(dx => toggleSelectedT(nearest(dx)));
   selectionPainters.push(sel => {
@@ -687,14 +704,10 @@ function renderClvDistSection(model) {
 function renderRlvDistSection(model, rlvModel) {
   const host = document.getElementById('sec-rlvdist');
   host.innerHTML = '';
-  const P = model.maxPeriodToShow;
-  const pav = model.pav.slice(0, P + 1);
-  const pPav = model.ptConv.slice(0, P + 1);
-  pPav[P] = model.ptConv.slice(P).reduce((a, b) => a + b, 0);
-  const rlv = rlvModel.rlv.slice(0, P + 1);
-  const pRlv = rlvModel.ptCond.slice(0, P + 1);
-  pRlv[P] = rlvModel.ptCond.slice(P).reduce((a, b) => a + b, 0);
-  const xMax = Math.max(pav[P], rlv[P]);
+  // Both run out to n*, where the discounted sum has converged to the cent; each ends in one bar
+  // at the maximum, max PAV = max RLV = m(1+d)/d, for everyone still here then.
+  const pav = model.pav, pPav = model.ptConv, rlv = rlvModel.rlv, pRlv = rlvModel.ptCond;
+  const xMax = model.maxPav * 1.02;
   const yMax = Math.max(...pPav, ...pRlv) * 1.15;
   const n = rlvModel.params.pastT;
 
@@ -707,6 +720,7 @@ function renderRlvDistSection(model, rlvModel) {
   c1.axes({ xFormat: fmt$, yFormat: fmtPct })
     .bars(pav.map((x, i) => ({ x, y: pPav[i] })), { fill: COLORS.blueLight, barWidth: 4 })
     .vline(model.epav, { stroke: COLORS.blue, label: `E(PAV) ${fmt$(model.epav)}` })
+    .vline(model.maxPav, { stroke: '#C2188B', label: `max PAV ${fmtCents(model.maxPav)}: ${fmtPct(pPav[pPav.length - 1])} at n* = ${model.nStar}` })
     .hover(dx => { const best = nearestPav(dx);
       return `PAV ${fmt$(pav[best])}\nP: ${fmtPct(pPav[best])}`;
     })
@@ -724,6 +738,7 @@ function renderRlvDistSection(model, rlvModel) {
   c2.axes({ xFormat: fmt$, yFormat: fmtPct })
     .bars(rlv.map((x, i) => ({ x, y: pRlv[i] })), { fill: COLORS.greenLight, barWidth: 4 })
     .vline(rlvModel.erlv, { stroke: COLORS.green, label: `E(RLV) ${fmt$(rlvModel.erlv)}` })
+    .vline(model.maxPav, { stroke: '#C2188B', label: `max RLV = max PAV ${fmtCents(model.maxPav)}: ${fmtPct(pRlv[pRlv.length - 1])} at n* = ${rlvModel.nStar}` })
     .hover(dx => {
       let best = 0; for (let i = 1; i < rlv.length; i++)
         if (Math.abs(rlv[i] - dx) < Math.abs(rlv[best] - dx)) best = i;
@@ -809,7 +824,7 @@ function renderDataTable(model) {
     cells.forEach(c => el(null, 'td', {}, tr).textContent = c);
   };
   rows.forEach(p => addRow(p));
-  addRow(H, `${H} (horizon, terminal mass ${model.ptConv[H].toFixed(4)})`);
+  addRow(H, `${H} (n* - 1: still here at n* = ${H + 1}, all worth max PAV ${fmtCents(model.maxPav)}; mass ${model.ptConv[H].toFixed(4)})`);
 }
 
 function renderAll() {
