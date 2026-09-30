@@ -251,8 +251,8 @@
     </section>
 
     <section class="chart-card card twin-card" id="twin-card" hidden aria-labelledby="twin-title">
-      <div class="chart-head"><h2 id="twin-title">How likely is each possible customer lifetime value?</h2><p>Left: P(L) by lifetime in months. Right: the same spikes at the same heights, moved to x = CLV(L). Both panels share one y-scale, so each dashed connector runs flat from a lifetime to its CLV twin: only the x-axis changes. Connectors show for the first six lifetimes and the 61+ group; hover or click any lifetime, here or in the table, to follow it.</p></div>
-      <div class="chart-wrap"><svg id="twin-chart" viewBox="0 0 1360 400" role="img" aria-label="Lifetime distribution in months beside the same distribution in CLV dollars"></svg></div>
+      <div class="chart-head"><h2 id="twin-title">How likely is each possible customer lifetime value?</h2><p>Left: P(L) by lifetime in months. Right: the same spikes at the same heights, moved to x = CLV(L). Both panels share one y-scale, so each dashed connector runs flat from a lifetime to its CLV twin: only the x-axis changes. The gold guides mark L = 12, 24, 36, 48 and 60 months: evenly spaced in months, but squeezed together in dollars, because discounting makes each extra year of lifetime add less (and CLV never reaches its ceiling). Connectors show for the first six lifetimes and the 61+ group; hover or click any lifetime, here or in the table, to follow it.</p></div>
+      <div class="chart-wrap"><svg id="twin-chart" viewBox="0 0 1360 416" role="img" aria-label="Lifetime distribution in months beside the same distribution in CLV dollars"></svg></div>
     </section>
 
     <details class="method">
@@ -545,17 +545,29 @@
       }
       // Step 4 on: twin panels side by side, as in two_roads_eclv. Same H, top, bottom and yMax
       // in both, so every spike sits at the same height and each connector is horizontal.
-      const H=400, OFFX=600;
-      const left=frame({W:580,H,left:84,right:16,top:34,bottom:62,tickUnder:true,xMin:0,xMax:tailX+1,yMin:0,yMax:yMax,yLabel:'P(L)',yFmt:()=>'',xFmt:v=>v>=1&&v<m.displayRows?Math.round(v):''});
+      const H=416, OFFX=600;
+      const left=frame({W:580,H,left:84,right:16,top:50,bottom:62,tickUnder:true,xMin:0,xMax:tailX+1,yMin:0,yMax:yMax,yLabel:'P(L)',yFmt:()=>'',xFmt:v=>v>=1&&v<m.displayRows?Math.round(v):''});
       left.parts.push(`<text x="${left.left}" y="20" font-size="14" font-weight="800" fill="${BLUE}">How many customers have each lifetime? (x = months)</text>`);
       spikes(left,m.rows,row=>row.isTail?tailX:row.lifetime,lColor);
       left.parts.push(`<text x="${left.x(tailX)}" y="${left.H-left.bottom+18}" text-anchor="middle" font-size="11" font-weight="900" fill="#6E5600">${tail.label}</text>`);
+      // Year guides at L = 12, 24, ...: evenly spaced here in months, squeezed together on the CLV axis.
+      const YEARS=[12,24,36,48,60].filter(L=>L<=m.displayRows), GUIDE='#8A6D00';
+      for(const L of YEARS)left.parts.unshift(`<line x1="${left.x(L)}" y1="${left.top}" x2="${left.x(L)}" y2="${left.H-left.bottom}" stroke="${GUIDE}" stroke-width="1.2" stroke-dasharray="2 4" opacity=".75"/><text x="${left.x(L)}" y="${left.top-4}" text-anchor="middle" font-size="10.5" font-weight="800" fill="${GUIDE}">L = ${L}</text>`);
       heightLabels(left,[...m.rows.slice(0,LINK_DEFAULT).map(r=>({prob:r.probability,color:BLUE})),{prob:tail.probability,color:MAIZE_DARK}]);
       axisMark(left,BLUE_MID,'#E7EDF4','x-axis: LIFETIME L (months)',250);
-      const cl=m.rows.map(r=>r.clv), xMin=Math.min(0,...cl), xMax=Math.max(0,...cl), pad=(xMax-xMin)*0.04;
-      const right=frame({W:760,H,left:60,right:16,top:34,bottom:62,tickUnder:true,xMin:xMin-pad,xMax:xMax+pad,yMin:0,yMax:yMax,yLabel:'P(L)',xFmt:v=>money(v,0),yFmt:v=>pct(v,0)});
+      const ceil=Number.isFinite(m.asymptoteClv)?m.asymptoteClv:null;
+      const cl=m.rows.map(r=>r.clv), xMin=Math.min(0,...cl), xMax=Math.max(0,...cl,ceil??-Infinity), pad=(xMax-xMin)*0.04;
+      const right=frame({W:760,H,left:60,right:16,top:50,bottom:62,tickUnder:true,xMin:xMin-pad,xMax:xMax+pad,yMin:0,yMax:yMax,yLabel:'P(L)',xFmt:v=>money(v,0),yFmt:v=>pct(v,0)});
       right.parts.push(`<text x="${right.left}" y="20" font-size="14" font-weight="800" fill="${BLUE}">The same heights, moved to x = CLV(L)</text>`);
       if(xMin<0&&xMax>0)right.parts.push(`<line x1="${right.x(0)}" y1="${right.top}" x2="${right.x(0)}" y2="${right.H-right.bottom}" stroke="${RED}" stroke-width="2" stroke-dasharray="5 4"/><text x="${right.x(0)+6}" y="${right.top+12}" fill="${RED}" font-size="10" font-weight="800">BREAK-EVEN</text>`);
+      // The same year guides at x = CLV(L), with what each extra year of lifetime adds. Discounting
+      // makes each year add less, so the guides crowd together, and CLV never reaches the ceiling.
+      const clvAt=L=>m.rows[L-1].clvAtLifetime;
+      for(const L of YEARS)right.parts.unshift(`<line x1="${right.x(clvAt(L))}" y1="${right.top}" x2="${right.x(clvAt(L))}" y2="${right.H-right.bottom}" stroke="${GUIDE}" stroke-width="1.2" stroke-dasharray="2 4" opacity=".75"/><text x="${right.x(clvAt(L))}" y="${right.top-4}" text-anchor="middle" font-size="10.5" font-weight="800" fill="${GUIDE}">L = ${L}</text>`);
+      YEARS.forEach((L,i)=>{const L0=i?YEARS[i-1]:0,x0=L0?right.x(clvAt(L0)):right.x(clvAt(1)-m.contribution),x1=right.x(clvAt(L)),add=clvAt(L)-(L0?clvAt(L0):-m.cac);
+        right.parts.push(`<text x="${(x0+x1)/2}" y="${right.top+30}" text-anchor="middle" font-size="10.5" font-weight="800" fill="${GUIDE}">+${money(add,0)}</text>`)});
+      right.parts.push(`<text x="${right.x(clvAt(YEARS[0]))+6}" y="${right.top+46}" font-size="10" fill="${GUIDE}">each year of lifetime adds less</text>`);
+      if(ceil!==null)right.parts.push(`<line x1="${right.x(ceil)}" y1="${right.top}" x2="${right.x(ceil)}" y2="${right.H-right.bottom}" stroke="${BLUE}" stroke-width="2" stroke-dasharray="6 4" opacity=".55"/><text x="${right.x(ceil)-6}" y="${right.top+12}" text-anchor="end" font-size="10" font-weight="800" fill="${BLUE}">ceiling ${money(ceil,0)}</text><text x="${right.x(ceil)-6}" y="${right.top+25}" text-anchor="end" font-size="10" fill="${BLUE}">never reached</text>`);
       spikes(right,m.rows,row=>row.clv,row=>state.step>=5&&row.clv<0?RED:row.isTail?MAIZE_DARK:BLUE);
       axisMark(right,'#8A6D00','#FFF6D6','x-axis: CLV(L) in dollars',250);
       // Connectors, bar tip to twin tip: horizontal, because the heights match. Every lifetime has
