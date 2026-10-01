@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The PAV Ceiling</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,650&family=Public+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#F3F6F5; --panel:#FFFFFF; --ink:#18222D; --muted:#5B6874; --rule:#D5DDDB;
+  --pay:#1F7A5A; --pay-soft:#BFE0D2; --ceil:#B5701A; --ceil-soft:#F3E3CB; --shift:#3E5C9A; --shift-soft:#D4DDF0;
+  --display:"Literata", Georgia, "Times New Roman", serif;
+  --body:"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#121A1F; --panel:#18232A; --ink:#E6ECEA; --muted:#97A5AE; --rule:#2C3A42;
+    --pay:#4FBF92; --pay-soft:#1E4A3A; --ceil:#E3A24B; --ceil-soft:#4A3519; --shift:#8FA9E6; --shift-soft:#26345A;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#121A1F; --panel:#18232A; --ink:#E6ECEA; --muted:#97A5AE; --rule:#2C3A42;
+  --pay:#4FBF92; --pay-soft:#1E4A3A; --ceil:#E3A24B; --ceil-soft:#4A3519; --shift:#8FA9E6; --shift-soft:#26345A;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+body{background:var(--ground);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55}
+.wrap{max-width:980px;margin:0 auto;padding-inline:20px;padding-block:28px 56px;display:grid;gap:28px}
+header{display:grid;gap:10px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--display);font-weight:650;font-size:clamp(28px,4.4vw,42px);line-height:1.12;margin:0;text-wrap:balance}
+h1 .f{color:var(--ceil);white-space:nowrap}
+.lede{max-width:66ch;margin:0;color:var(--muted)}
+h2{font-family:var(--display);font-weight:650;font-size:22px;line-height:1.25;margin:0;text-wrap:balance}
+.controls{display:flex;flex-wrap:wrap;gap:14px 26px;align-items:end;padding:16px 18px;background:var(--panel);border:1px solid var(--rule);border-radius:10px}
+.ctl{display:grid;gap:4px;min-width:200px;flex:1 1 220px}
+.ctl label{font-size:13px;font-weight:600}
+.ctl output{font-family:var(--mono);font-size:14px}
+.row{display:flex;align-items:center;gap:10px}
+input[type=range]{flex:1;accent-color:var(--pay)}
+.presets{display:flex;flex-wrap:wrap;gap:8px;flex:2 1 300px}
+.presets button{font:600 13px var(--body);color:var(--ink);background:transparent;border:1px solid var(--rule);border-radius:999px;padding:6px 12px;cursor:pointer}
+.presets button[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+.presets button:focus-visible,input:focus-visible{outline:2px solid var(--ceil);outline-offset:2px}
+.result{display:flex;flex-wrap:wrap;gap:8px 28px;align-items:baseline;padding:4px 2px}
+.big{font-family:var(--mono);font-size:clamp(26px,4vw,34px);font-weight:500;color:var(--ceil)}
+.result .eq{font-family:var(--mono);color:var(--muted);font-size:14px}
+section{display:grid;gap:12px}
+section p{margin:0;max-width:68ch}
+.fig{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:12px 12px 6px;overflow-x:auto}
+svg{display:block;width:100%;height:auto;min-width:520px}
+svg text{font-family:var(--mono);font-size:11px;fill:var(--muted)}
+svg .lab{fill:var(--ink);font-family:var(--body);font-size:12px;font-weight:600}
+svg .ceil-t{fill:var(--ceil);font-weight:500}
+.algebra{font-family:var(--mono);font-size:15px;line-height:1.9;background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:14px 18px;overflow-x:auto;white-space:nowrap}
+.algebra .c{color:var(--muted);font-family:var(--body);font-size:13px;margin-left:14px;white-space:normal}
+.algebra b{color:var(--ceil);font-weight:500}
+.note{font-size:14px;color:var(--muted)}
+.key{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.split{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;display:grid;gap:6px}
+.card h3{margin:0;font-size:15px}
+.card .m{font-family:var(--mono);font-size:14px}
+@media (prefers-reduced-motion: no-preference){ svg rect, svg path{transition:all .25s ease} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">MKT 626, Customer-Base Analysis</div>
+    <h1>Why max(PAV) = <span class="f">m(1+d)/d</span></h1>
+    <p class="lede">A customer who never churns still has a finite post-acquisition value. Each monthly payment is discounted one more month than the last, so the payments shrink toward zero and their sum levels off at a ceiling. Churn decides how many customers reach that ceiling; it never moves the ceiling itself.</p>
+  </header>
+
+  <div class="controls" role="group" aria-label="Inputs">
+    <div class="ctl">
+      <label for="m">Cash flow per month, m <span class="note" id="mSrc">(Blue Apron: 1.8 orders × $57.30 × 26% = $26.8164)</span></label>
+      <div class="row"><input id="m" type="range" min="5" max="60" step="0.0001" value="26.8164"><output id="mOut" for="m">$26.8164</output></div>
+    </div>
+    <div class="ctl">
+      <label for="d">Monthly discount rate, d</label>
+      <div class="row"><input id="d" type="range" min="0.5" max="5" step="0.01" value="1.53"><output id="dOut" for="d">1.53%</output></div>
+    </div>
+    <div class="presets" aria-label="Examples from the course">
+      <button type="button" data-m="26.8164" data-d="1.53" aria-pressed="true">Blue Apron ($26.8164, 1.53%)</button>
+      <button type="button" data-m="22" data-d="1" aria-pressed="false">Consumer product ($22, 1%)</button>
+      <button type="button" data-m="30" data-d="1" aria-pressed="false">CEO claim ($30, 1%)</button>
+    </div>
+  </div>
+
+  <div class="result" aria-live="polite">
+    <span class="big" id="maxOut">$1,779.52</span>
+    <span class="eq" id="eqOut">= 26.8164 × 1.0153 / 0.0153</span>
+    <span class="eq" id="roundOut">PAV is within half a cent of this after 842 payments (70 years).</span>
+  </div>
+
+  <section>
+    <h2>1. Each payment is worth less than the one before</h2>
+    <p>The payment at month t is worth m/(1+d)<sup>t</sup> today. The first payment arrives at sign-up (t = 0), so it is not discounted at all. Every later bar is the previous bar divided by (1+d).</p>
+    <div class="fig"><svg id="bars" viewBox="0 0 900 260" role="img" aria-label="Bar chart of discounted monthly payments shrinking over time"></svg></div>
+  </section>
+
+
+  <section>
+    <h2>2. When does the first m arrive? Two cash-flow timings</h2>
+    <p>The formula depends on when the first payment lands. In our workbook the customer pays at sign-up (t = 0), so the first m is certain and undiscounted. In the Blue Apron case (p. 10), the first margin arrives at the end of month 1 (t = 1), so every payment is discounted one more month. Faint outlines show the nominal m; solid bars show what each payment is worth today.</p>
+    <div class="fig"><svg id="timing" viewBox="0 0 900 300" role="img" aria-label="Two timelines of payments: one starting at sign-up, one starting at the end of month 1"></svg></div>
+    <div class="split">
+      <div class="card"><h3><span class="key" style="background:var(--pay)"></span>Paid at sign-up (our workbook)</h3><div class="m" id="immOut">m + m/(1+d) + m/(1+d)² + … = m(1+d)/d = $1,779.52</div><p class="note">The first dollar arrives immediately, so it counts in full.</p></div>
+      <div class="card"><h3><span class="key" style="background:var(--shift)"></span>Paid at the end of month 1 (the case)</h3><div class="m" id="delOut">m/(1+d) + m/(1+d)² + … = m/d = $1,752.71</div><p class="note">The same stream with the first payment removed: exactly one undiscounted m less, or the sign-up total divided by (1+d).</p></div>
+    </div>
+    <p class="note" id="diffOut">Difference: m(1+d)/d − m/d = m = $26.82, exactly one payment.</p>
+  </section>
+  <section>
+    <h2>3. Stack them up: the running total hits a ceiling</h2>
+    <p>Adding the bars month by month gives the PAV of a customer who survives that long. Each new bar adds less than the last, so the running total keeps rising but can never pass m(1+d)/d. If the first payment were delayed to the end of month 1, the total would level off one payment lower, at m/d.</p>
+    <div class="fig"><svg id="cum" viewBox="0 0 900 280" role="img" aria-label="Running total of discounted payments approaching a horizontal ceiling"></svg></div>
+  </section>
+
+  <section>
+    <h2>4. Why the ceiling is exactly m(1+d)/d</h2>
+    <p>Call the never-churn total X. Take away the first payment and what is left is the same never-ending stream, just starting one month later, so it is worth X/(1+d). The picture uses m = $100 and d = 20% so every piece is wide enough to see; the logic is identical for any m and d.</p>
+    <div class="fig"><svg id="proof" viewBox="0 0 900 230" role="img" aria-label="Two equal-length bars: all payments, and the first payment followed by the same stream shrunk by one month of discounting"></svg></div>
+    <div class="algebra" id="alg">
+      X = m + X/(1+d)<span class="c">the whole stream = first payment + the same stream one month later</span><br>
+      X − X/(1+d) = m<br>
+      X × d/(1+d) = m<br>
+      <b>X = m(1+d)/d</b> = m + m/d<span class="c">today's payment, plus a perpetuity of m starting next month</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>What churn does, and does not, change</h2>
+    <div class="split">
+      <div class="card"><h3><span class="key" style="background:var(--ceil)"></span>The location of the max</h3><div class="m" id="locOut">m(1+d)/d = $1,779.52</div><p class="note">Set by m and d only. Halving churn, doubling it, or changing a and b leaves it exactly where it is.</p></div>
+      <div class="card"><h3><span class="key" style="background:var(--pay)"></span>The height of the max bar</h3><div class="m">Pr(PAV = max) = S(t*)</div><p class="note">The share of customers who survive long enough that more payments add less than half a cent. Lower churn, or a more polarized cohort with a loyal tail, makes that bar taller and raises E(PAV).</p></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const NS = "http://www.w3.org/2000/svg";
+  const fmt$ = (x, dec=2) => "$" + x.toLocaleString("en-US",{minimumFractionDigits:dec, maximumFractionDigits:dec});
+  function el(tag, attrs, parent, text){
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function clear(svg){ while (svg.firstChild) svg.removeChild(svg.firstChild); }
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+  function niceStep(range, target){
+    const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw)));
+    const n = raw / p; return (n < 1.5 ? 1 : n < 3.5 ? 2 : n < 7.5 ? 5 : 10) * p;
+  }
+
+  function drawBars(m, d){
+    const svg = $("bars"); clear(svg);
+    const W = 900, H = 260, L = 56, R = 16, T = 18, B = 40;
+    const n = Math.min(240, Math.ceil(Math.log(10) / Math.log(1 + d)) + 1);
+    const x = t => L + (W - L - R) * t / n, bw = (W - L - R) / n;
+    const y = v => T + (H - T - B) * (1 - v / m);
+    const step = niceStep(m, 4);
+    for (let v = 0; v <= m + 1e-9; v += step){
+      el("line", {x1:L, x2:W-R, y1:y(v), y2:y(v), stroke:css("--rule"), "stroke-width":1}, svg);
+      el("text", {x:L-8, y:y(v)+4, "text-anchor":"end"}, svg, "$" + (step < 1 ? v.toFixed(1) : Math.round(v)));
+    }
+    for (let t = 0; t < n; t++){
+      const v = m / Math.pow(1 + d, t);
+      el("rect", {x:x(t)+bw*0.12, y:y(v), width:Math.max(bw*0.76, 0.6), height:y(0)-y(v), fill: t === 0 ? css("--ceil") : css("--pay")}, svg);
+    }
+    const tStep = niceStep(n, 8);
+    for (let t = 0; t <= n; t += tStep) el("text", {x:x(t)+bw/2, y:H-B+16, "text-anchor":"middle"}, svg, t);
+    el("text", {x:(L+W-R)/2, y:H-6, "text-anchor":"middle"}, svg, "months since acquisition, t");
+    el("text", {x:x(0)+bw+6, y:y(m)+12, class:"lab"}, svg, "t = 0: m = $" + m.toFixed(4) + ", paid at sign-up, not discounted");
+    const half = Math.log(2) / Math.log(1 + d);
+    if (half < n - 2){
+      el("line", {x1:x(half)+bw/2, x2:x(half)+bw/2, y1:y(m/2)-26, y2:y(m/2)-4, stroke:css("--muted"), "stroke-width":1}, svg);
+      el("text", {x:x(half)+bw/2+6, y:y(m/2)-16}, svg, "worth half of m by month " + Math.round(half));
+    }
+  }
+
+  function drawCum(m, d){
+    const svg = $("cum"); clear(svg);
+    const W = 900, H = 280, L = 70, R = 16, T = 26, B = 40;
+    const X = m * (1 + d) / d;
+    const n = Math.min(1200, Math.ceil(Math.log(100) / Math.log(1 + d)));
+    const x = t => L + (W - L - R) * t / n;
+    const y = v => T + (H - T - B) * (1 - v / (X * 1.08));
+    const step = niceStep(X * 1.08, 5);
+    for (let v = 0; v <= X * 1.08; v += step){
+      el("line", {x1:L, x2:W-R, y1:y(v), y2:y(v), stroke:css("--rule"), "stroke-width":1}, svg);
+      el("text", {x:L-8, y:y(v)+4, "text-anchor":"end"}, svg, "$" + Math.round(v).toLocaleString("en-US"));
+    }
+    let s = 0, dpath = "", area = "M" + x(0) + "," + y(0);
+    for (let t = 0; t <= n; t++){
+      s += m / Math.pow(1 + d, t);
+      const pt = x(t) + "," + y(s);
+      dpath += (t ? "L" : "M") + pt; area += "L" + pt;
+    }
+    area += "L" + x(n) + "," + y(0) + "Z";
+    el("path", {d:area, fill:css("--pay-soft"), "fill-opacity":0.55}, svg);
+    el("path", {d:dpath, fill:"none", stroke:css("--pay"), "stroke-width":2.5}, svg);
+    el("line", {x1:L, x2:W-R, y1:y(X), y2:y(X), stroke:css("--ceil"), "stroke-width":2, "stroke-dasharray":"6 5"}, svg);
+    el("text", {x:W-R-4, y:y(X)-8, "text-anchor":"end", class:"ceil-t"}, svg, "paid at sign-up: ceiling m(1+d)/d = " + fmt$(X));
+    const Xd = m / d;
+    el("line", {x1:L, x2:W-R, y1:y(Xd), y2:y(Xd), stroke:css("--shift"), "stroke-width":1.5, "stroke-dasharray":"2 4"}, svg);
+    el("text", {x:W-R-4, y:y(Xd)+15, "text-anchor":"end", style:"fill:var(--shift)"}, svg, "paid from end of month 1: m/d = " + fmt$(Xd));
+    const marks = [12, 60, 120, 240].filter(t => t < n * 0.9);
+    let sm = 0, k = 0; const cum = [];
+    for (let t = 0; t <= n; t++){ sm += m / Math.pow(1 + d, t); cum[t] = sm; }
+    marks.forEach((t, i) => {
+      el("circle", {cx:x(t), cy:y(cum[t]), r:3.5, fill:css("--pay")}, svg);
+      el("text", {x:x(t)+6, y:y(cum[t]) + (i % 2 ? 16 : -8)}, svg, (t/12) + " yr: " + Math.round(100 * cum[t] / X) + "% of max");
+    });
+    const tStep = niceStep(n, 8);
+    for (let t = 0; t <= n; t += tStep) el("text", {x:x(t), y:H-B+16, "text-anchor":"middle"}, svg, t);
+    el("text", {x:(L+W-R)/2, y:H-6, "text-anchor":"middle"}, svg, "months survived (payments made = months + 1)");
+  }
+
+  function drawProof(){
+    const svg = $("proof"); clear(svg);
+    const m = 100, d = 0.20, X = m * (1 + d) / d;
+    const W = 900, L = 150, R = 20, len = W - L - R, h = 34;
+    const sx = v => len * v / X;
+    const rows = [{y:40, label:"X: all payments", sub:"m + m/1.2 + m/1.2² + …"}, {y:130, label:"m, then X/(1+d)", sub:"same stream, one month later"}];
+    rows.forEach(r => {
+      el("text", {x:L-12, y:r.y+15, "text-anchor":"end", class:"lab"}, svg, r.label);
+      el("text", {x:L-12, y:r.y+30, "text-anchor":"end"}, svg, r.sub);
+    });
+    function stream(x0, scale, yy, fill, stroke){
+      let x = x0, k = 0;
+      while (k < 40){
+        const w = sx(m / Math.pow(1 + d, k)) * scale;
+        if (w < 1.2) break;
+        el("rect", {x:x, y:yy, width:w, height:h, fill:fill, stroke:stroke, "stroke-width":1}, svg);
+        if (w > 34) el("text", {x:x + w/2, y:yy + h/2 + 4, "text-anchor":"middle", style:"fill:var(--ink)"}, svg, "$" + Math.round(m / Math.pow(1 + d, k) * scale));
+        x += w; k++;
+      }
+      return x;
+    }
+    stream(L, 1, rows[0].y, css("--pay-soft"), css("--pay"));
+    el("rect", {x:L, y:rows[1].y, width:sx(m), height:h, fill:css("--ceil-soft"), stroke:css("--ceil"), "stroke-width":1.5}, svg);
+    el("text", {x:L + sx(m)/2, y:rows[1].y + h/2 + 4, "text-anchor":"middle", style:"fill:var(--ink)"}, svg, "m = $100");
+    stream(L + sx(m), 1/(1 + d), rows[1].y, css("--shift-soft"), css("--shift"));
+    const yb = rows[1].y + h + 12;
+    el("path", {d:`M${L + sx(m)},${yb} v6 H${L + len} v-6`, fill:"none", stroke:css("--shift"), "stroke-width":1.5}, svg);
+    el("text", {x:L + sx(m) + (len - sx(m))/2, y:yb + 22, "text-anchor":"middle", style:"fill:var(--shift)"}, svg, "X/(1+d) = $500: every piece of the top bar, divided by 1.2");
+    el("path", {d:`M${L},${rows[0].y - 10} v-6 H${L + len} v6`, fill:"none", stroke:css("--ceil"), "stroke-width":1.5}, svg);
+    el("text", {x:L + len/2, y:rows[0].y - 22, "text-anchor":"middle", class:"ceil-t"}, svg, "X = $100 × 1.2 / 0.2 = $600");
+    el("line", {x1:L + len, x2:L + len, y1:rows[0].y - 4, y2:rows[1].y + h + 4, stroke:css("--muted"), "stroke-dasharray":"3 4"}, svg);
+    el("text", {x:L + len - 4, y:rows[1].y - 14, "text-anchor":"end"}, svg, "same total length");
+  }
+
+
+  function drawTiming(m, d){
+    const svg = $("timing"); clear(svg);
+    const W = 900, L = 150, R = 150, n = 12, laneH = 90;
+    const lanes = [{y0:30, start:0, label:"Paid at sign-up", sub:"first m at t = 0", fill:css("--pay")},
+                   {y0:160, start:1, label:"Paid at end of month 1", sub:"first m at t = 1", fill:css("--shift")}];
+    const x = t => L + (W - L - R) * t / (n + 0.6);
+    const bw = (W - L - R) / (n + 0.6) * 0.62;
+    const hgt = v => laneH * v / m;
+    lanes.forEach(ln => {
+      const base = ln.y0 + laneH;
+      el("text", {x:L-14, y:ln.y0 + laneH/2, "text-anchor":"end", class:"lab"}, svg, ln.label);
+      el("text", {x:L-14, y:ln.y0 + laneH/2 + 16, "text-anchor":"end"}, svg, ln.sub);
+      el("line", {x1:L-4, x2:W-R+10, y1:base, y2:base, stroke:css("--muted"), "stroke-width":1}, svg);
+      let tot = 0;
+      for (let t = 0; t <= n; t++){
+        el("line", {x1:x(t)+bw/2, x2:x(t)+bw/2, y1:base, y2:base+4, stroke:css("--muted")}, svg);
+        if (t < ln.start){ el("text", {x:x(t)+bw/2, y:base-8, "text-anchor":"middle"}, svg, "no payment"); continue; }
+        const pv = m / Math.pow(1 + d, t); tot += pv;
+        el("rect", {x:x(t), y:base-hgt(m), width:bw, height:hgt(m), fill:"none", stroke:css("--rule"), "stroke-dasharray":"3 3"}, svg);
+        el("rect", {x:x(t), y:base-hgt(pv), width:bw, height:hgt(pv), fill:ln.fill}, svg);
+        if (t === ln.start) el("text", {x:x(t)+bw/2, y:base-hgt(m)-6, "text-anchor":"middle", style:"fill:var(--ink)"}, svg, "$" + pv.toFixed(2));
+      }
+      el("text", {x:x(n)+bw+8, y:base-6, style:"fill:var(--ink)"}, svg, "… forever");
+      const total = ln.start === 0 ? m * (1 + d) / d : m / d;
+      el("text", {x:W-8, y:ln.y0 + 18, "text-anchor":"end", class:"lab"}, svg, "sum = " + (ln.start === 0 ? "m(1+d)/d" : "m/d"));
+      el("text", {x:W-8, y:ln.y0 + 36, "text-anchor":"end", style:"fill:" + ln.fill + ";font-weight:500"}, svg, fmt$(total));
+    });
+    for (let t = 0; t <= n; t++) el("text", {x:x(t)+bw/2, y:lanes[1].y0 + laneH + 18, "text-anchor":"middle"}, svg, t);
+    el("text", {x:(L + W - R)/2, y:296, "text-anchor":"middle"}, svg, "t = months since sign-up (t = 1 is the end of month 1)");
+  }
+
+  function render(){
+    const m = parseFloat($("m").value), d = parseFloat($("d").value) / 100;
+    const X = m * (1 + d) / d;
+    $("mOut").textContent = "$" + m.toFixed(4);
+    $("dOut").textContent = (d * 100).toFixed(2) + "%";
+    $("maxOut").textContent = fmt$(X);
+    $("eqOut").textContent = "= " + m.toFixed(4) + " × " + (1 + d).toFixed(4) + " / " + d.toFixed(4);
+    const tStar = Math.ceil(Math.log(X / 0.005) / Math.log(1 + d));
+    $("roundOut").textContent = "PAV is within half a cent of this after " + tStar.toLocaleString("en-US") + " payments (" + Math.round(tStar / 12) + " years).";
+    $("locOut").textContent = "m(1+d)/d = " + fmt$(X);
+    drawBars(m, d); drawTiming(m, d); drawCum(m, d);
+    $("immOut").textContent = "m + m/(1+d) + m/(1+d)² + … = m(1+d)/d = " + fmt$(X);
+    $("delOut").textContent = "m/(1+d) + m/(1+d)² + … = m/d = " + fmt$(m / d);
+    $("diffOut").textContent = "Difference: m(1+d)/d − m/d = m = $" + m.toFixed(4) + ", exactly one undiscounted payment. Ratio: (1+d) = " + (1 + d).toFixed(4) + ".";
+    const isBA = Math.abs(m - 26.8164) < 0.00005;
+    $("mSrc").textContent = isBA ? "(Blue Apron: 1.8 orders × $57.30 × 26% = $26.8164)" : "";
+    document.querySelectorAll(".presets button").forEach(b => b.setAttribute("aria-pressed",
+      String(Math.abs(parseFloat(b.dataset.m) - m) < 0.00005 && Math.abs(parseFloat(b.dataset.d) - d * 100) < 0.005)));
+  }
+  $("m").addEventListener("input", render);
+  $("d").addEventListener("input", render);
+  document.querySelectorAll(".presets button").forEach(b => b.addEventListener("click", () => {
+    $("m").value = b.dataset.m; $("d").value = b.dataset.d; render();
+  }));
+  drawProof(); render();
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { drawProof(); render(); });
+  new MutationObserver(() => { drawProof(); render(); }).observe(document.documentElement, {attributes:true, attributeFilter:["data-theme"]});
+})();
+</script>
+</body>
+</html>
